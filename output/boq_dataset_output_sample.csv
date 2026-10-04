@@ -1,0 +1,7 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty,decision,material_type,material_usage,material_subtype,reason,model,prompt_version,latency_ms,cost_usd
+99.01.0010.,"Precast concrete paving blocks, 200×100×80","Concrete paving blocks on sand bed, joints sand-filled.",m²,450,matched,Prefab,Concrete paving blocks,,"explicit precast paving product, single ORIS candidate",gpt-4o-mini,v3,412,0.0011
+99.01.0020.,"Reinforcing steel B500B, cut and bent","Cut, bent and fixed to schedules incl. chairs and spacers.",t,12,matched,Steel,for concrete reinforcement,,"rebar grade and fixing language unambiguous",gpt-4o-mini,v3,388,0.0010
+99.01.0030.,"Foamed bitumen stabilised base course","Cold recycled base, quick visco-elastic, 150 mm.",m³,300,matched,Cold Recycled Bound Material,Foamed bitumen stabilised (Quick Visco-Elastic),,"foamed bitumen + quick visco-elastic named in spec",gpt-4o-mini,v3,455,0.0012
+99.01.0040.,"Concrete pavement slab, C40/50","Jointed concrete wearing course, sawn joints sealed.",m³,180,matched,Concrete,Concrete mixture for wearing course,C40/50,"wearing course usage stated, grade explicit",gpt-4o-mini,v3,431,0.0011
+99.01.0050.,"Bituminous waterproofing membrane, torch-applied","SBS membrane to podium deck, 4 mm, torch-applied.",m²,620,needs_review,,,,"material present but no waterproofing usage exists in taxonomy",gpt-4o-mini,v3,402,0.0011
+99.01.0060.,"Setting-out and as-built survey","Control network, setting-out and as-built records.",LS,1,not_a_material,,,,"surveying service, no material",gpt-4o-mini,v3,290,0.0008

@@ -1,0 +1,343 @@
+"material_type","material_usage","material_subtype"
+Blast furnace slag,for use in concrete mixtures,
+Bitumen,bitumen for asphalt mixtures,Normal Bitumen
+Additives,Additives for asphalt,For chemical process technologies (WMA)
+Additives,Additives for asphalt,For foaming systems technologies (WMA)
+Additives,Additives for asphalt,For organic additives technologies (WMA)
+Additives,Additives for asphalt,Organic fibers
+Admixture,admixtures for concrete,Retarder
+Admixture,admixtures for concrete,Set accelerator
+Admixture,Admixtures for hydraulically bound mixtures,Retarder
+Admixture,admixtures for concrete,Air entrainer
+Admixture,admixtures for concrete,harderning accelerator
+Admixture,admixtures for concrete,Plasticiser
+Concrete,Concrete for tunnels,C60/75
+Concrete,concrete mixture for base course,C8/10
+Concrete,Concrete mixture for wearing course,C30/37
+Concrete,Concrete mortar for annular gap filling,Cellular concrete mortar
+Blast furnace slag,For use in hydraulically bound mixtures,
+Filler,For use in hydraulically bound mixtures,
+Concrete,Wet Shotcrete for rock tunnels,C20/25
+Bitumen,bitumen for Surface dressing / Chip Seal,Bitumen emulsion
+Wood,Handrail in wood/timber,
+Concrete,Wet Shotcrete for rock tunnels,C30/37
+Composite,Soil-Mix wall (without metal structure),
+Drainage Elements,Rain gutter system (PVC-U),
+Concrete,Porous concrete for the base layer,
+Gabion Systems,"Gabion walls, fence systems and mattress",
+Geotextile,"For separation, filtration and reinforcement in pavement and earthworks construction",
+Prefab,Concrete cable ducts,
+Prefab,"Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+Silica Fume,for use in concrete mixtures,
+Steel,For railway track,
+Steel,Guardrail,
+Admixture,admixtures for concrete,
+Bitumen,bitumen for asphalt mixtures,
+Bitumen,bitumen for coating ,
+Bitumen,bitumen for Surface dressing / Chip Seal,
+Steel,Steel for tunnel lining,
+Steel,Sheet piles,
+Filler,for use in concrete mixtures,
+Fly Ash,for use in concrete mixtures,
+Quicklime,for use in concrete mixtures,
+Custom,Custom material (Carbon impact in m),
+Custom,Custom material (Carbon impact in kg),
+Custom,Custom material (Carbon impact in tonne),
+Soil,Soil for construction,
+Water,for all usage,
+Concrete,Concrete for abutment,C30/37
+Concrete,Concrete for abutment,C40/50
+Additives,Additives for asphalt,Sulphur pellets
+Concrete,Concrete for beam in steel reinforced concrete,C25/30
+Additives,Additives for asphalt,Metallic fibers
+Concrete,Concrete for bridge deck,C35/45
+Admixture,admixtures for concrete,Water resisting admixtures
+Concrete,Concrete for bridge deck,C50/60
+Building Components,Brick (clay),
+Admixture,admixtures for concrete,Metallic fibers
+Concrete,Concrete for concrete girder,C25/30
+Building Components,Tile (clay),
+Aggregates,unbound aggregates for subbase,Virgin Aggregates
+Concrete,Concrete for excavation beam,C30/37
+Excavations and Rock Cutting,For use as aggregates,High quality rock from tunnel blasting
+Aggregates,Sand for asphalt mixtures,Recycled Aggregates
+Concrete,Concrete for footings,C35/45
+Excavations and Rock Cutting,For landfill,Low quality rock from tunnel blasting
+Steel,for concrete reinforcement,
+Aggregates,Crushed rock for base filling,Recycled Aggregates
+Aggregates,Crushed rock for railway,Virgin Aggregates
+Concrete,Concrete for piers,C45/55
+Recycled Plastic,for all usage,
+Aggregates,Gravel for asphalt mixtures,Reclaimed Asphalt
+Concrete,Concrete for railway base slab,C25/30
+Excavations and Rock Cutting,For landfill,Waste
+Custom,Custom material (Carbon impact in m3),
+Aggregates,Gravel for concrete mixtures,Recycled Aggregates
+Concrete,Concrete for retaining wall,C35/45
+Excavations and Rock Cutting,For use as aggregates,Average quality rock from tunnel blasting
+Custom,Custom material (Carbon impact in m2),
+Aggregates,Gravel for hydraulically bound mixtures,Virgin Aggregates
+Concrete,Concrete for tunnel collar structure,C25/30
+Excavations and Rock Cutting,For landfill,Low quality rock from rock cutting
+Custom,Custom material (Carbon impact in pieces),
+Aggregates,Sand for concrete mixtures,Reclaimed Asphalt
+Construction and demolition material,"17 09 - Other construction and demolition wastes","17 09 03 - Other construction and demolition wastes (including mixed wastes) containing hazardous substances"
+Excavations and Rock Cutting,For use as aggregates,Reclaimed Asphalt Planings (RAP)
+Aggregates,Sand for hydraulically bound mixtures,Recycled Aggregates
+Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 01 - Concrete"
+Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 02 - Bricks"
+Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances"
+Construction and demolition material,"17 02 - Wood, glass and plastic","17 02 02 - Glass"
+Construction and demolition material,"17 02 - Wood, glass and plastic","17 02 04 - Glass, plastic and wood containing or contaminated with hazardous substances"
+Construction and demolition material,"17 03 - Bituminous mixtures, coal tar and tarred products","17 03 02 - Bituminous mixtures other than those mentioned in 17 03 01"
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 02 - Aluminium"
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 04 - Zinc"
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 06 - Tin"
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 09 - Metal waste contaminated with hazardous substances"
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 03 - Soil and stones containing hazardous substances"
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 05 - Dredging spoil containing hazardous substances"
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 07 - Track ballast containing hazardous substances"
+Construction and demolition material,"17 06 - Insulation materials and asbestos-containing construction materials","17 06 03 - Other insulation materials consisting of or containing hazardous substances"
+Construction and demolition material,"17 06 - Insulation materials and asbestos-containing construction materials","17 06 05 - Construction materials containing asbestos"
+Construction and demolition material,"17 08 - Gypsum-based construction material","17 08 02 - Gypsum-based construction materials other than those mentioned in 17 08 01"
+Aggregates,unbound aggregates for base layer,Reclaimed Asphalt
+Aggregates,unbound aggregates for base layer,Recycled Aggregates
+Aggregates,unbound aggregates for capping,Recycled Aggregates
+Aggregates,unbound aggregates for embankment,Virgin Aggregates
+Construction and demolition material,"17 09 - Other construction and demolition wastes","17 09 01 - Construction and demolition wastes containing mercury"
+Filler,for use in asphalt mixtures,
+Aggregates,unbound aggregates for subbase,Reclaimed Asphalt
+Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 03 - Tiles and ceramics"
+Fly Ash,For use in hydraulically bound mixtures,
+Asphalt,asphalt mixture for surface course,Hot Rolled Asphalt (HRA) - HMA
+Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06"
+Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - HMA
+Hydrated lime,For use in hydraulically bound mixtures,
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - 10% RAP
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - WMA 10% RAP
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - WMA
+Hydrated lime,for use in asphalt mixtures,
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA 30% RAP
+Limestone,For use in hydraulically bound mixtures,
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - HMA 30% RAP
+Limestone,for use in concrete mixtures,
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - WMA 50% RAP
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - HMA 50% RAP
+Concrete,Concrete for abutment,C35/45
+Concrete,Concrete for beam in prestressed concrete,C25/30
+Concrete,Concrete for beam in prestressed concrete,C30/37
+Concrete,Concrete for beam in prestressed concrete,C35/45
+Concrete,Concrete for beam in steel reinforced concrete,C30/37
+Concrete,Concrete for beam in steel reinforced concrete,C35/45
+Concrete,Concrete for bridge deck,C25/30
+Concrete,Concrete for bridge deck,C30/37
+Concrete,Concrete for bridge deck,C40/50
+Concrete,Concrete for bridge deck,C45/55
+Concrete,Concrete for cladding of MSE walls,C25/30
+Concrete,Concrete for cladding of MSE walls,C30/37
+Concrete,Concrete for cladding of MSE walls,C35/45
+Concrete,Concrete for concrete girder,C30/37
+Concrete,Concrete for concrete girder,C35/45
+Concrete,Concrete for excavation beam,C25/30
+Concrete,Concrete for excavation beam,C35/45
+Concrete,Concrete for footings,C25/30
+Concrete,Concrete for footings,C30/37
+Concrete,Concrete for piers,C30/37
+Concrete,Concrete for piers,C35/45
+Concrete,Concrete for piers,C40/50
+Concrete,Concrete for piles,C25/30
+Concrete,Concrete for piles,C30/37
+Concrete,Concrete for piles,C35/45
+Concrete,Concrete for railway base slab,C30/37
+Concrete,Concrete for railway base slab,C35/45
+Concrete,Concrete for retaining wall,C25/30
+Concrete,Concrete for retaining wall,C30/37
+Concrete,Concrete for transition slabs,C25/30
+Concrete,Concrete for transition slabs,C30/37
+Concrete,Concrete for tunnel base slab,C25/30
+Aggregates,Crushed rock for base filling,Reclaimed Asphalt
+Aggregates,Crushed rock for base filling,Virgin Aggregates
+Aggregates,Crushed rock for railway,Reclaimed Asphalt
+Aggregates,Crushed rock for railway,Recycled Aggregates
+Aggregates,Filtration layer of sand,Reclaimed Asphalt
+Aggregates,Filtration layer of sand,Recycled Aggregates
+Aggregates,Filtration layer of sand,Virgin Aggregates
+Aggregates,Gravel for asphalt mixtures,Recycled Aggregates
+Aggregates,Gravel for asphalt mixtures,Virgin Aggregates
+Aggregates,Gravel for concrete mixtures,Reclaimed Asphalt
+Aggregates,Gravel for concrete mixtures,Virgin Aggregates
+Aggregates,Gravel for hydraulically bound mixtures,Reclaimed Asphalt
+Concrete,Concrete for tunnel collar structure,C35/45
+Concrete,Concrete for tunnels,C30/37
+Concrete,Concrete for tunnels,C35/45
+Concrete,Concrete for tunnels,C50/60
+Concrete,concrete mixture for base course,C12/15
+Concrete,concrete mixture for base course,C20/25
+Concrete,concrete mixture for base course,C25/30
+Concrete,concrete mixture for base course,C30/37
+Concrete,Concrete mixture for wearing course,C12/15
+Concrete,Concrete mixture for wearing course,C20/25
+Concrete,Concrete mixture for wearing course,C25/30
+Concrete,Concrete mixture for wearing course,C35/45
+Concrete,Concrete mixture for wearing course,C40/50
+Concrete,Concrete mixture for wearing course,C8/10
+Concrete,Lean concrete,C16/20
+Concrete,Precast Concrete sleeper for railway,B99
+Concrete,concrete mixture for base course,
+Concrete,Concrete for tunnel base slab,C30/37
+Concrete,Concrete for tunnel base slab,C35/45
+Concrete,Concrete for tunnel collar structure,C30/37
+Aggregates,Filtration layer of sand,
+Aggregates,Gravel for asphalt mixtures,
+Aggregates,Gravel for concrete mixtures,
+Aggregates,Gravel for hydraulically bound mixtures,
+Aggregates,Sand for asphalt mixtures,
+Aggregates,Sand for concrete mixtures,
+Aggregates,Sand for hydraulically bound mixtures,
+Aggregates,unbound aggregates for base layer,
+Aggregates,unbound aggregates for capping,
+Aggregates,unbound aggregates for granular surfacing,
+Aggregates,unbound aggregates for subbase,
+Aggregates,Gravel for hydraulically bound mixtures,Recycled Aggregates
+Aggregates,Sand for asphalt mixtures,Reclaimed Asphalt
+Aggregates,Sand for asphalt mixtures,Virgin Aggregates
+Aggregates,Sand for concrete mixtures,Recycled Aggregates
+Aggregates,Sand for concrete mixtures,Virgin Aggregates
+Aggregates,Sand for hydraulically bound mixtures,Reclaimed Asphalt
+Aggregates,Sand for hydraulically bound mixtures,Virgin Aggregates
+Aggregates,Unbound aggregates for Ballast,Reclaimed Asphalt
+Aggregates,Unbound aggregates for Ballast,Recycled Aggregates
+Aggregates,Unbound aggregates for Ballast,Virgin Aggregates
+Aggregates,unbound aggregates for base layer,Virgin Aggregates
+Aggregates,unbound aggregates for capping,Reclaimed Asphalt
+Aggregates,unbound aggregates for capping,Virgin Aggregates
+Aggregates,unbound aggregates for embankment,Reclaimed Asphalt
+Aggregates,unbound aggregates for embankment,Recycled Aggregates
+Aggregates,unbound aggregates for granular surfacing,Reclaimed Asphalt
+Aggregates,unbound aggregates for granular surfacing,Recycled Aggregates
+Aggregates,unbound aggregates for granular surfacing,Virgin Aggregates
+Aggregates,unbound aggregates for subbase,Recycled Aggregates
+Cement,cement for concrete mixtures,CEM IV/A
+Cement,cement for concrete mixtures,CEM IV/B
+Cement,cement for concrete mixtures,CEM I
+Cement,cement for concrete mixtures,CEM III/B
+Cement,cement for concrete mixtures,CEM III/C
+Cement,cement for concrete mixtures,CEM III/A
+Cement,cement for concrete mixtures,CEM II/A
+Cement,cement for concrete mixtures,
+Cement,cement for hydraulically bound mixtures,
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - WMA 20% RAP
+Asphalt,asphalt mixture for surface course,Hot Rolled Asphalt (HRA) - HMA 10% RAP
+Asphalt,asphalt mixture for surface course,Hot Rolled Asphalt (HRA) - HMA 20% RAP
+Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - HMA 10% RAP
+Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - WMA
+Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - WMA 10% RAP
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - HMA
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - HMA 20% RAP
+Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - WMA
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - 10% RAP
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - 20% RAP
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - HMA
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - WMA 10% RAP
+Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - WMA 20% RAP
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA 50% RAP
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - WMA
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - HMA
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - HMA 50% RAP
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - WMA
+Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - WMA 30% RAP
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - HMA
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - WMA
+Cement,cement for concrete mixtures,CEM V/B
+Cement,cement for hydraulically bound mixtures,CEM II/A
+Cement,cement for hydraulically bound mixtures,CEM II/B
+Cement,cement for hydraulically bound mixtures,CEM III/A
+Cement,cement for hydraulically bound mixtures,CEM III/B
+Cement,cement for hydraulically bound mixtures,CEM IV/A
+Cement,cement for hydraulically bound mixtures,CEM IV/B
+Cement,cement for hydraulically bound mixtures,CEM V/A
+Asphalt,asphalt mixture for base course,
+Asphalt,asphalt mixture for binder course,
+Asphalt,asphalt mixture for surface course,
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - WMA 50% RAP
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - HMA 30% RAP
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - HMA
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - HMA 30% RAP
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - HMA 50% RAP
+Asphalt,asphalt mixture for binder course,Hot Rolled Asphalt (HRA) - HMA
+Asphalt,asphalt mixture for binder course,Hot Rolled Asphalt (HRA) - HMA 10% RAP
+Asphalt,asphalt mixture for binder course,Hot Rolled Asphalt (HRA) - HMA 20% RAP
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - HMA 30% RAP
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - HMA 50% RAP
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - WMA
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - WMA 50% RAP
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - HMA
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - HMA 10% RAP
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - WMA
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - WMA 10% RAP
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - WMA 20% RAP
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - WMA 50% RAP
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - WMA 30% RAP
+Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - WMA 50% RAP
+Excavations and Rock Cutting,For use as aggregates,Low quality rock from rock cutting
+Excavations and Rock Cutting,For landfill,Soil Excavation
+Excavations and Rock Cutting,For use as aggregates,Average quality rock from rock cutting
+Excavations and Rock Cutting,For use as aggregates,Concrete arisings
+Excavations and Rock Cutting,For use as aggregates,High quality rock from rock cutting
+Excavations and Rock Cutting,For use as aggregates,Low quality rock from tunnel blasting
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - WMA
+Construction and demolition material,"17 02 - Wood, glass and plastic","17 02 01 - Wood"
+Limestone,for all usage,
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - HMA
+Construction and demolition material,"17 02 - Wood, glass and plastic","17 02 03 - Plastic"
+Prefab,Precast Concrete sleeper for railway,
+Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - WMA 30% RAP
+Construction and demolition material,"17 03 - Bituminous mixtures, coal tar and tarred products","17 03 01 - Bituminous mixtures containing coal tar"
+Prefab,Concrete paving blocks,
+Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - HMA 20% RAP
+Construction and demolition material,"17 03 - Bituminous mixtures, coal tar and tarred products","17 03 03 - Coal tar and tarred products"
+Quicklime,For use in hydraulically bound mixtures,
+Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - WMA 30% RAP
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 01 - Copper, bronze, brass"
+Silica Fume,For use in hydraulically bound mixtures,
+Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - WMA 30% RAP
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 03 - Lead"
+Steel,Micropiles,
+Bitumen,bitumen for coating ,Bitumen emulsion
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 05 - Iron and steel"
+Concrete,General Ready mixed concrete,C12/15
+Bitumen,bitumen for coating ,Cut back
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 07 - Mixed metals"
+Concrete,General Ready mixed concrete,C20/25
+Bitumen,bitumen for asphalt mixtures,Polymer Modified Bitumen (PMB)
+Bitumen,bitumen for Surface dressing / Chip Seal,Cut back
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 10 - Cables containing oil, coal tar and other hazardous substances"
+Concrete,General Ready mixed concrete,C25/30
+Cabling Components,High-Density Polyethylene (HDPE),
+Construction and demolition material,"17 04 - Metals (including their alloys)","17 04 11 - Cables other than those mentioned in 17 04 10"
+Concrete,General Ready mixed concrete,C30/37
+Cement,cement for concrete mixtures,CEM V/A
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 04 - Soil and stones other than those mentioned in 17 05 03"
+Cement,cement for hydraulically bound mixtures,CEM I
+Cement,cement for hydraulically bound mixtures,CEM III/C
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+Concrete,General Ready mixed concrete,C35/45
+Cement,cement for hydraulically bound mixtures,CEM V/B
+Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil","17 05 08 - Track ballast other than those mentioned in 17 05 07"
+Concrete,General Ready mixed concrete,C40/50
+Cement,cement for concrete mixtures,CEM II/B
+Construction and demolition material,"17 06 - Insulation materials and asbestos-containing construction materials","17 06 01 - Insulation materials containing asbestos"
+Concrete,General Ready mixed concrete,C45/55
+Cold Recycled Bound Material,Foamed bitumen stabilised (Quick Visco-Elastic),
+Construction and demolition material,"17 06 - Insulation materials and asbestos-containing construction materials","17 06 04 - Insulation materials other than those mentioned in 17 06 01 and 17 06 03"
+Concrete,General Ready mixed concrete,C50/60
+Cold Recycled Bound Material,Foamed bitumen stabilised (Slow Visco-Elastic),
+Construction and demolition material,"17 08 - Gypsum-based construction material","17 08 01 - Gypsum-based construction materials contaminated with hazardous substances"
+Concrete,General Ready mixed concrete,C60/75
+Composite,Cement bound granular mixture,
+Construction and demolition material,"17 09 - Other construction and demolition wastes","17 09 02 - Construction and demolition wastes containing PCB (for example PCB-containing sealants, PCB-containing resin-based floorings, PCB-containing sealed glazing units, PCB-containing capacitors)"
+Steel,Structural steel (generic construction steel),
+Concrete,Concrete for tunnels,C25/30
+Construction and demolition material,"17 09 - Other construction and demolition wastes","17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+Steel,Handrail in steel/metal,

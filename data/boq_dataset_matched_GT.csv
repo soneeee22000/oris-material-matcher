@@ -1,0 +1,320 @@
+Item No.,material_type,material_usage,material_subtype
+0,,,
+00.01.,,,
+00.01.0010.,,,
+00.01.0020.,,,
+00.01.0030.,,,
+00.02.,,,
+00.02.0010.,,,
+00.02.0020.,,,
+00.02.0030.,,,
+00.03.,,,
+00.03.0010.,,,
+00.03.0020.,,,
+00.03.0030.,,,
+00.03.0040.,,,
+00.03.0050.,,,
+1,,,
+01.01.,,,
+01.01.0010.,,,
+01.01.0020.,,,
+01.02.,,,
+01.02.0010.,Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics",17 01 01 - Concrete
+01.02.0020.,Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics",17 01 02 - Bricks
+01.02.0030.,Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics",17 01 03 - Tiles and ceramics
+01.02.0040.,Construction and demolition material,"17 01 - Concrete, bricks, tiles and ceramics","17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06"
+01.02.0080.,Construction and demolition material,17 04 - Metals (including their alloys),17 04 05 - Iron and steel
+01.02.0090.,Construction and demolition material,17 04 - Metals (including their alloys),17 04 02 - Aluminium
+01.02.0100.,Construction and demolition material,17 04 - Metals (including their alloys),"17 04 01 - Copper, bronze, brass"
+01.02.0110.,Construction and demolition material,17 04 - Metals (including their alloys),17 04 11 - Cables other than those mentioned in 17 04 10
+01.02.0120.,Construction and demolition material,17 04 - Metals (including their alloys),"17 04 10 - Cables containing oil, coal tar and other hazardous substances"
+01.02.0130.,Construction and demolition material,"17 02 - Wood, glass and plastic",17 02 01 - Wood
+01.02.0140.,Construction and demolition material,"17 02 - Wood, glass and plastic","17 02 04 - Glass, plastic and wood containing or contaminated with hazardous substances"
+01.02.0150.,Construction and demolition material,"17 02 - Wood, glass and plastic",17 02 02 - Glass
+01.02.0160.,Construction and demolition material,"17 02 - Wood, glass and plastic",17 02 03 - Plastic
+01.02.0170.,Construction and demolition material,17 06 - Insulation materials and asbestos-containing construction materials,17 06 05 - Construction materials containing asbestos
+01.02.0180.,Construction and demolition material,17 06 - Insulation materials and asbestos-containing construction materials,17 06 04 - Insulation materials other than those mentioned in 17 06 01 and 17 06 03
+01.02.0190.,Construction and demolition material,17 08 - Gypsum-based construction material,17 08 02 - Gypsum-based construction materials other than those mentioned in 17 08 01
+01.02.0200.,Construction and demolition material,17 09 - Other construction and demolition wastes,"17 09 02 - Construction and demolition wastes containing PCB (for example PCB-containing sealants, PCB-containing resin-based floorings, PCB-containing sealed glazing units, PCB-containing capacitors)"
+01.02.0210.,Construction and demolition material,17 09 - Other construction and demolition wastes,"17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+01.03.,,,
+01.03.0010.,Excavations and Rock Cutting,For landfill,Soil Excavation
+01.03.0020.,Excavations and Rock Cutting,For landfill,Soil Excavation
+01.03.0030.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 03 - Soil and stones containing hazardous substances
+01.03.0040.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 04 - Soil and stones other than those mentioned in 17 05 03
+01.03.0050.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 06 - Dredging spoil other than those mentioned in 17 05 05
+01.03.0060.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 05 - Dredging spoil containing hazardous substances
+01.03.0070.,Excavations and Rock Cutting,For use as aggregates,High quality rock from rock cutting
+01.03.0080.,Excavations and Rock Cutting,For use as aggregates,Average quality rock from rock cutting
+01.03.0090.,Excavations and Rock Cutting,For use as aggregates,Low quality rock from rock cutting
+01.03.0100.,Excavations and Rock Cutting,For landfill,Low quality rock from rock cutting
+01.03.0110.,Excavations and Rock Cutting,For use as aggregates,Concrete arisings
+01.03.0120.,Excavations and Rock Cutting,For landfill,Waste
+01.03.0130.,Excavations and Rock Cutting,For use as aggregates,Reclaimed Asphalt Planings (RAP)
+01.04.,,,
+01.04.0010.,Aggregates,unbound aggregates for embankment,Virgin Aggregates
+01.04.0020.,Aggregates,unbound aggregates for embankment,Recycled Aggregates
+01.04.0030.,Aggregates,unbound aggregates for embankment,Reclaimed Asphalt
+01.04.0040.,Aggregates,unbound aggregates for capping,Virgin Aggregates
+01.04.0050.,Aggregates,unbound aggregates for capping,Recycled Aggregates
+01.04.0060.,Aggregates,unbound aggregates for capping,Reclaimed Asphalt
+01.04.0070.,Quicklime,For use in hydraulically bound mixtures,
+01.04.0080.,Geotextile,"For separation, filtration and reinforcement in pavement and earthworks construction",
+01.04.0090.,Soil,Soil for construction,
+01.04.0100.,,,
+2,,,
+02.01.,,,
+02.01.0010.,,,
+02.01.0020.,,,
+02.01.0030.,Prefab,"Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+02.01.0040.,,,
+02.02.,,,
+02.02.0010.,Prefab,"Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+02.02.0020.,Aggregates,Filtration layer of sand,Virgin Aggregates
+02.02.0030.,Aggregates,Filtration layer of sand,Recycled Aggregates
+02.02.0040.,Drainage Elements,Rain gutter system (PVC-U),
+02.02.0050.,Recycled Plastic,for all usage,
+3,,,
+03.01.,,,
+03.01.0010.,Aggregates,unbound aggregates for subbase,Virgin Aggregates
+03.01.0020.,Aggregates,unbound aggregates for subbase,Recycled Aggregates
+03.01.0030.,Aggregates,unbound aggregates for subbase,Reclaimed Asphalt
+03.01.0040.,Aggregates,unbound aggregates for base layer,Virgin Aggregates
+03.01.0050.,Aggregates,unbound aggregates for base layer,Recycled Aggregates
+03.01.0060.,Aggregates,unbound aggregates for base layer,Reclaimed Asphalt
+03.01.0070.,Aggregates,unbound aggregates for granular surfacing,Virgin Aggregates
+03.01.0080.,Aggregates,unbound aggregates for granular surfacing,Recycled Aggregates
+03.01.0090.,Aggregates,unbound aggregates for granular surfacing,Reclaimed Asphalt
+03.01.0100.,Aggregates,Crushed rock for base filling,Virgin Aggregates
+03.01.0110.,Aggregates,Crushed rock for base filling,Recycled Aggregates
+03.02.,,,
+03.02.0010.,Composite,Cement bound granular mixture,
+03.02.0020.,Cold Recycled Bound Material,Foamed bitumen stabilised (Quick Visco-Elastic),
+03.02.0030.,Cold Recycled Bound Material,Foamed bitumen stabilised (Slow Visco-Elastic),
+03.02.0040.,Concrete,Porous concrete for the base layer,
+03.02.0050.,Concrete,concrete mixture for base course,C8/10
+03.02.0060.,Concrete,concrete mixture for base course,C12/15
+03.02.0070.,Concrete,concrete mixture for base course,C20/25
+03.02.0080.,Concrete,concrete mixture for base course,C30/37
+03.02.0090.,Cement,cement for hydraulically bound mixtures,CEM II/B
+03.02.0100.,Cement,cement for hydraulically bound mixtures,CEM III/A
+03.02.0110.,Cement,cement for hydraulically bound mixtures,CEM I
+03.02.0120.,Cement,cement for hydraulically bound mixtures,CEM V/A
+03.02.0130.,Fly Ash,For use in hydraulically bound mixtures,
+03.02.0140.,Blast furnace slag,For use in hydraulically bound mixtures,
+03.02.0150.,Hydrated lime,For use in hydraulically bound mixtures,
+03.02.0160.,Aggregates,Gravel for hydraulically bound mixtures,Virgin Aggregates
+03.02.0170.,Aggregates,Sand for hydraulically bound mixtures,Recycled Aggregates
+03.02.0180.,Filler,For use in hydraulically bound mixtures,
+03.02.0190.,Limestone,For use in hydraulically bound mixtures,
+03.02.0200.,Admixture,Admixtures for hydraulically bound mixtures,Retarder
+03.02.0210.,Silica Fume,For use in hydraulically bound mixtures,
+03.03.,,,
+03.03.0010.,Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA
+03.03.0020.,Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA 30% RAP
+03.03.0030.,Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - HMA 50% RAP
+03.03.0040.,Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - WMA
+03.03.0050.,Asphalt,asphalt mixture for base course,Asphalt Concrete (AC) - WMA 50% RAP
+03.03.0060.,Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - HMA
+03.03.0070.,Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - HMA 50% RAP
+03.03.0080.,Asphalt,asphalt mixture for base course,High Modulus Asphalt (EME2) - WMA 30% RAP
+03.03.0090.,Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - HMA
+03.03.0100.,Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - HMA 30% RAP
+03.03.0110.,Asphalt,asphalt mixture for binder course,Asphalt Concrete (AC) - WMA 30% RAP
+03.03.0120.,Asphalt,asphalt mixture for binder course,High Modulus Asphalt (EME2) - HMA
+03.03.0130.,Asphalt,asphalt mixture for binder course,Hot Rolled Asphalt (HRA) - HMA 20% RAP
+03.03.0140.,Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - HMA
+03.03.0150.,Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - WMA
+03.03.0160.,Asphalt,asphalt mixture for binder course,Stone Mastic Asphalt (SMA) - HMA 50% RAP
+03.03.0170.,Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - HMA
+03.03.0180.,Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - HMA 20% RAP
+03.03.0190.,Asphalt,asphalt mixture for surface course,Asphalt Concrete (AC) - WMA 10% RAP
+03.03.0200.,Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - HMA
+03.03.0210.,Asphalt,asphalt mixture for surface course,Stone Mastic Asphalt (SMA) - WMA 20% RAP
+03.03.0220.,Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - HMA
+03.03.0230.,Asphalt,asphalt mixture for surface course,Porous Asphalt (PA) - WMA 10% RAP
+03.03.0240.,Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - HMA
+03.03.0250.,Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - WMA
+03.03.0260.,Asphalt,asphalt mixture for surface course,Mastic Asphalt (MA) - HMA 10% RAP
+03.03.0270.,Asphalt,asphalt mixture for surface course,Hot Rolled Asphalt (HRA) - HMA
+03.03.0280.,Asphalt,asphalt mixture for surface course,Hot Rolled Asphalt (HRA) - HMA 10% RAP
+03.03.0290.,Bitumen,bitumen for coating ,Bitumen emulsion
+03.03.0300.,Bitumen,bitumen for coating ,Cut back
+03.03.0310.,Bitumen,bitumen for Surface dressing / Chip Seal,Bitumen emulsion
+03.03.0320.,Bitumen,bitumen for Surface dressing / Chip Seal,Cut back
+03.03.0330.,,,
+03.04.,,,
+03.04.0010.,Concrete,Concrete mixture for wearing course,C12/15
+03.04.0020.,Concrete,Concrete mixture for wearing course,C20/25
+03.04.0030.,Concrete,Concrete mixture for wearing course,C25/30
+03.04.0040.,Concrete,Concrete mixture for wearing course,C30/37
+03.04.0050.,Concrete,Concrete mixture for wearing course,C35/45
+03.04.0060.,Concrete,Concrete mixture for wearing course,C40/50
+03.04.0070.,,,
+03.05.,,,
+03.05.0010.,Prefab,"Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+03.05.0020.,Prefab,"Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+03.05.0030.,Prefab,Concrete paving blocks,
+03.05.0040.,Building Components,Brick (clay),
+03.05.0050.,Building Components,Tile (clay),
+03.05.0060.,,,
+4,,,
+04.01.,,,
+04.01.0010.,Concrete,Concrete for piles,C35/45
+04.01.0020.,Concrete,Concrete for piles,C30/37
+04.01.0030.,Concrete,Concrete for piles,C25/30
+04.01.0040.,Steel,Micropiles,
+04.01.0050.,Steel,Sheet piles,
+04.01.0060.,Concrete,Concrete for footings,C30/37
+04.01.0070.,Concrete,Concrete for footings,C25/30
+04.01.0080.,Concrete,Concrete for footings,C35/45
+04.01.0090.,Concrete,Lean concrete,C16/20
+04.01.0100.,Concrete,Concrete for excavation beam,C30/37
+04.01.0110.,Concrete,Concrete for excavation beam,C25/30
+04.01.0120.,Concrete,Concrete for excavation beam,C35/45
+04.02.,,,
+04.02.0010.,Concrete,Concrete for abutment,C30/37
+04.02.0020.,Concrete,Concrete for abutment,C35/45
+04.02.0030.,Concrete,Concrete for abutment,C40/50
+04.02.0040.,Concrete,Concrete for piers,C30/37
+04.02.0050.,Concrete,Concrete for piers,C35/45
+04.02.0060.,Concrete,Concrete for piers,C40/50
+04.02.0070.,Concrete,Concrete for piers,C45/55
+04.02.0080.,Concrete,Concrete for retaining wall,C25/30
+04.02.0090.,Concrete,Concrete for retaining wall,C30/37
+04.02.0100.,Concrete,Concrete for retaining wall,C35/45
+04.02.0110.,Concrete,Concrete for transition slabs,C25/30
+04.02.0120.,Concrete,Concrete for transition slabs,C30/37
+04.02.0130.,Concrete,Concrete for cladding of MSE walls,C25/30
+04.02.0140.,Concrete,Concrete for cladding of MSE walls,C30/37
+04.02.0150.,Concrete,Concrete for cladding of MSE walls,C35/45
+04.03.,,,
+04.03.0010.,Concrete,Concrete for bridge deck,C35/45
+04.03.0020.,Concrete,Concrete for bridge deck,C45/55
+04.03.0030.,Concrete,Concrete for bridge deck,C50/60
+04.03.0040.,Concrete,Concrete for bridge deck,C30/37
+04.03.0050.,Concrete,Concrete for beam in prestressed concrete,C25/30
+04.03.0060.,Concrete,Concrete for beam in prestressed concrete,C30/37
+04.03.0070.,Concrete,Concrete for beam in prestressed concrete,C35/45
+04.03.0080.,Concrete,Concrete for beam in steel reinforced concrete,C25/30
+04.03.0090.,Concrete,Concrete for beam in steel reinforced concrete,C30/37
+04.03.0100.,Concrete,Concrete for beam in steel reinforced concrete,C35/45
+04.03.0110.,Concrete,Concrete for concrete girder,C25/30
+04.03.0120.,Concrete,Concrete for concrete girder,C30/37
+04.03.0130.,Concrete,Concrete for concrete girder,C35/45
+04.04.,,,
+04.04.0010.,Steel,for concrete reinforcement,
+04.04.0020.,Steel,for concrete reinforcement,
+04.04.0030.,Steel,Structural steel (generic construction steel),
+04.04.0040.,Steel,Structural steel (generic construction steel),
+04.04.0050.,,,
+04.04.0060.,,,
+04.04.0070.,,,
+04.04.0080.,,,
+04.04.0090.,Steel,Guardrail,
+04.04.0100.,Steel,Handrail in steel/metal,
+5,,,
+05.01.,,,
+05.01.0010.,Excavations and Rock Cutting,For use as aggregates,High quality rock from tunnel blasting
+05.01.0020.,Excavations and Rock Cutting,For use as aggregates,Average quality rock from tunnel blasting
+05.01.0030.,Excavations and Rock Cutting,For use as aggregates,Low quality rock from tunnel blasting
+05.01.0040.,Excavations and Rock Cutting,For landfill,Low quality rock from tunnel blasting
+05.01.0050.,Concrete,Wet Shotcrete for rock tunnels,C20/25
+05.01.0060.,Concrete,Wet Shotcrete for rock tunnels,C30/37
+05.01.0070.,Steel,Steel for tunnel lining,
+05.01.0080.,,,
+05.02.,,,
+05.02.0010.,Concrete,Concrete for tunnels,C25/30
+05.02.0020.,Concrete,Concrete for tunnels,C30/37
+05.02.0030.,Concrete,Concrete for tunnels,C35/45
+05.02.0040.,Concrete,Concrete for tunnels,C50/60
+05.02.0050.,Concrete,Concrete for tunnels,C60/75
+05.02.0060.,Concrete,Concrete for tunnel base slab,C25/30
+05.02.0070.,Concrete,Concrete for tunnel base slab,C30/37
+05.02.0080.,Concrete,Concrete for tunnel base slab,C35/45
+05.02.0090.,Concrete,Concrete for tunnel collar structure,C25/30
+05.02.0100.,Concrete,Concrete for tunnel collar structure,C30/37
+05.02.0110.,Concrete,Concrete for tunnel collar structure,C35/45
+05.02.0120.,Concrete,Concrete mortar for annular gap filling,Cellular concrete mortar
+05.02.0130.,,,
+05.02.0140.,,,
+6,,,
+06.01.,,,
+06.01.0010.,Aggregates,Unbound aggregates for Ballast,Virgin Aggregates
+06.01.0020.,Aggregates,Unbound aggregates for Ballast,Recycled Aggregates
+06.01.0030.,Aggregates,Crushed rock for railway,Virgin Aggregates
+06.01.0040.,Aggregates,Crushed rock for railway,Recycled Aggregates
+06.01.0050.,Steel,For railway track,
+06.01.0060.,Prefab,Precast Concrete sleeper for railway,
+06.01.0070.,Concrete,Concrete for railway base slab,C25/30
+06.01.0080.,Concrete,Concrete for railway base slab,C30/37
+06.01.0090.,Concrete,Concrete for railway base slab,C35/45
+06.01.0100.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 08 - Track ballast other than those mentioned in 17 05 07
+06.01.0110.,Construction and demolition material,"17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",17 05 07 - Track ballast containing hazardous substances
+06.01.0120.,,,
+7,,,
+07.01.,,,
+07.01.0010.,Steel,Guardrail,
+07.01.0020.,Wood,Handrail in wood/timber,
+07.01.0030.,Gabion Systems,"Gabion walls, fence systems and mattress",
+07.01.0040.,Composite,Soil-Mix wall (without metal structure),
+07.01.0050.,Cabling Components,High-Density Polyethylene (HDPE),
+07.01.0060.,Prefab,Concrete cable ducts,
+07.01.0070.,Recycled Plastic,for all usage,
+07.01.0080.,,,
+07.01.0090.,,,
+8,,,
+08.01.,,,
+08.01.0010.,Cement,cement for concrete mixtures,CEM I
+08.01.0020.,Cement,cement for concrete mixtures,CEM II/A
+08.01.0030.,Cement,cement for concrete mixtures,CEM II/B
+08.01.0040.,Cement,cement for concrete mixtures,CEM III/A
+08.01.0050.,Cement,cement for concrete mixtures,CEM III/B
+08.01.0060.,Cement,cement for concrete mixtures,CEM III/C
+08.01.0070.,Cement,cement for concrete mixtures,CEM IV/B
+08.01.0080.,Cement,cement for concrete mixtures,CEM V/A
+08.01.0090.,Blast furnace slag,for use in concrete mixtures,
+08.01.0100.,Fly Ash,for use in concrete mixtures,
+08.01.0110.,Silica Fume,for use in concrete mixtures,
+08.01.0120.,Limestone,for use in concrete mixtures,
+08.01.0130.,Filler,for use in concrete mixtures,
+08.02.,,,
+08.02.0010.,Aggregates,Gravel for concrete mixtures,Virgin Aggregates
+08.02.0020.,Aggregates,Gravel for concrete mixtures,Recycled Aggregates
+08.02.0030.,Aggregates,Sand for concrete mixtures,Virgin Aggregates
+08.02.0040.,Aggregates,Sand for concrete mixtures,Recycled Aggregates
+08.02.0050.,Water,for all usage,
+08.03.,,,
+08.03.0010.,Admixture,admixtures for concrete,Plasticiser
+08.03.0020.,Admixture,admixtures for concrete,Air entrainer
+08.03.0030.,Admixture,admixtures for concrete,Retarder
+08.03.0040.,Admixture,admixtures for concrete,Set accelerator
+08.03.0050.,Admixture,admixtures for concrete,harderning accelerator
+08.03.0060.,Admixture,admixtures for concrete,Water resisting admixtures
+08.03.0070.,Admixture,admixtures for concrete,Metallic fibers
+08.04.,,,
+08.04.0010.,Bitumen,bitumen for asphalt mixtures,Normal Bitumen
+08.04.0020.,Bitumen,bitumen for asphalt mixtures,Polymer Modified Bitumen (PMB)
+08.04.0030.,Additives,Additives for asphalt,Organic fibers
+08.04.0040.,Additives,Additives for asphalt,For chemical process technologies (WMA)
+08.04.0050.,Additives,Additives for asphalt,For foaming systems technologies (WMA)
+08.04.0060.,Additives,Additives for asphalt,For organic additives technologies (WMA)
+08.04.0070.,Additives,Additives for asphalt,Sulphur pellets
+08.04.0080.,Additives,Additives for asphalt,Metallic fibers
+08.04.0090.,Aggregates,Gravel for asphalt mixtures,Virgin Aggregates
+08.04.0100.,Aggregates,Gravel for asphalt mixtures,Recycled Aggregates
+08.04.0110.,Aggregates,Sand for asphalt mixtures,Virgin Aggregates
+08.04.0120.,Filler,for use in asphalt mixtures,
+08.04.0130.,Limestone,for all usage,
+08.04.0140.,Hydrated lime,for use in asphalt mixtures,
+9,,,
+09.01.,,,
+09.01.0010.,Concrete,General Ready mixed concrete,C12/15
+09.01.0020.,Concrete,General Ready mixed concrete,C20/25
+09.01.0030.,Concrete,General Ready mixed concrete,C25/30
+09.01.0040.,Concrete,General Ready mixed concrete,C30/37
+09.01.0050.,Concrete,General Ready mixed concrete,C35/45
+09.01.0060.,Concrete,General Ready mixed concrete,C40/50
+09.01.0070.,Concrete,General Ready mixed concrete,C45/55
+09.01.0080.,Concrete,General Ready mixed concrete,C50/60
+09.01.0090.,Concrete,General Ready mixed concrete,C60/75

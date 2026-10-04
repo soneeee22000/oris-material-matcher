@@ -1,0 +1,320 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty
+0,Preliminaries and general items,,,
+00.01.,Site establishment,,,
+00.01.0010.,"Site establishment, all work areas","Mobilise site offices, welfare units, workshops, fenced compounds and utility connections for the full contract period.",LS,1
+00.01.0020.,Operate and maintain site facilities,"Running costs of site establishment incl. cleaning, security, power and water consumption, office waste collection.",month,26
+00.01.0030.,Demobilise and reinstate compound areas,"Remove temporary facilities, break out compound hardstanding and reinstate land to landowner approval.",LS,1
+00.02.,Traffic management,,,
+00.02.0010.,"Contraflow 4+0, phase 1, northbound works","Temporary traffic management CH 0+000–3+600 incl. crossovers, temporary barriers, signing, lighting and daily inspection.",day,185
+00.02.0020.,Night closures of slip roads incl. diversions,Closure of slip roads SR1–SR4 between 21:00 and 05:00 incl. diversion signing and liaison with police.,pcs,42
+00.02.0030.,"Mobile VMS trailers, hire and relocation",Solar-powered variable message sign trailers incl. programming and relocation as instructed.,month,18
+00.03.,"Surveys, testing and monitoring",,,
+00.03.0010.,"Setting-out, control network and as-built survey","Establish and maintain survey control, set out all works, deliver as-built survey in agreed CAD format.",LS,1
+00.03.0020.,Pre- and post-construction condition surveys,Photographic condition surveys of adjacent properties incl. crack monitoring gauges where required.,pcs,16
+00.03.0030.,Vibration and noise monitoring during blasting,"Triaxial vibration monitoring at sensitive receptors and noise logging, report within 24 h of each blast.",day,240
+00.03.0040.,Cross-hole sonic logging of bored piles,"CSL testing in pre-installed access tubes, 4 tubes per pile, report per pile.",pcs,64
+00.03.0050.,"Static load test on trial pile, 1.5 × working load","Maintained load test on preliminary pile incl. reaction system, instrumentation and interpretation report.",pcs,2
+1,"Site clearance, demolition and earthworks",,,
+01.01.,Site clearance,,,
+01.01.0010.,"Clear vegetation, grub roots, trees ≤ 300 mm girth","Clearance within works boundary CH 0+000–4+800, roots grubbed, arisings chipped and removed.",m²,18500
+01.01.0020.,Fell trees > 300 mm girth incl. stump grinding,"Felling outside bird-nesting season, stumps ground to 300 mm below finished level, timber offered to landowner.",pcs,64
+01.02.,"Demolition, dismantling and waste",,,
+01.02.0010.,"Break out existing carriageway slabs, 240 mm, to recycler","Break out unreinforced JPCP slabs of existing northbound carriageway, load and haul to licensed recycling facility; weighbridge tickets required.",t,4350
+01.02.0020.,"Demolish toll booth walls, segregate masonry","Load-bearing fired-clay masonry of former toll booths TB1–TB4 kept separate from other arisings, removed under EWC 17 01 02.",t,210
+01.02.0030.,"Strip wall and floor linings, sanitary block","Removal of glazed ceramic wall and floor linings from old service building, collected separately in skips.",t,18
+01.02.0040.,"Demolish pump house superstructure, mixed mineral rubble","Mixed rubble (concrete, masonry, tiles) free of hazardous substances per pre-demolition audit, to sorting plant.",t,340
+01.02.0080.,"Dismantle safety fence and posts, scrap to dealer","Existing safety fence incl. posts, spacers and fixings, sorted and delivered to scrap metal dealer, credit to Employer.",t,85
+01.02.0090.,Remove sign faces and gantry cladding panels,"Existing sign faces, extruded profile panels and gantry cladding in Al alloy, recycled via approved dealer.",t,6.5
+01.02.0100.,Recover redundant earthing tapes and bus bars,"Redundant Cu earthing tapes, bonding conductors and bus bars delivered to metals recycler.",t,1.8
+01.02.0110.,Recover redundant signal and telecom cables,PVC-sheathed signal and telecom cables from existing troughs; no oil- or tar-impregnated cables present per survey.,t,4.2
+01.02.0120.,Remove decommissioned oil-filled 110 kV cable sections,"Draining of residual oil, sealing of ends and disposal by licensed contractor.",t,2.8
+01.02.0130.,Dismantle untreated hoarding and noise barrier boards,"Untreated softwood hoarding and barrier boards CH 1+200–1+650, timber to biomass recycler.",t,38
+01.02.0140.,"Remove creosoted posts and sleepers, farm crossing",Creosote-impregnated timber stored in covered skips and disposed of as hazardous waste.,t,55
+01.02.0150.,Remove glazing units of toll booths,"Frames separated, glass collected in dedicated container.",t,3.1
+01.02.0160.,Recover redundant pipes and inspection chambers,"Redundant PVC-U drainage pipes and PE chambers exposed during excavation, cleaned and sent for recycling.",t,7.4
+01.02.0170.,"AC pipes and corrugated roof sheets, licensed removal","Asbestos cement removed under enclosure by licensed contractor, wetted, double-bagged, approved landfill, air monitoring.",t,12
+01.02.0180.,"Strip roof insulation, pump house","Mineral wool roof insulation, non-hazardous per audit, bagged and removed.",t,2.4
+01.02.0190.,"Remove partitions and ceiling linings, service building",Plasterboard kept separate from mineral rubble and delivered to gypsum recycler.,t,5.2
+01.02.0200.,"Remove facade joint sealants, PCB > 50 mg/kg",Permanently elastic PCB-containing sealants incl. grinding of joint flanks; disposal as hazardous waste.,t,0.6
+01.02.0210.,"Mixed site waste, non-hazardous, skip service","Mixed non-hazardous construction waste from all work areas in 20 m³ skips, incl. sorting records.",t,120
+01.03.,Excavation,,,
+01.03.0010.,"Bulk dig in cutting, soil classes 3–5, surplus off site","Excavation in cutting CH 2+300–3+100, load and haul surplus to Contractor's deposit ≤ 15 km.",m³,42000
+01.03.0020.,"Trench dig for carrier drains, depth ≤ 2.5 m",Trench excavation incl. trimming and support; arisings not suitable for backfill removed off site.,m³,3600
+01.03.0030.,Hydrocarbon-impacted soil at former fuel station,"Impacted soil (LAGA > Z2) stockpiled on liner, disposal at hazardous landfill with analysis per 500 t.",t,1600
+01.03.0040.,"Disposal fee, uncontaminated surplus soil, EWC 17 05 04",Disposal fee for surplus soil and stones at inert landfill incl. acceptance analysis.,t,18500
+01.03.0050.,Dredge river bed within cofferdams P3/P4,"Dredging to founding level; sediment uncontaminated per sampling, dewatered and disposed of.",m³,2400
+01.03.0060.,Dredged fines above heavy metal thresholds,"Sediment exceeding Cd/Hg thresholds, dewatered in geotextile tubes, hazardous landfill.",m³,350
+01.03.0070.,"Rock dig CH 4+100–4+600, fresh limestone, to crusher","Massive limestone by ripping and controlled blasting; LA ≤ 25, suitable for graded crushed aggregate, hauled to on-site crushing plant.",m³,26000
+01.03.0080.,"Rock dig CH 4+600–4+900, moderately weathered","Moderately weathered limestone; after crushing suitable for general fill and capping only, not for bound layers.",m³,14000
+01.03.0090.,"Rock dig, highly weathered marl, re-use as bulk fill","Fractured marl re-usable only as bulk fill in embankment core, placed within 2 km haul.",m³,9500
+01.03.0100.,"Rock dig, clay-rich decomposed marl, to external deposit","Decomposed marl classified unsuitable for any re-use, hauled to external deposit.",m³,5200
+01.03.0110.,"Break out old bridge foundations, crush on site","Mass foundations of former bridge broken out, bars removed, crushed on site to 0/63 for working platforms.",m³,780
+01.03.0120.,"Made ground with mixed debris, former depot","Made ground with brick, timber and plastic debris, not separable, hauled to landfill.",m³,1100
+01.03.0130.,"Stockpiled planings, screen to 0/16 for re-use",Planings from 01.02.0070 screened to 0/16 and stored under cover for re-use; grading and binder content tested per 1000 t.,t,5600
+01.04.,"Fill, capping and subgrade",,,
+01.04.0010.,"Embankment fill, imported quarry-run, 300 mm layers","Quarry-run granular fill from approved quarry, compacted in layers ≤ 300 mm to Dpr ≥ 100 %.",m³,38000
+01.04.0020.,"Embankment core, RC 0/63, quality class Z1.1","Crushed concrete and masonry 0/63 from certified recycling plant, compacted per layer.",m³,12000
+01.04.0030.,"Embankment core, RA granulate 0/32, encapsulated","Granulated reclaimed asphalt 0/32 encapsulated by 1.0 m cohesive cover, outside water protection zones.",m³,4500
+01.04.0040.,"Capping, crushed rock 0/63, 400 mm","Crushed natural rock 0/63 from quarry on improved subgrade, Ev2 ≥ 80 MN/m² on top.",m³,11200
+01.04.0050.,"Capping, RC 0/56, 300 mm, side roads","Recycled crushed concrete 0/56 to side roads and farm accesses, Ev2 ≥ 60 MN/m².",m³,2800
+01.04.0060.,"Capping, RA granulate 0/45, 250 mm, contractor's compound","Granulated reclaimed asphalt 0/45 compacted in two passes, retained after completion.",m³,1900
+01.04.0070.,"Subgrade improvement, CL 90-Q, 3 % by dry mass","CL 90-Q spread on cohesive subgrade and mixed in by rotary hoe to 350 mm, mellowing period 24 h.",t,780
+01.04.0080.,"Separation layer below capping, GRK 3","Nonwoven separator, robustness class GRK 3, CE to EN 13249/13251, 500 mm overlaps on soft subgrade.",m²,26000
+01.04.0090.,Imported topsoil 200 mm to verges and slopes,"Screened topsoil from approved source spread on verges and cutting slopes, lightly consolidated.",m³,3900
+01.04.0100.,"Hydroseed slopes, native seed mix","Hydroseeding with native grass/herb mix, mulch and tackifier; re-seed bare patches within 12 months.",m²,21000
+2,Drainage,,,
+02.01.,Pipes and chambers,,,
+02.01.0010.,"Carrier drain PP DN 300 SN 8, depth 1.5–2.5 m","Structured-wall polypropylene pipe incl. bedding and surround class B, jointing and air testing.",m,2650
+02.01.0020.,"Carrier drain PP DN 500 SN 8, depth 2.0–3.5 m","Structured-wall polypropylene pipe incl. bedding, surround and testing.",m,820
+02.01.0030.,"Manholes DN 1000, precast rings, depth ≤ 3 m","Precast base unit, rings, cone, frame and cover D400, step irons; joints sealed with elastomeric rings.",pcs,46
+02.01.0040.,CCTV survey of new drains,"Inspection of all new drains prior to handover, report and video in EN 13508-2 coding.",m,3470
+02.02.,"Channels, filters and gutters",,,
+02.02.0010.,"Slot drain units, central reserve","Precast slot drain units 1.0 m with outlet boxes every 30 m, bedded and haunched in C12/15.",m,1450
+02.02.0020.,"Filter layer 0/4, natural washed sand, 300 mm","Natural washed sand behind wall backs and around fin drains, compacted by plate.",m³,640
+02.02.0030.,"Filter layer 0/4, RC fines, infiltration pond underdrains",Washed fines from concrete recycling as filtration layer beneath pond underdrains.,m³,380
+02.02.0040.,"Gutters DN 125 and downpipes DN 100, operations building","Half-round gutters and downpipes in unplasticised PVC, brackets at 600 mm, connected to surface water drains.",m,180
+02.02.0050.,"Ditch edge boards, recycled polyolefin profiles","Solid profiles extruded from mixed recycled polyolefins, 40 × 200 mm, fixed to posts at 1.5 m.",m,900
+3,Pavement,,,
+03.01.,Unbound layers,,,
+03.01.0010.,"Frost blanket 0/32, crushed natural, 350 mm","Frost protection layer of crushed quarried aggregate 0/32, Ev2 ≥ 120 MN/m² on top.",m³,21500
+03.01.0020.,"Sub-base RC 0/45, 300 mm, slip roads","Recycled concrete aggregate 0/45 (RC-1), slip roads SR1–SR4.",m³,3400
+03.01.0030.,"Sub-base RA 0/32, 250 mm, rural access roads","Granulated reclaimed asphalt 0/32, tar-free (PAH < 25 mg/kg), rural access roads.",m³,1250
+03.01.0040.,"Crushed stone base 0/32, 150 mm, main line","Unbound base of crushed quarried stone above frost blanket, Ev2 ≥ 150 MN/m².",m³,9400
+03.01.0050.,"Base 0/32, RC material, bus lay-bys","Recycled crushed concrete 0/32 as unbound base to bus lay-bys, 200 mm.",m³,420
+03.01.0060.,"Base 0/22, RA granulate, footway and cycle track","Granulated reclaimed asphalt 0/22 as unbound base, 150 mm.",m³,610
+03.01.0070.,"Maintenance tracks, gravel wearing surface 0/16, 100 mm",Crushed natural gravel 0/16 with binding fines to pond and gantry maintenance tracks.,m²,5200
+03.01.0080.,"Site compound running surface, RC 0/32, 150 mm",Recycled crushed concrete 0/32 as running surface to compound and laydown areas.,m²,8400
+03.01.0090.,"Temporary haul road running surface, RA 0/32","Granulated reclaimed asphalt 0/32 as running surface to haul roads, regraded monthly.",m²,6000
+03.01.0100.,"Crushed rock 16/32 under ground slab, 250 mm",Quarried crushed rock as capillary-breaking base filling under ground-bearing slab of operations building.,m³,310
+03.01.0110.,"Base filling below box culvert BC-2, RC 0/45","Recycled crushed concrete below culvert after soil replacement, compacted in 200 mm layers.",m³,260
+03.02.,Bound and recycled base layers,,,
+03.02.0010.,"CBGM C8/10, 200 mm, hard shoulders","Plant-mixed cement-bound granular mixture to EN 14227-1, notched at 3 m, cured by emulsion spray.",m²,14000
+03.02.0020.,"In-situ recycling, foamed binder + 1 % cement, QVE, 250 mm","Cold recycling of existing pavement in place with foamed binder, quick visco-elastic behaviour; mix design by approved laboratory.",m²,9800
+03.02.0030.,"Plant-mixed cold recycled base, foamed binder, SVE, 200 mm","Ex-situ cold recycled base, slow visco-elastic behaviour; stockpile moisture controlled.",m²,6400
+03.02.0040.,No-fines drainage base under carriageway in cutting,"Open-textured no-fines concrete, void ratio ≥ 15 %, placed without vibration.",m³,1450
+03.02.0050.,"C8/10 lean base under rigid pavement, 150 mm","Unreinforced base layer beneath jointed pavement of rest area, paver-laid, separation foil over.",m³,2100
+03.02.0060.,"C12/15 base below block paving, bus station","Base layer 150 mm beneath paving at bus station, falls 2.5 % to channels.",m³,380
+03.02.0070.,"C20/25 bound base under HGV lanes, slipform, 200 mm","Slipformed base layer beneath heavy-duty pavement, notches every 5 m, bond-breaker before upper layer.",m³,2900
+03.02.0080.,"C30/37 base to container hardstanding, 250 mm","Base layer beneath container terminal surface slabs, dowelled construction joints.",m³,1150
+03.02.0090.,"Binder for CBGM, CEM II/B-S 42.5 N","Supply to mixing plant for cement-bound base layers, bulk silo delivery.",t,1150
+03.02.0100.,"Stabilisation binder CEM III/A 42.5 N-SR, sulphate soils",For in-situ soil stabilisation where sulphate content > 3000 mg/kg.,t,640
+03.02.0110.,"Rapid stabilisation of working platforms, CEM I 42.5 R",Spread and mixed in for rapid strength gain of piling platforms.,t,220
+03.02.0120.,"Stabilised shoulders, CEM V/A (S-V) 32.5 N","Stabilisation of verges and shoulders, spread rate 5 %.",t,310
+03.02.0130.,"Siliceous fly ash to EN 14227-4, bound base","Constituent of fly-ash-bound granular base, delivered conditioned (moisture 10–15 %).",t,480
+03.02.0140.,"GGBS to EN 14227-2, slag-bound base",Ground granulated slag as binder constituent of slag-bound base mixtures.,t,360
+03.02.0150.,"CL 90-S for treatment of silty clay, 2.5 %",Calcium hydroxide powder for treatment of silty clay beneath slip roads.,t,190
+03.02.0160.,"Aggregate 0/32 for CBGM, crushed natural","Crushed quarried aggregate supplied to CBGM mixing plant, grading to EN 14227-1 envelope.",t,6200
+03.02.0170.,"Fine aggregate 0/4 for CBGM, RC sand",Recycled crushed concrete fines blended into CBGM at max. 30 % of aggregate mass.,t,1800
+03.02.0180.,Rock flour 0/0.063 (diabase) for bound base mix,Diabase rock flour as fines correction in bound base mixtures.,t,140
+03.02.0190.,Limestone fines 0/0.125 for bound base mix,Ground limestone as fines component in hydraulically bound sub-base mixtures.,t,160
+03.02.0200.,"Retarding agent for CBGM, extended compaction window",Extends compaction window of cement-bound mixtures to 4 h in summer; dosage per trial mix.,t,3.5
+03.02.0210.,"Densified microsilica, bound base at bus stops",Added to bound base at bus stops for early strength and abrasion resistance.,t,12
+03.03.,Bituminous layers,,,
+03.03.0010.,"AC 32 T N, 100 mm, Lot 1 CH 0+000–0+850","Lower base lift to EN 13108-1, 50/70, hot-mixed at 160–180 °C, virgin materials only (RA not permitted in this lot).",t,9800
+03.03.0020.,"AC 22 T S, 80 mm, Lot 1, RA 30 %","Upper base lift, hot-mixed, reclaimed asphalt content 30 % by mass, 50/70.",t,7600
+03.03.0030.,"AC 32 T S, 120 mm, Lot 2, RA 50 %","Base layer with 50 % reclaimed asphalt, hot-mixed in parallel-drum plant, CH 0+850–1+900.",t,11400
+03.03.0040.,"AC 22 T S, reduced temperature, 80 mm, tunnel approaches","Base layer produced and laid at ≤ 130 °C, no RA.",t,2600
+03.03.0050.,"AC 32 T S, reduced temperature, RA 50 %, Lot 3","Base layer produced at ≤ 130 °C with 50 % reclaimed asphalt, CH 1+900–2+700.",t,8200
+03.03.0060.,"EME 2 0/14, 90 mm, HGV lanes, virgin","High-modulus base, hard grade 15/25, hot-mixed, no RA, lanes 1–2 CH 2+700–3+600; modulus ≥ 14 000 MPa.",t,5400
+03.03.0070.,"EME 2 0/14, 90 mm, RA 50 %, lanes 1–2 Lot 4","High-modulus base, hot-mixed with 50 % reclaimed asphalt, CH 3+600–4+800.",t,6100
+03.03.0080.,"EME 2 0/14, reduced temperature, RA 30 %, slip roads",High-modulus base produced at reduced temperature with 30 % reclaimed asphalt.,t,1800
+03.03.0090.,"AC 16 B S, 60 mm, both carriageways, virgin","Binder layer, 25/55-55 A, hot-mixed, no RA, CH 0+000–1+900.",t,6800
+03.03.0100.,"AC 22 B S, 70 mm, RA 30 %, Lot 2","Binder layer, hot-mixed with 30 % reclaimed asphalt, incl. bond coat to lower layer.",t,5200
+03.03.0110.,"AC 16 B S, reduced temperature, RA 30 %, night works","Binder layer produced at ≤ 130 °C with 30 % reclaimed asphalt, laid under night closures.",t,2400
+03.03.0120.,"EME 2 0/10 intermediate layer, bridge approaches","High-modulus intermediate layer, hot-mixed, no RA.",t,1300
+03.03.0130.,"HRA 60/20 bin, side roads, RA 20 %","Hot rolled binder course with 20 % reclaimed asphalt, side roads and junction bellmouths.",t,900
+03.03.0140.,"SMA 16 B S, 50 mm, PmB, bridge approaches","Intermediate layer, PmB 45/80-65, fibre-stabilised, hot-mixed, no RA.",t,780
+03.03.0150.,"SMA 16 B S, reduced temperature, junction areas","Intermediate layer produced at reduced temperature, no RA, junctions J1–J3.",t,640
+03.03.0160.,"SMA 16 B S, RA 50 %, Lot 4","Intermediate layer, hot-mixed with 50 % reclaimed asphalt, CH 3+600–4+800.",t,1500
+03.03.0170.,"AC 11 D S, 40 mm, ramps and lay-bys, virgin","Surface layer, hot-mixed, no RA, incl. hand-laid tie-ins.",t,2100
+03.03.0180.,"AC 11 D S, 40 mm, RA 20 %, side roads","Surface layer, hot-mixed with 20 % reclaimed asphalt, side roads and farm accesses.",t,1400
+03.03.0190.,"AC 8 D L, reduced temperature, RA 10 %, footway and cycle track","Surface layer produced at ≤ 130 °C with 10 % reclaimed asphalt, mini-paver or hand-laid.",t,520
+03.03.0200.,"SMA 11 S, 40 mm, main line, virgin","Surface layer, PmB 25/55-55, PSV ≥ 55, hot-mixed, no RA, CH 0+000–3+600.",t,7900
+03.03.0210.,"SMA 8 S, reduced temperature, RA 20 %, Lot 4",Surface layer produced at reduced temperature with 20 % reclaimed asphalt.,t,3200
+03.03.0220.,"PA 11, 50 mm, noise section CH 3+000–3+600, virgin","Open-graded surface layer, air voids > 20 %, hot-mixed, no RA; edge drainage kept open.",t,2300
+03.03.0230.,"PA 8, reduced temperature, RA 10 %, residential frontage",Open-graded surface layer produced at reduced temperature with 10 % reclaimed asphalt.,t,900
+03.03.0240.,"MA 11 S, 35 mm on deck BW-3, grit rolled in","Poured surface layer, cooker temperature 230–250 °C, no RA, grit 2/4 spread and rolled in.",t,640
+03.03.0250.,"MA 8 S, reduced temperature, tunnel walkways","Poured surface layer laid at ≤ 210 °C using viscosity-reducing additive, no RA.",t,120
+03.03.0260.,"MA 8 S, RA 10 %, bus stop platforms","Poured surface layer, hot, with 10 % reclaimed asphalt.",t,90
+03.03.0270.,"HRA 35/14 F surf, pre-coated chippings, virgin","Hot rolled surface course, no RA, pre-coated chippings 14/20 applied by chipper.",t,850
+03.03.0280.,"HRA 30/14 F surf, RA 10 %, village section","Hot rolled surface course with 10 % reclaimed asphalt, chippings 14/20.",t,600
+03.03.0290.,"Bond coat C60 BP1, 0.30 kg/m² residual",Cationic emulsion sprayed between bound layers by computer-controlled sprayer; kerbs and gullies masked.,m²,118000
+03.03.0300.,"Prime to granular base, MC-30, approx. 1.0 l/m²",Medium-curing cut-back sprayed on granular base prior to first bound layer; traffic excluded until cured.,m²,9400
+03.03.0310.,"Surface dressing, C69 BP3 + 6/10 chippings, farm roads","Single surface dressing, polymer-modified emulsion and 6/10 chippings; loose chippings swept after 24 h.",m²,7400
+03.03.0320.,"Surface dressing, hot-sprayed cut-back binder, forest track",Racked-in dressing with cut-back binder and 10/14 + 4/6 chippings.,m²,3100
+03.03.0330.,"Seal planed joints, hot-poured compound","Joints against existing pavement cleaned, dried, primed and sealed to EN 14188-1.",m,5200
+03.04.,Rigid pavement,,,
+03.04.0010.,"Hardstanding top slab, unreinforced, C12/15","Top slab to contractor's hardstanding retained after completion, broom finish, joints sawn at 4 m.",m³,260
+03.04.0020.,"Maintenance depot yard slab, C20/25, 200 mm","Surface slab, sawn joints at 5 m, dowels at expansion joints.",m³,540
+03.04.0030.,"Bus lane slabs C25/30, exposed aggregate","Surface slabs to bus lanes, exposed-aggregate texture, tie bars at longitudinal joints.",m³,700
+03.04.0040.,"JPCP top layer C30/37, 260 mm, dowelled, rest area","Top layer of jointed plain pavement, dowels Ø 25 at 300 mm.",m³,1650
+03.04.0050.,"Toll plaza slabs C35/45 XF4, tined","Surface slabs, air-entrained, tined texture; skid resistance demonstrated on trial bay.",m³,1200
+03.04.0060.,"Container handling area, C40/50, dry-shake hardener","Top layer, abrasion class to EN 13892-3, power-floated.",m³,900
+03.04.0070.,Saw and seal transverse joints,"Joint sawing within 24 h, widening cut and PU sealant with backer rod.",m,8400
+03.05.,"Kerbs, paving and markings",,,
+03.05.0010.,"Kerbs 15/30 high profile, bedded and haunched","Precast kerb units on C12/15 bed with rear haunch, radius units where required.",m,6200
+03.05.0020.,"Edgings 8/20, footway and cycle track",Precast edging units on concrete bed.,m,3900
+03.05.0030.,"Interlocking pavers 200 × 100 × 80, grey, 30 mm sand bed","Precast concrete pavers, herringbone bond, jointing sand brushed in, plate compacted.",m²,2400
+03.05.0040.,"Fired clay pavers, herringbone borders, plaza",Clay pavers 200 × 100 × 52 laid as decorative borders on mortar bed.,m²,380
+03.05.0050.,"Coping to parapet walls, fired clay units","Clay coping tiles with drip, bedded on frost-resistant mortar.",m²,140
+03.05.0060.,"Road markings, thermoplastic, 150 mm lines","Hot-applied thermoplastic lines incl. drop-on glass beads, pre-marking.",m,24000
+4,River bridge BW-3 and structures,,,
+04.01.,Foundations and excavation support,,,
+04.01.0010.,"Bored piles Ø 1200, river piers P3–P5, C35/45 XC4/XA2","Piles under support fluid, L ≈ 32 m, tremie-placed, F5, Dmax 16; overpour removed after set.",m³,1450
+04.01.0020.,"Bored piles Ø 900, land piers and abutments, C30/37","Cased/uncased piles, L ≈ 18 m, concrete placed by tremie, integrity tested under 00.03.0040.",m³,980
+04.01.0030.,"CFA piles Ø 600, noise barrier foundations, C25/30","Continuous flight auger piles, concrete pumped through auger stem, reinforcement cage plunged.",m³,310
+04.01.0040.,"Self-drilling bar micropiles Ø 63.5, L = 12 m, abutment A2","Hollow bar S 555/700 with sacrificial bit, grouted during drilling, incl. head plates and nuts.",m,1440
+04.01.0050.,"Cofferdam P3/P4, AZ 26-700, L = 14 m",Vibro-driven steel sheet piling S355GP incl. extraction after completion; walings and struts measured separately.,t,380
+04.01.0060.,"Pile caps P1–P8, C30/37 XC4/XA1","Pile caps cast on blinding after pile trimming, F4, cured 7 d under wet hessian.",m³,2200
+04.01.0070.,"Spread footings, sign gantries G1–G8, C25/30 XC2","Pad foundations incl. cast-in anchor bolt cages, top surface wood-floated.",m³,190
+04.01.0080.,"Pylon footing, footbridge FB-1, C35/45, mass pour","Single continuous pour with thermocouples, max. core-surface differential 20 K.",m³,420
+04.01.0090.,"Lean mix C16/20, 50 mm, under footings and membranes","Levelling layer below pad footings and sheet waterproofing, wood-floated, protected from rain 24 h.",m³,160
+04.01.0100.,"Capping beam to cofferdam sheet piles, C30/37","Capping beam cast on sheet pile heads, incl. cast-in strut brackets.",m³,95
+04.01.0110.,"Walings to secant pile wall, launch shaft, C25/30",Waling beams cast against trimmed secant piles at two levels.,m³,140
+04.01.0120.,"Strut and waler beams, deep excavation at A2, C35/45","Temporary propping beams for 14 m deep excavation, demolished after backfilling.",m³,210
+04.02.,Substructure and retaining walls,,,
+04.02.0010.,"Abutment A1 stem and wingwalls, C30/37 XC4/XF1","Stem, bearing shelf and wingwalls, pours ≤ 3.0 m, construction joints per drg. B-110, finish class SB2.",m³,860
+04.02.0020.,"Abutment A2 bearing shelf and ballast wall, C35/45 XD2/XF2","Bearing shelf with plinths and ballast wall, cover 50 mm.",m³,640
+04.02.0030.,"Abutment curtain walls, de-icing splash zone, C40/50 XD3/XF4","Curtain and wing walls in salt splash zone, air content 4–6 %, cover 55 mm.",m³,180
+04.02.0040.,"Twin columns, land piers P1, P2, P8, C30/37 XC4","Circular columns Ø 1.4 m, fair-faced to sample panel, chamfers 25 mm.",m³,520
+04.02.0050.,"Pier crossheads P1–P8, C35/45 XD1",Crossheads on falsework incl. bearing plinths and jacking points.,m³,610
+04.02.0060.,"River pier shafts P3–P5, C40/50 XC4/XF1, climbing form","Hollow shafts h > 25 m in 4.0 m lifts, low-heat binder, core temperature monitored in first 3 lifts.",m³,1400
+04.02.0070.,"Ice-breaker noses to river piers, C45/55 XF3/XM2","Wedge-shaped noses at waterline with abrasion-resistant mix, formed in steel shutters.",m³,160
+04.02.0080.,"Cantilever wall RW1, C25/30 XC4","Cantilever earth-retaining wall along service road, h ≤ 4.5 m, weep holes at 2 m.",m³,740
+04.02.0090.,"L-wall RW2 along slip road, C30/37 XC4/XF1","L-shaped retaining wall h ≤ 6.0 m, 10 m bays, joints with waterbar.",m³,1100
+04.02.0100.,"Counterfort wall RW5, de-icing exposure, C35/45 XD3/XF4","Counterfort retaining wall at interchange ramp, h ≤ 9 m, splash zone exposure.",m³,480
+04.02.0110.,"Approach slabs A1 and A2, C25/30, 6.0 m long","Slabs behind abutments on blinding, hinged connection to ballast wall.",m³,230
+04.02.0120.,"Transition slabs at tunnel portals N/S, C30/37, 350 mm","Slabs at road entries to portals, dowelled to tunnel invert.",m³,180
+04.02.0130.,"Facing panels RW3, reinforced-earth wall, C25/30, 140 mm","Cruciform panels with cast-in strip connectors, measured on face area.",m²,3200
+04.02.0140.,"Architectural facing panels, reinforced-earth wingwalls OB-2, C30/37","Panels with ashlar formliner texture, colour to approved sample.",m²,950
+04.02.0150.,"Sulphate-resisting facing panels RW4, estuary embankment, C35/45","Panels for mechanically stabilised embankment in tidal zone, cover 50 mm.",m²,1300
+04.03.,Superstructure,,,
+04.03.0010.,"Deck slab, main bridge, C35/45 XC4/XD1, w/c ≤ 0.45","Pumped and screeded by bridge finisher, surface ready for waterproofing.",m³,3100
+04.03.0020.,"Deck cantilevers, travelling carriage, C45/55 XD3/XF4","Cantilevers in 5 m bays with travelling formwork, min. cover 45 mm to salt-exposed faces.",m³,720
+04.03.0030.,"Deck slab, footbridge FB-1, C50/60","Thin slender deck with microsilica mix, self-compacting, cast in one pour.",m³,85
+04.03.0040.,"Deck slab, farm overbridge OB-3, C30/37","Solid slab deck on falsework, incl. drainage outlets and parapet anchors.",m³,260
+04.03.0050.,"Cross-girders to post-tensioned deck, C25/30","Cross-girders at supports and mid-span, incl. placing around anchorage zones.",m³,240
+04.03.0060.,"Longitudinal PT beams, spans 1–3, C30/37",Stressing not before 30 N/mm² verified by site-cured cubes.,m³,680
+04.03.0070.,"Box-girder webs and soffit, balanced cantilever, C35/45","Segments 1–14, joints roughened, tendon ducts air-tested before each pour.",m³,2400
+04.03.0080.,"Edge and tie beams, conventionally reinforced, C25/30",Side-span edge beams incl. cast-in drainage outlets and parapet sleeves.,m³,310
+04.03.0090.,"Downstand beams, underpass EÜ-7, reinforced, C30/37","Downstand beams under rail deck, no prestress.",m³,190
+04.03.0100.,"Composite deck beams over railway, heavily reinforced, C35/45","Reinforcement density > 250 kg/m³, pumped, internal vibrators ≤ 40 mm.",m³,260
+04.03.0110.,"Precast girders, pedestrian underpass, C25/30","Cast at approved precast works, transport and setting on elastomeric bearings included.",m³,120
+04.03.0120.,"Main-span girders G1–G12, overbridge OB-2, C30/37","Cast in steel moulds, lifting inserts and stitch pours included.",m³,540
+04.03.0130.,"Girders to HGV overbridge OB-4, C35/45, 400 t crane lift",Lifted into position during weekend possession.,m³,610
+04.04.,"Reinforcement, steelwork and bridge equipment",,,
+04.04.0010.,"Bar reinforcement B500B, all diameters","Cut, bent and fixed to schedules incl. tying wire, chairs and spacers.",t,4200
+04.04.0020.,"Welded fabric B500A, Q257 / Q377","Mesh sheets incl. laps, cutting and fixing.",t,380
+04.04.0030.,"Plate girders S355J2+N, composite spans 6–8","Fabricated main girders incl. shop welding, trial assembly and corrosion protection system.",t,1850
+04.04.0040.,"Bracing, stiffeners and splice plates, S355",Secondary members and connections incl. HV bolt sets.,t,240
+04.04.0050.,"Pot bearings, free / guided / fixed",Supply and install incl. grouting and temporary locking devices.,pcs,32
+04.04.0060.,"Modular expansion joint, 240 mm movement",Watertight modular joint incl. anchorage and noise-reducing plates.,m,44
+04.04.0070.,"Deck waterproofing, liquid-applied PMMA system","Primer, two-coat PMMA membrane and tack coat, incl. adhesion testing.",m²,11800
+04.04.0080.,"Soffit formwork incl. falsework, main bridge","Formwork and falsework to deck soffit, design and removal included.",m²,8600
+04.04.0090.,"Vehicle restraint system on bridge, H2 W3",Galvanised steel safety barrier on bridge edge beams incl. transitions to verge system.,m,860
+04.04.0100.,"Pedestrian handrail on bridge, h = 1.1 m, galvanised and coated","Handrail with vertical infill bars, fixed to parapet upstand with chemical anchors.",m,860
+5,Tunnel Kalkberg,,,
+05.01.,Excavation and primary support,,,
+05.01.0010.,"Drill and blast, rock class RC 1–2, spoil to crushing plant",Full-face excavation in massive limestone (RMR > 60); spoil hauled to on-site crushing plant for concrete aggregate production.,m³,96000
+05.01.0020.,"Drill and blast, rock class RC 3, spoil for fill",Top heading and bench in jointed limestone (RMR 40–60); spoil suitable for crushing to unbound fill and capping.,m³,64000
+05.01.0030.,"Drill and blast, rock class RC 4, spoil as bulk fill","Fractured and weathered zones (RMR 21–40), reduced round length; spoil only usable as bulk fill.",m³,21000
+05.01.0040.,"Excavation in fault zone RC 5, spoil to deposit","Fault breccia and clay-filled zones (RMR < 20), spoil classified unsuitable and hauled to external deposit.",m³,7800
+05.01.0050.,"Sprayed primary lining C20/25, 100–150 mm, RC 2–3","Wet-mix process, thickness checked by probe holes every 5 m, rebound included.",m³,5800
+05.01.0060.,"Sprayed primary lining C30/37, fibre-reinforced, RC 4–5","Wet-mix process with alkali-free accelerator, applied in layers ≤ 100 mm.",m³,4200
+05.01.0070.,"Lattice girders, 3-bar, installed at 1.0–1.5 m","Steel lattice arches incl. foot plates and connection bolts, RC 4–5.",t,260
+05.01.0080.,"Face drainage boreholes, L = 24 m",Drilled drainage holes ahead of face incl. slotted liners.,m,3600
+05.02.,Final lining and portal structures,,,
+05.02.0010.,"Inner lining, unreinforced blocks, C25/30, formwork carriage","Cast-in-place blocks of 10 m, crown filled via injection nozzles.",m³,14500
+05.02.0020.,"Inner lining, reinforced blocks at cross-passages, C30/37",Reinforced blocks at cross-passage openings and niches.,m³,2100
+05.02.0030.,"Watertight inner vault, groundwater zone, C35/45 XA2","km 1.200–1.650, crack width ≤ 0.2 mm, block joints with internal waterbar.",m³,3800
+05.02.0040.,"Segmental rings, TBM service gallery, C50/60","Precast 6+1 rings, steam-cured, tolerance per ITA guidelines, delivered to shaft.",m³,1900
+05.02.0050.,"Fibre-reinforced lining, high overburden fault zone, C60/75","Steel-fibre lining under > 400 m overburden, residual flexural strength per design report.",m³,350
+05.02.0060.,"Invert slab, main tubes, C25/30","Invert slab cast in 12.5 m bays behind excavation, incl. drainage pipe haunches.",m³,6200
+05.02.0070.,"Invert slab at cross-passages and lay-bys, C30/37",Invert slab in widened sections incl. sump pits.,m³,640
+05.02.0080.,"Invert slab in groundwater zone, C35/45 XA2","Watertight invert, joints with swelling strip and injection hose.",m³,1400
+05.02.0090.,"Portal collar and arch ring, north portal, C25/30","Cast against sprayed lining, arch formwork R = 6.10 m.",m³,520
+05.02.0100.,"Portal frame and headwall, south portal, C30/37","Portal frame incl. headwall and parapet, cast in 3 stages.",m³,610
+05.02.0110.,"Collar extension, rockfall gallery, C35/45","Gallery extension of south portal collar, heavily reinforced.",m³,380
+05.02.0120.,"Annulus grouting behind segments, foamed mortar ≈ 500 kg/m³",Cellular mortar injected in stages with pressure ≤ 0.5 bar.,m³,700
+05.02.0130.,"Waterproofing membrane, PVC-P 2 mm with signal layer","Membrane on protection fleece, seams double-welded and air-tested.",m²,38000
+05.02.0140.,"Formwork carriage, hire and operation","Hydraulic 10 m formwork carriage incl. assembly, moves and dismantling.",month,14
+6,Railway underpass EÜ-7 and track works,,,
+06.01.,Track and track bed,,,
+06.01.0010.,"Track ballast 31.5/63, class A, new","Crushed igneous rock ballast to EN 13450 from certified quarry, placed and tamped.",t,14500
+06.01.0020.,Cleaned ballast re-laid on sidings,"Ballast recovered from track renewal, screened and washed to remove fines, re-laid on sidings.",t,3200
+06.01.0030.,"Formation protection layer 0/32, crushed rock, 300 mm","Quarried crushed rock below ballast, Ev2 ≥ 120 MN/m², crossfall 5 %.",m³,5400
+06.01.0040.,Sub-ballast 0/45 from processed track spoil,"Recycled crushed mineral material from track renewal, processed and certified, below ballast on sidings.",m³,1300
+06.01.0050.,"Rails 60E1, R260, continuous welded","Supply, laying, thermite welding and destressing of running rails.",t,420
+06.01.0060.,"Monoblock sleepers B70, pre-tensioned, 1435 mm gauge","Sleepers to EN 13230 with pre-assembled fastening shoulders, delivered in bundles of 10.",pcs,5800
+06.01.0070.,"Track bed slab, ballasted section km 12.340–12.980, C25/30","Supporting slab in 12 m bays, surface to falls for drainage.",m³,1450
+06.01.0080.,"Base slab under switches W1–W4, C30/37","Stiffening slab beneath turnout area, incl. cable duct recesses.",m³,380
+06.01.0090.,"Slab track base plate, high-speed section, C35/45","Air-entrained base plate for ballastless track, tolerance ±2 mm on level, slipform paver.",m³,2200
+06.01.0100.,"Spent ballast, uncontaminated, EWC 17 05 08","Removal of spent ballast from renewed track, analysis confirms no hazardous contamination; to recycling.",t,9600
+06.01.0110.,"Ballast with herbicide and oil residues, old sidings",Contaminated ballast excavated separately and disposed of as hazardous waste.,t,1300
+06.01.0120.,Possession management and rail safety staff,"Lookouts, possession protection and safety supervision during track works.",day,60
+7,"Road equipment, retaining systems and ducts",,,
+07.01.,"Restraint systems, walls and ducts",,,
+07.01.0010.,"Safety fence H1 W4, galvanised, verges",Single-sided steel safety barrier on driven posts incl. terminals.,m,7400
+07.01.0020.,"Timber handrail on steel posts, footbridge FB-1, h = 1.1 m","Hardwood handrail and midrail, FSC-certified, fixed to galvanised posts.",m,180
+07.01.0030.,"Gabion walls, double-twisted mesh 2 × 1 × 1, rock-filled","Woven wire baskets filled with durable crushed rock, laced and tensioned.",m³,1400
+07.01.0040.,"Deep soil mixing panels, launch shaft, unreinforced, 600 mm","Panels formed by in-situ mixing of ground with cement slurry, no steel inserts; UCS verified on wet-grab samples.",m³,2600
+07.01.0050.,"Cable duct bank, 4 × DN 110 SDR 17, PE-HD","Smooth-wall ducts with draw ropes, laid in sand surround with warning tape.",m,9600
+07.01.0060.,"Cable troughs with lids, along track, precast","Precast trough units with lockable lids, bedded on sand.",m,2400
+07.01.0070.,"Noise barrier panels, recycled-plastic absorbent core","Absorbent panels with core of recycled mixed plastics between steel posts, h = 3.0 m.",m²,2600
+07.01.0080.,"Traffic signs, retro-reflective class RA2",Sign faces on aluminium plates incl. posts and foundations.,pcs,140
+07.01.0090.,"Road studs, bi-directional, cat's eye type",Retro-reflective road studs set in bitumen adhesive.,pcs,2200
+8,Materials supplied to batching and mixing plants,,,
+08.01.,Cements and additions for concrete,,,
+08.01.0010.,"CEM I 52.5 R, bulk, precast yard","Portland cement for high early strength precast elements, bulk silo delivery.",t,2600
+08.01.0020.,"CEM II/A-LL 42.5 R, bulk, structural concrete",Portland-limestone cement for general structural concrete.,t,5200
+08.01.0030.,"CEM II/B-S 42.5 N, bulk, substructure concrete",Portland-slag cement with moderate heat of hydration for piers and abutments.,t,3900
+08.01.0040.,"CEM III/A 42.5 N-SR, tunnel invert in sulphate ground",Blast furnace cement for concrete exposed to XA2/XA3.,t,2800
+08.01.0050.,"CEM III/B 32.5 N-LH/SR, mass pours",Low-heat cement for pile caps and pylon footing.,t,1900
+08.01.0060.,"CEM III/C 32.5 N, slag > 80 %, marine exposure",High-slag cement for estuary structures.,t,600
+08.01.0070.,"CEM IV/B (V) 32.5 N, lean and blinding mixes",Pozzolanic cement with siliceous fly ash for low-strength mixes.,t,400
+08.01.0080.,"CEM V/A (S-V) 42.5 N, inner lining concrete",Composite cement for tunnel inner lining.,t,3100
+08.01.0090.,"GGBS to EN 15167-1, Type II addition","Ground granulated slag for structural concrete mixes, bulk.",t,2400
+08.01.0100.,"Siliceous fly ash EN 450-1, category N",Type II addition for mass and pumped concrete.,t,1800
+08.01.0110.,"Microsilica slurry EN 13263-1, deck and footbridge concrete","Undensified slurry for high-strength, low-permeability mixes.",t,150
+08.01.0120.,"Limestone powder for SCC, EN 12620",Ground limestone addition for self-compacting concrete.,t,700
+08.01.0130.,Quartz flour 0/0.125 for SCC mixes,Inert mineral powder to adjust paste volume in self-compacting mixes.,t,220
+08.02.,Aggregates and water for concrete,,,
+08.02.0010.,"Coarse aggregate 4/16 and 16/32, natural, washed",Rounded natural gravel to EN 12620 for structural concrete.,t,52000
+08.02.0020.,"Coarse aggregate 2/16, recycled concrete Type 1","Recycled concrete aggregate for blinding and minor structures, max. 45 % replacement.",t,6000
+08.02.0030.,"Fine aggregate 0/4, natural, washed",Natural sand to EN 12620 for all concrete grades.,t,38000
+08.02.0040.,"Fine aggregate 0/2, recycled, lean mixes",Recycled fines for lean and blinding mixes.,t,1200
+08.02.0050.,"Batching water, EN 1008, mains supply",Water supplied from municipal network via metered connection.,m³,18000
+08.03.,Admixtures and fibres for concrete,,,
+08.03.0010.,"PCE high-range water reducer, SCC and deck concrete","Polycarboxylate-based, dosage per approved mix design.",t,140
+08.03.0020.,"AEA for XF2–XF4 concretes, target air 4–6 %",Air-entraining agent to EN 934-2.,t,22
+08.03.0030.,"Retarding admixture, summer mass pours",Set retarder to extend workability in hot weather.,t,30
+08.03.0040.,Alkali-free accelerator for sprayed concrete,"Liquid accelerator for wet-mix sprayed lining, dosage 4–8 % of binder.",t,380
+08.03.0050.,"Early-strength admixture, precast segments",Admixture for early demoulding strength of segments at 6 h.,t,18
+08.03.0060.,"Pore-blocking admixture, watertight invert",Crystalline/pore-blocking admixture for watertight concrete.,t,26
+08.03.0070.,"Steel fibres, hooked-end 60/0.9, sprayed lining","Cold-drawn wire fibres, dosage 35 kg/m³.",t,150
+08.04.,Asphalt constituents,,,
+08.04.0010.,"Paving grade 50/70, supply to mixing plant","Penetration grade binder to EN 12591, delivered in heated tankers.",t,2900
+08.04.0020.,"PmB 25/55-55 A, binder and surface layers",Elastomer-modified binder to EN 14023.,t,1100
+08.04.0030.,"Cellulose fibre pellets for SMA, 0.3–0.5 %","Drainage inhibitor for SMA mixes, dosed by pneumatic feeder.",t,45
+08.04.0040.,Surfactant-based warm-mix additive,Liquid additive dosed into binder to reduce mixing temperature by 30 °C.,t,12
+08.04.0050.,Synthetic zeolite for foaming process,Crystalline water-release additive for reduced-temperature mixes.,t,60
+08.04.0060.,"FT / amide wax, viscosity reducer",Synthetic wax added to binder for reduced-temperature poured and rolled mixes.,t,9
+08.04.0070.,Sulphur-extended binder pellets,Pelletised elemental sulphur for binder extension in base mixes.,t,25
+08.04.0080.,Steel fibres for base layer reinforcement at bus stops,Deformed steel fibres added at the pugmill.,t,6
+08.04.0090.,"Coarse aggregate 8/11 basalt, PSV ≥ 55",Quarried basalt chippings to EN 13043 for surface layers.,t,14000
+08.04.0100.,Recycled aggregate 2/8 for base mixes,Processed recycled mineral aggregate certified for bituminous base mixes.,t,3000
+08.04.0110.,"Crushed sand 0/2, diabase",Fine aggregate to EN 13043 for all bituminous mixes.,t,9000
+08.04.0120.,Rock flour 0/0.063 (greywacke),"Added filler for bituminous mixes, dry and free-flowing.",t,1600
+08.04.0130.,"Limestone filler 0/0.063, bituminous mixes","Ground limestone as added filler, silo delivery.",t,1400
+08.04.0140.,"CL 90-S anti-stripping agent, 1.5 % of aggregate",Calcium hydroxide added to bituminous mixes to improve adhesion.,t,260
+9,Buildings and minor structures,,,
+09.01.,"In-situ concrete, buildings and minor works",,,
+09.01.0010.,"C12/15 X0, mass fill and bedding, minor works","Ready-mix for mass fill, pipe bedding and backing where not measured elsewhere.",m³,420
+09.01.0020.,"C20/25 XC1, cable pits, sign bases, headwalls","Ready-mix, Dmax 32, S3, for minor structures.",m³,680
+09.01.0030.,"C25/30 XC2, ground-bearing slab, operations building","Slab 250 mm with mesh, power-floated, joints sawn.",m³,360
+09.01.0040.,"C30/37 XC4, walls to plant room and cable gallery","Walls min. 300 mm, lifts ≤ 500 mm.",m³,540
+09.01.0050.,"C35/45 XC4, columns C1–C14, operations building","Placed via trunking to avoid segregation, exposed faces to sample panel.",m³,120
+09.01.0060.,"C40/50 XC4/XD1, frame of ventilation building","Columns and beams, Dmax 16, S4.",m³,460
+09.01.0070.,"C45/55, stair and lift cores, ventilation building","Slipformed cores, continuous pour.",m³,380
+09.01.0080.,"C50/60 with microsilica, transfer beams","Heavily loaded transfer beams, temperature differential ≤ 20 K monitored.",m³,90
+09.01.0090.,"C60/75, special precast elements, supply ex plant",Supply only including pumping; placing measured elsewhere.,m³,40
