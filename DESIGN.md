@@ -1013,7 +1013,37 @@ Work started on Sunday 4 October. Submission is Friday 9 October, 17:00 Paris. A
 
 _Append-only. Each entry gives the date, what changed, why, and which results existed at the time._
 
-_(none yet)_
+### A1 · 2026-10-04 · Lines routed to the model: 282, not 273
+
+**Results existing at the time:** none. No model call had been made.
+
+**What changes:**
+
+- `docs/evaluation-protocol.md` §1 gives N_routed as "about 273", which subtracts the 9 service-unit lines. Under D-04 / §9.5 D2, gate G2 _needs the model's_ non-material vote, so those lines are sent to the model too.
+- Only the 37 headers are decided by rules with no call.
+- **N_routed = 282 on these files**, and RQ8 (latency per routed line) uses it.
+
+**Why:** an internal inconsistency found in review.
+
+### A2 · 2026-10-04 · Process lexicon: add "reduced temperature"; recycled-content implicit zero
+
+**Results existing at the time:** none.
+
+**What changes:**
+
+1. **The English BoQ never writes "WMA".** Warm-mix lines say "reduced temperature" (9 lines; "warm" 1, "WMA" 0). The §9.3 WMA pattern becomes `\bwma\b|warm|ti[èe]de|temp[ée]rature abaiss[ée]e|reduced temperature`.
+2. **Implicit zero.** A library row that states no recycled percentage is treated as recycled content 0 **only when a sibling in its type+usage pair states a positive percentage**. Example: `Asphalt Concrete (AC) - HMA` next to `… - HMA 30% RAP`. A sibling that says only "virgin" does not trigger it.
+
+**Checked on the data (no model involved), on dev only (lockbox lines not checked):** with these rules, across all 139 labelled dev lines, the ground-truth row is never in `conflict`.
+
+| Language | `literal` | `neutral` | `conflict` |
+|---|---|---|---|
+| EN | 55 | 84 | 0 |
+| FR | 57 | 82 | 0 |
+
+The veto leaves a median of 342 and a minimum of 266 candidate rows per line, which confirms D-08: the extractors veto, they do not filter.
+
+**Why:** a lexicon gap found while reading dev lines (provenance `dev_obs`, a general domain fact rather than item text). The zero rule makes explicit a sibling rule that §9.3 left unstated.
 
 ---
 
