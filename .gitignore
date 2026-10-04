@@ -3,8 +3,10 @@
 .env.*
 !.env.example
 
-# run artefacts (contain client text)
-runs/
+# run artefacts: local only, except the submission runs behind the committed outputs (DESIGN §9.6)
+runs/*
+!runs/submission/
+!runs/submission/**
 
 # python
 __pycache__/
