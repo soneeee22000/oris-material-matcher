@@ -1045,6 +1045,12 @@ The veto leaves a median of 342 and a minimum of 266 candidate rows per line, wh
 
 **Why:** a lexicon gap found while reading dev lines (provenance `dev_obs`, a general domain fact rather than item text). The zero rule makes explicit a sibling rule that §9.3 left unstated.
 
+### A3 · 2026-10-04 · Requirement count
+
+§3 says the requirements are condensed from "90 atomic requirements". `docs/requirements-traceability.md` holds **87**. The count is corrected here; no requirement was dropped.
+
+**Results existing at the time:** none.
+
 ---
 
 ## 17. Results
