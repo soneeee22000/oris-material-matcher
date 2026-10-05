@@ -694,6 +694,7 @@ The **reason-code enum is frozen**, issued here as one list, and the UI shows it
 - `decision, material_type, material_usage, material_subtype`;
 - the sample's audit columns `reason, model, prompt_version, latency_ms, cost_usd`;
 - then `suggested_type, suggested_usage, suggested_subtype, library_row_id, call_ids` (`;`-joined, empty for rule-decided rows). [A36]
+- then `suggested2_type, suggested2_usage, suggested2_subtype` (the valid top-2 row, else blank). [A56]
 
 The `model` column holds the served model, which is the fallback model when it decided the line. [A33]
 
@@ -1317,6 +1318,25 @@ The veto leaves a median of 342 and a minimum of 266 candidate rows per line, wh
 ### A53 · 2026-10-05 · Offline test guard: loopback only, not `--disable-socket`
 
 `--disable-socket` breaks every async test on Windows, because the Proactor event loop creates a loopback socket pair at start-up (`AttributeError: 'ProactorEventLoop' object has no attribute '_ssock'`, seen on the empty scaffold). The guard becomes pytest-socket with `--allow-hosts=127.0.0.1,::1`: sockets can be created, and any connection to a non-loopback host fails the test. The guarantee that no test reaches a paid API is unchanged. Changed: §11.7, §11.10. Results existing at the time: none; no model call had been made.
+
+### A54 · 2026-10-05 · The 40-item dev slice is fixed before the first model call
+
+§7.1 step 3 and §14 G1 name "a stratified 40-line dev slice" without defining it. It is now `eval/slice_v1.json`, written by `eval/make_slice.py`:
+
+- 40 items, drawn from `item_ids_dev` of `eval/split_v1.json` only (population 162: 139 labelled + 23 blank-GT), with the same ids in EN and FR.
+- Strata: L1 section × reference class (labelled with a subtype, labelled with a blank subtype, blank-GT service, no-equivalent material from `eval/annotations/blank_line_classes.csv`). There are 33 strata, and places are allocated proportionally by largest remainder.
+- Within a stratum, items are ranked by `sha256("oris-material-matcher/slice_v1" + item_no)`, with no RNG.
+- `ids_sha256 = 248da575dde907de7df6e6e112b22f4930a3cafe3e5b2526cebc64aad6d565a7`; the file's SHA-256 is `b41cf9512032cfbd35ccce660ca03e18bc3b3c251b899d1e9cc229327be51f2f`. A test pins both.
+
+The slice serves smoke runs and the A25 benchmark only. Selection (§10.6) always uses all dev items. Changed: §7.1, §14. Results existing at the time: B1 dev numbers and the label-free TF-IDF reproduction (no model call).
+
+### A55 · 2026-10-05 · A file without item codes never auto-skips a header
+
+§10.9 asked that the FR input with its codes removed give "the same header decisions" as the original. That would need a header rule based on text shape alone, which D-03 rejects, because a material line with an empty unit could then reach `not_a_material`. The criterion becomes: with codes removed, the **section paths** are identical to the original, and every former header is `HEADER_UNCONFIRMED` (D0b, `needs_review`); no row is `HEADER`. The renumbered `1 / 1.1 / 1.1.1` fixture still gives identical decisions and paths. Changed: §9.1, §10.9. Results existing at the time: none from any model.
+
+### A56 · 2026-10-05 · Second suggestion in the output CSV
+
+§10.1 reports hit@2, but the §9.6 columns carry only the first suggestion, so the scorer could not compute it from the CSV. Three columns are **appended after `call_ids`**: `suggested2_type, suggested2_usage, suggested2_subtype`, holding top-2 when it is a valid library row, otherwise blank. The A36 column order is unchanged. The scorer reads them when present, and prints hit@2 as n/a when they are absent. Changed: §9.6, §10.1. Results existing at the time: none from any model.
 
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
