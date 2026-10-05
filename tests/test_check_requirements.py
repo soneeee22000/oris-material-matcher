@@ -634,3 +634,17 @@ def test_json_report_is_byte_portable(world: World, tmp_path: Path) -> None:
     payload = json.loads(raw)
     expected = json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
     assert raw.decode("utf-8") == expected
+
+
+@pytest.mark.parametrize("mode", ["live", "cached", "replay", "fake", "rules"])
+def test_rq9_accepts_every_run_mode_the_service_writes(world: World, mode: str) -> None:
+    world.manifest.update(mode=mode)
+    if mode != "live":
+        world.manifest.update(rate_limit_tier=None, rate_limit_headers=None, split_sha256=None)
+    assert _status(world, "RQ9") == "PASS"
+
+
+@pytest.mark.parametrize("mode", ["offline", "LIVE", ""])
+def test_rq9_fails_on_an_unknown_run_mode(world: World, mode: str) -> None:
+    world.manifest["mode"] = mode
+    assert _status(world, "RQ9") == "FAIL"

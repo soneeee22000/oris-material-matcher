@@ -9,16 +9,25 @@ CSV, scores the output with ``eval/score.py`` (``--strict`` when the whole side 
 appends one ledger row, append-only, then re-renders ``eval/experiments.md`` from the ledger
 (``eval/render_ledger.py``) so the table never drifts from it. With ``--baseline-id <ledger
 id>`` the row also carries the §7.2 comparison against that id's run in the same language:
-before/after correct matches, d (discordant items, pooled per item over EN and FR once both
-languages' rows exist), the exact one-sided sign-test p and the keep verdict; without it those
-fields are null and kept is ``baseline``.
+before/after correct matches, d (discordant items, counted per Item No. over EN and FR, so
+twins are one observation), the exact one-sided sign-test p over per-item net deltas and the
+keep verdict; without it those fields are null and kept is ``baseline``. A comparison made
+while the other language's compared row of the experiment is missing is ``pending``: the §7.2
+verdict needs both languages, so the second row decides it and names the first in
+``pooled_with``.
+
+Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
+calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
+lockbox row that uses up the rung's slot, before the error is reported.
 
 The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
---lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, with neither
-``--slice``, ``--limit`` nor ``--baseline-id``. It runs the full file once per frozen rung
-(profile, language, code SHA), never reads the response cache, scores the lockbox side and
-appends its row to ``eval/lockbox_log.md``; a second session of the same rung is refused.
-``--side lockbox`` alone is always refused.
+--lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, the working
+tree is clean (``git status --porcelain`` lists nothing outside ``runs/`` and the log) and
+``--llm`` names a live provider, with neither ``--slice``, ``--limit`` nor ``--baseline-id``.
+It runs the full file once per frozen rung (profile, language, code SHA), never reads the
+response cache, scores the lockbox side and appends its row, with the run's mode, llm and
+dirty flag, to the pinned ``<repo>/eval/lockbox_log.md``; a second session of the same rung
+is refused. ``--side lockbox`` alone is always refused.
 
 Before any model call, the reference's labelled triples are checked against the library: a
 library sharing none of them (e.g. the FR library against the global-library ground truth) is
@@ -47,7 +56,6 @@ import re
 import subprocess
 import sys
 import time
-from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -58,7 +66,7 @@ from types import ModuleType
 from typing import Any
 
 from oris_matcher.cli import MatchJob, MatchOutcome, execute_match
-from oris_matcher.doctor import Runtime, WiringError, parse_llm_spec
+from oris_matcher.doctor import LIVE_KINDS, Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
@@ -78,7 +86,7 @@ RENDER_LOCK_TIMEOUT_SECONDS = 10.0
 RENDER_LOCK_POLL_SECONDS = 0.05
 MIN_REFERENCE_COVERAGE = 0.5
 DEFAULT_LEDGER = ROOT / "eval" / "experiments.jsonl"
-DEFAULT_LOCKBOX_LOG = ROOT / "eval" / "lockbox_log.md"
+LOCKBOX_LOG = Path("eval") / "lockbox_log.md"
 DEFAULT_REFERENCE = ROOT / "data" / "boq_dataset_matched_GT.csv"
 DEFAULT_CLASSES = ROOT / "eval" / "annotations" / "blank_line_classes.csv"
 DEFAULT_BUDGET_USD = 1.00
@@ -95,6 +103,10 @@ SLICE_IDS_FIELD = "item_ids"
 SLICE_SPLIT_FIELD = "split_sha256"
 FREEZE_TAG = "eval-freeze"
 GIT_TAGS_AT_HEAD = ("git", "tag", "--points-at", "HEAD")
+GIT_STATUS = ("git", "status", "--porcelain")
+PORCELAIN_PATH_START = 3
+RENAME_ARROW = " -> "
+CLEAN_TREE_EXEMPT_DIRS = ("runs/",)
 EXIT_OK = 0
 EXIT_ERROR = 2
 EXIT_REFUSED = 4
@@ -108,6 +120,11 @@ MAX_COST_PER_100_LINES_USD = 2.0
 MAX_SECONDS_PER_ROUTED_LINE = 2.0
 LINES_PER_COST_UNIT = 100
 KEPT_BASELINE = "baseline"
+KEPT_PENDING = "pending"
+KEPT_FAILED = "failed"
+STATUS_SCORED = "scored"
+STATUS_FAILED = "failed"
+FAILED_NOTE = "FAILED"
 LIVE_MODE = "live"
 LOG_CELL_SEPARATOR = "|"
 LOG_MIN_CELLS = 13
@@ -261,26 +278,72 @@ def _refuse_partial_lockbox(args: argparse.Namespace) -> None:
 
 
 def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
-    """Refuse lockbox lines outside the single post-freeze, full-file session (§10.3).
+    """Refuse lockbox lines outside the single post-freeze, full-file, live session (§10.3).
 
     Args:
         args: The parsed arguments.
-        runtime: Runs the read-only ``git tag --points-at HEAD``.
+        runtime: Runs the read-only ``git tag --points-at HEAD`` and ``git status``.
 
     Raises:
         RefusedError: A partial lockbox route, a session narrowed by slice, limit or baseline,
-            or ``eval-freeze`` is not at HEAD.
+            a non-live ``--llm``, ``eval-freeze`` not at HEAD, or a dirty working tree.
 
     """
     if args.side == SIDE_DEV and not args.lockbox_session:
         return
     _refuse_partial_lockbox(args)
-    try:
-        tags = runtime.git(GIT_TAGS_AT_HEAD, runtime.root()).split()
-    except (OSError, subprocess.SubprocessError) as error:
-        raise RefusedError(f"cannot read the tags at HEAD ({error})") from error
-    if FREEZE_TAG not in tags:
+    if FREEZE_TAG not in _git_output(runtime, GIT_TAGS_AT_HEAD).split():
         raise RefusedError(f"--lockbox-session is refused: the tag {FREEZE_TAG} is not at HEAD")
+    _refuse_non_live(args)
+    changed = dirty_paths(_git_output(runtime, GIT_STATUS))
+    if changed:
+        raise RefusedError(
+            f"--lockbox-session is refused: the working tree differs from {FREEZE_TAG} "
+            f"({', '.join(changed[:3])})"
+        )
+
+
+def _refuse_non_live(args: argparse.Namespace) -> None:
+    """Refuse a session whose ``--llm`` is not a live provider: its row would not be a score."""
+    try:
+        kind = parse_llm_spec(args.llm).kind
+    except WiringError as error:
+        raise RefusedError(f"--lockbox-session: {error}") from error
+    if kind not in LIVE_KINDS:
+        live = ", ".join(sorted(kind.value for kind in LIVE_KINDS))
+        raise RefusedError(f"--lockbox-session needs a live --llm ({live}), not {args.llm!r}")
+
+
+def _git_output(runtime: Runtime, command: Sequence[str]) -> str:
+    """Run one read-only git command at the repository root; refuse when it cannot run."""
+    try:
+        return runtime.git(command, runtime.root())
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RefusedError(f"cannot run {' '.join(command)} ({error})") from error
+
+
+def dirty_paths(porcelain: str) -> list[str]:
+    """Return the paths ``git status --porcelain`` lists, except run folders and the log.
+
+    Args:
+        porcelain: The command's output.
+
+    Returns:
+        Changed, staged or untracked paths, in the listed order.
+
+    """
+    paths: list[str] = []
+    for line in porcelain.splitlines():
+        path = line[PORCELAIN_PATH_START:].split(RENAME_ARROW)[-1].strip().strip('"')
+        exempt = path == LOCKBOX_LOG.as_posix() or path.startswith(CLEAN_TREE_EXEMPT_DIRS)
+        if path and not exempt:
+            paths.append(path)
+    return paths
+
+
+def lockbox_log_path(runtime: Runtime) -> Path:
+    """Return the pinned lockbox log, ``<repo>/eval/lockbox_log.md``; no option moves it."""
+    return runtime.root() / LOCKBOX_LOG
 
 
 def lockbox_log_rows(path: Path) -> list[list[str]]:
@@ -325,13 +388,13 @@ def check_once_only(args: argparse.Namespace, runtime: Runtime) -> None:
     sha = code_version(runtime.root(), runtime.git).sha
     if sha is None:
         raise RefusedError("cannot read HEAD; the once-only rule needs the code SHA")
-    token = _rung_token(args.profile)
-    for cells in lockbox_log_rows(args.lockbox_log):
+    token, log = _rung_token(args.profile), lockbox_log_path(runtime)
+    for cells in lockbox_log_rows(log):
         same = sha in cells[LOG_COMMIT_CELL] and cells[LOG_LANG_CELL] == args.lang
         if same and token.search(cells[-1]):
             raise RefusedError(
                 f"the {args.profile.upper()} {args.lang} lockbox run at {sha[:12]} is already "
-                f"in {args.lockbox_log.name}; the lockbox is run once per frozen rung"
+                f"in {log.name}; the lockbox is run once per frozen rung"
             )
 
 
@@ -594,6 +657,22 @@ def _baseline_output(args: argparse.Namespace, row: Mapping[str, Any], root: Pat
     return found
 
 
+def check_baseline(args: argparse.Namespace, root: Path) -> None:
+    """Validate ``--baseline-id`` before any call: its row, item set and output must exist.
+
+    Args:
+        args: The parsed arguments.
+        root: The repository root.
+
+    Raises:
+        ExperimentError: No such row in this language, another side, slice or limit, or no
+            output to compare against.
+
+    """
+    if args.baseline_id is not None:
+        _baseline_output(args, baseline_row(args), root)
+
+
 def compare_with_baseline(
     args: argparse.Namespace, after_output: Path, root: Path
 ) -> dict[str, Any] | None:
@@ -689,17 +768,21 @@ def keep_notes(rows: Sequence[dict[str, Any]]) -> dict[str, bool]:
     return {"latency_measured": bool(_latencies(rows))}
 
 
-def _pooled_deltas(rows: Sequence[dict[str, Any]]) -> Counter[str]:
-    """Pool the rows' per-item deltas, keyed by language and item."""
-    pooled: Counter[str] = Counter()
+def _per_item_deltas(rows: Sequence[dict[str, Any]]) -> dict[str, list[int]]:
+    """Group the rows' non-zero deltas by Item No., so EN and FR twins share one entry (A5)."""
+    per_item: dict[str, list[int]] = {}
     for row in rows:
-        deltas = row["comparison"]["item_deltas"].items()
-        pooled.update({f"{row['lang']}:{key}": value for key, value in deltas})
-    return pooled
+        for key, delta in row["comparison"]["item_deltas"].items():
+            per_item.setdefault(key, []).append(delta)
+    return per_item
 
 
 def keep_verdict(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
-    """Pool the rows' item deltas and apply the §7.2 keep rule.
+    """Pool the rows' item deltas per Item No. and apply the §7.2 keep rule.
+
+    d counts the items whose (EN, FR) correctness pair differs between the two runs; the gain
+    sums every delta; the sign test runs over the per-item net deltas, where an item whose
+    languages flip opposite ways is a tie and drops out.
 
     Args:
         rows: This row, and the other language's row of the same experiment when it exists.
@@ -709,12 +792,12 @@ def keep_verdict(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
         the notes and kept.
 
     """
-    discordant = [delta for delta in _pooled_deltas(rows).values() if delta != 0]
-    gain = sum(discordant)
-    checks = keep_checks(rows, gain, len(discordant))
+    nets = [sum(deltas) for deltas in _per_item_deltas(rows).values()]
+    gain, decided = sum(nets), [net for net in nets if net != 0]
+    checks = keep_checks(rows, gain, len(nets))
     return {
-        "d": len(discordant),
-        "sign_test_p": sign_test_p(sum(delta > 0 for delta in discordant), len(discordant)),
+        "d": len(nets),
+        "sign_test_p": sign_test_p(sum(net > 0 for net in decided), len(decided)),
         "gain": gain,
         "keep_checks": checks,
         "keep_notes": keep_notes(rows),
@@ -753,8 +836,9 @@ def with_comparison(
 
     Returns:
         The row. Without a baseline, before/after/d/p are null and kept is ``baseline``. With
-        one, the verdict covers this language, pooled with the other language's compared row
-        of the same experiment and baseline when it exists.
+        one and the other language's compared row of the same experiment and baseline, the
+        verdict pools both. Without that row, kept is ``pending`` and d/p are null: the
+        one-language checks stay in ``comparison`` and the second row decides.
 
     """
     if comparison is None:
@@ -768,9 +852,12 @@ def with_comparison(
         "comparison": comparison,
     }
     other = _pair_row(filled, ledger)
-    verdict = keep_verdict([filled] if other is None else [filled, other])
-    pooled_with = None if other is None else other["run_id"]
-    filled["comparison"] = {**comparison, "pooled_with": pooled_with, **verdict}
+    if other is None:
+        partial = {**keep_verdict([filled]), "kept": KEPT_PENDING}
+        filled["comparison"] = {**comparison, "pooled_with": None, **partial}
+        return {**filled, "d": None, "sign_test_p": None, "kept": KEPT_PENDING}
+    verdict = keep_verdict([filled, other])
+    filled["comparison"] = {**comparison, "pooled_with": other["run_id"], **verdict}
     return {
         **filled,
         "d": verdict["d"],
@@ -800,7 +887,21 @@ def ledger_row(
 
     """
     manifest = outcome.manifest
-    routed = sum(item.line.kind == LineKind.ITEM for item in outcome.result.lines)
+    return {
+        **_run_fields(args, outcome, moment, root),
+        "status": STATUS_SCORED,
+        "prompt_version": list(outcome.result.prompt_versions),
+        "policy_resolution": manifest["policy_resolution"],
+        "metrics": metrics_summary(score, is_strict_valid(args)),
+        "latency_s_per_routed": latency_per_routed(manifest),
+    }
+
+
+def _run_fields(
+    args: argparse.Namespace, outcome: MatchOutcome, moment: datetime, root: Path
+) -> dict[str, Any]:
+    """Return the ledger fields every attempt has, scored or failed."""
+    manifest = outcome.manifest
     return {
         "id": args.id,
         "date": moment.astimezone(UTC).isoformat(),
@@ -814,15 +915,43 @@ def ledger_row(
         "side": args.side,
         "slice_sha256": file_sha256(args.slice) if args.slice else None,
         "limit": args.limit,
-        "prompt_version": list(outcome.result.prompt_versions),
-        "policy_resolution": manifest["policy_resolution"],
-        "n_lines": routed,
-        "metrics": metrics_summary(score, is_strict_valid(args)),
+        "n_lines": sum(item.line.kind == LineKind.ITEM for item in outcome.result.lines),
         "spend_usd": manifest["spend_usd"],
         "attributed_cost_usd": manifest["attributed_cost_usd"],
-        "latency_s_per_routed": latency_per_routed(manifest),
         "output": portable_path(outcome.output_path, root),
         "exit_code": outcome.result.exit_code,
+    }
+
+
+def failed_ledger_row(
+    args: argparse.Namespace,
+    outcome: MatchOutcome,
+    error: BaseException,
+    moment: datetime,
+    root: Path,
+) -> dict[str, Any]:
+    """Build the ledger row of an attempt that ran but could not be scored or compared.
+
+    Args:
+        args: The parsed arguments.
+        outcome: The finished run.
+        error: Why it could not be recorded.
+        moment: When the row is written.
+        root: The repository root, for the portable output path.
+
+    Returns:
+        The row: ``status`` and ``kept`` are ``failed`` and ``error`` says why.
+
+    """
+    nulls = dict.fromkeys(("before", "after", "d", "sign_test_p", "comparison", "metrics"))
+    return {
+        **_run_fields(args, outcome, moment, root),
+        **nulls,
+        "baseline_id": args.baseline_id,
+        "prompt_version": list(outcome.result.prompt_versions),
+        "status": STATUS_FAILED,
+        "error": str(error),
+        "kept": KEPT_FAILED,
     }
 
 
@@ -846,7 +975,11 @@ def _fmt(value: float | None) -> str:
 
 
 def lockbox_log_line(
-    args: argparse.Namespace, outcome: MatchOutcome, score: dict[str, Any], moment: datetime
+    args: argparse.Namespace,
+    outcome: MatchOutcome,
+    score: dict[str, Any],
+    moment: datetime,
+    dirty: bool | None = None,
 ) -> str:
     """Return the lockbox log's table row for one session run (§10.3).
 
@@ -855,6 +988,8 @@ def lockbox_log_line(
         outcome: The finished full-file run.
         score: The output scored on the lockbox side.
         moment: When the row is written.
+        dirty: Whether the tree differed from the tag when the row was written, by the
+            gate's rule (run folders and the log excluded); None when git could not tell.
 
     Returns:
         One Markdown table row, LF-terminated.
@@ -877,13 +1012,68 @@ def lockbox_log_line(
         str(score["false_not_a_material"]),
         _fmt(None if mean_cost is None else mean_cost * LINES_PER_COST_UNIT),
         _fmt(latency_per_routed(manifest)),
-        f"{outcome.result.profile.value.upper()} run {outcome.result.run_id}; lockbox side, strict",
+        _log_notes(outcome, "lockbox side, strict", dirty),
     ]
+    return _log_row(cells)
+
+
+def _log_row(cells: Sequence[str]) -> str:
+    """Join cells into one LF-terminated Markdown table row."""
     return f"| {' | '.join(cells)} |{LEDGER_NEWLINE}"
+
+
+def _log_notes(outcome: MatchOutcome, note: str, dirty: bool | None) -> str:
+    """Return the notes cell: the rung first (the once-only rule keys on it), then provenance."""
+    manifest = outcome.manifest
+    return (
+        f"{outcome.result.profile.value.upper()} run {outcome.result.run_id}; {note}; "
+        f"mode {manifest.get('mode')}; llm {manifest.get('llm')}; code_dirty {dirty}"
+    )
+
+
+def tree_dirty(runtime: Runtime) -> bool | None:
+    """Tell whether the tree differs from HEAD by the gate's rule; None when git fails."""
+    try:
+        return bool(dirty_paths(runtime.git(GIT_STATUS, runtime.root())))
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def failed_lockbox_log_line(
+    args: argparse.Namespace,
+    outcome: MatchOutcome,
+    error: BaseException,
+    moment: datetime,
+    dirty: bool | None = None,
+) -> str:
+    """Return the lockbox row of a session run that could not be scored; it uses its slot.
+
+    Args:
+        args: The parsed arguments.
+        outcome: The finished full-file run.
+        error: Why it could not be scored.
+        moment: When the row is written.
+        dirty: As in ``lockbox_log_line``.
+
+    Returns:
+        One Markdown table row, LF-terminated, every metric ``n/a``.
+
+    """
+    manifest = outcome.manifest
+    head = [
+        moment.astimezone(UTC).isoformat(),
+        f"{FREEZE_TAG} / {manifest.get('code_sha')}",
+        str(manifest.get("split_sha256")),
+        args.lang,
+    ]
+    metrics = [_fmt(None)] * (LOG_MIN_CELLS - len(head) - 1)
+    reason = " ".join(str(error).split()).replace(LOG_CELL_SEPARATOR, "/")
+    return _log_row([*head, *metrics, _log_notes(outcome, f"{FAILED_NOTE}: {reason}", dirty)])
 
 
 def append_lockbox_log(path: Path, line: str) -> None:
     """Append one row to ``eval/lockbox_log.md``; earlier rows are never rewritten."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding=ENCODING, newline=LEDGER_NEWLINE) as handle:
         handle.write(line)
 
@@ -983,12 +1173,58 @@ def render_markdown(ledger: Path) -> None:
 
 
 def record(args: argparse.Namespace, outcome: MatchOutcome, runtime: Runtime) -> None:
+    """Record the run; on a failure, append its ``failed`` row first, then re-raise.
+
+    Args:
+        args: The parsed arguments.
+        outcome: The finished run; its calls are already paid for.
+        runtime: The environment.
+
+    Raises:
+        ExperimentError: The scorer or the comparison failed, after the failed row went in.
+
+    """
+    try:
+        _record_scored(args, outcome, runtime)
+    except (ExperimentError, OSError, ValueError, KeyError) as error:
+        record_failure(args, outcome, runtime, error)
+        raise
+
+
+def record_failure(
+    args: argparse.Namespace, outcome: MatchOutcome, runtime: Runtime, error: BaseException
+) -> None:
+    """Append the row of a run that could not be recorded, so no paid attempt goes unlogged.
+
+    Args:
+        args: The parsed arguments.
+        outcome: The finished run.
+        runtime: The environment.
+        error: Why the run could not be recorded.
+
+    """
+    moment = runtime.clock()
+    if is_lockbox_session(args):
+        log = lockbox_log_path(runtime)
+        line = failed_lockbox_log_line(args, outcome, error, moment, tree_dirty(runtime))
+        append_lockbox_log(log, line)
+        print(f"lockbox log: appended the failed {outcome.result.run_id} to {log}")
+        return
+    row = failed_ledger_row(args, outcome, error, moment, runtime.root())
+    append_ledger(args.ledger, row)
+    print(f"ledger: appended the failed {args.id} ({outcome.result.run_id}) to {args.ledger}")
+    render_markdown(args.ledger)
+
+
+def _record_scored(args: argparse.Namespace, outcome: MatchOutcome, runtime: Runtime) -> None:
     """Score the run and append its ledger row, or its lockbox log row for the session."""
     score = score_run(args, outcome, runtime.root())
     moment = runtime.clock()
     if is_lockbox_session(args):
-        append_lockbox_log(args.lockbox_log, lockbox_log_line(args, outcome, score, moment))
-        print(f"lockbox log: appended {outcome.result.run_id} to {args.lockbox_log}")
+        log = lockbox_log_path(runtime)
+        line = lockbox_log_line(args, outcome, score, moment, tree_dirty(runtime))
+        append_lockbox_log(log, line)
+        print(f"lockbox log: appended {outcome.result.run_id} to {log}")
         return
     root = runtime.root()
     comparison = compare_with_baseline(args, outcome.output_path, root)
@@ -1014,6 +1250,7 @@ def run(args: argparse.Namespace, runtime: Runtime) -> int:
     check_once_only(args, runtime)
     check_reference_coverage(args.reference, args.library)
     selection = build_selection(args)
+    check_baseline(args, runtime.root())
     outcome = execute_match(build_job(args, selection), Settings(), runtime)
     record(args, outcome, runtime)
     return outcome.result.exit_code
@@ -1044,7 +1281,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"))
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
-    parser.add_argument("--lockbox-log", type=Path, default=DEFAULT_LOCKBOX_LOG)
     parser.add_argument("--no-cache", action="store_true")
     parser.set_defaults(profile=RunProfile.B3.value)
     return parser

@@ -39,6 +39,7 @@ DIGITS = 3
 LINES_PER_COST_UNIT = 100
 DATE_FORMAT = "%Y-%m-%d %H:%M UTC"
 KEPT_LABELS = {True: "kept", False: "reverted"}
+PENDING = "pending"
 P_VALUE_FORMAT = ".3g"
 HEADER = (
     "# Experiment ledger",
@@ -119,13 +120,39 @@ def kept_cell(value: object) -> str:
     return escape(value)
 
 
-def verdict_cell(row: Mapping[str, Any]) -> str:
-    """Render the verdict with d and the one-sided sign-test p when the row was compared (§7.2)."""
+def verdict_cell(row: Mapping[str, Any], later: Sequence[Mapping[str, Any]] = ()) -> str:
+    """Render the verdict with d and the one-sided sign-test p when the row was compared (§7.2).
+
+    Args:
+        row: The ledger row.
+        later: The ledger rows below it; a ``pending`` row shows the verdict of the later row
+            that pooled it (its ``comparison.pooled_with`` names this row's run).
+
+    Returns:
+        The cell text.
+
+    """
     verdict = kept_cell(row.get("kept"))
+    if row.get("kept") == PENDING:
+        pooled = _pooled_by(row, later)
+        if pooled is None:
+            return verdict
+        return f"{verdict}; pooled with {pooled.get('run_id')}: {verdict_cell(pooled)}"
     discordant = row.get("d")
     if discordant is None:
         return verdict
     return f"{verdict} (d={discordant}, p={row.get('sign_test_p'):{P_VALUE_FORMAT}})"
+
+
+def _pooled_by(
+    row: Mapping[str, Any], later: Sequence[Mapping[str, Any]]
+) -> Mapping[str, Any] | None:
+    """Return the first later row whose comparison pooled this row's run, else None."""
+    for other in later:
+        comparison = other.get("comparison")
+        if isinstance(comparison, Mapping) and comparison.get("pooled_with") == row.get("run_id"):
+            return other
+    return None
 
 
 def prompt_cell(value: object) -> str:
@@ -156,12 +183,17 @@ def before_metrics(row: Mapping[str, Any], earlier: Sequence[Mapping[str, Any]])
     return metrics_cell(str(baseline.get("lang", "")), baseline.get("metrics"))
 
 
-def table_row(row: Mapping[str, Any], earlier: Sequence[Mapping[str, Any]]) -> str:
+def table_row(
+    row: Mapping[str, Any],
+    earlier: Sequence[Mapping[str, Any]],
+    later: Sequence[Mapping[str, Any]] = (),
+) -> str:
     """Return one Markdown table row for one ledger row.
 
     Args:
         row: The ledger row.
         earlier: The ledger rows above it, oldest first, for the baseline's metrics.
+        later: The ledger rows below it, for the pooled verdict of a ``pending`` row.
 
     Returns:
         The row, without its line end.
@@ -176,7 +208,7 @@ def table_row(row: Mapping[str, Any], earlier: Sequence[Mapping[str, Any]]) -> s
         escape(row.get("change")),
         escape(before_metrics(row, earlier)),
         escape(metrics_cell(lang, row.get("metrics"))),
-        verdict_cell(row),
+        verdict_cell(row, later),
         prompt_cell(row.get("prompt_version")),
     )
     return f"| {CELL_SEPARATOR.join(cells)} |"
@@ -192,7 +224,10 @@ def render(rows: Sequence[Mapping[str, Any]]) -> str:
         The file's text, LF line ends, ending with one line end.
 
     """
-    lines = [*HEADER, *(table_row(row, rows[:index]) for index, row in enumerate(rows))]
+    lines = [
+        *HEADER,
+        *(table_row(row, rows[:index], rows[index + 1 :]) for index, row in enumerate(rows)),
+    ]
     return NEWLINE.join(lines) + NEWLINE
 
 

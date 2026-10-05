@@ -75,8 +75,9 @@ class RecordingFactory:
 class Git:
     """A fake read-only git runner."""
 
-    def __init__(self, tags: str = "") -> None:
+    def __init__(self, tags: str = "", status: str = "") -> None:
         self.tags = tags
+        self.status = status
         self.calls: list[tuple[str, ...]] = []
 
     def __call__(self, args: Sequence[str], root: Path) -> str:
@@ -84,6 +85,8 @@ class Git:
         self.calls.append(tuple(args))
         if "rev-parse" in args:
             return "d" * 40
+        if "status" in args:
+            return self.status
         return self.tags if "tag" in args else ""
 
 
@@ -274,7 +277,7 @@ def test_lockbox_session_is_refused_unless_eval_freeze_is_at_head(
 
 def test_lockbox_gate_opens_only_with_the_tag(isolated: Path) -> None:
     parser = runner.build_parser()
-    args = parser.parse_args(argv(isolated, "en", "--side", "all", "--lockbox-session"))
+    args = parser.parse_args(argv(isolated, "en", *SESSION))
     runner.check_lockbox_gate(args, make_runtime(isolated, git=Git("eval-freeze\n")))
     with pytest.raises(runner.RefusedError):
         runner.check_lockbox_gate(args, make_runtime(isolated, git=Git("other\n")))
@@ -292,9 +295,16 @@ def test_lockbox_session_refuses_a_narrowed_run(isolated: Path, extra: tuple[str
     assert factory.fakes == []
 
 
+SESSION = ("--side", "all", "--lockbox-session", "--llm", "anthropic")
+
+
+def lockbox_log(root: Path) -> Path:
+    return root / "eval" / "lockbox_log.md"
+
+
 def test_lockbox_session_runs_the_full_file_once_without_cache(isolated: Path) -> None:
-    factory, log = RecordingFactory(), isolated / "lockbox_log.md"
-    args = argv(isolated, "en", "--side", "all", "--lockbox-session", "--lockbox-log", str(log))
+    factory, log = RecordingFactory(), lockbox_log(isolated)
+    args = argv(isolated, "en", *SESSION)
     runtime = make_runtime(isolated, factory, Git("eval-freeze\n"))
 
     assert runner.main(args, runtime) == 0
@@ -364,7 +374,8 @@ def test_baseline_id_compares_with_the_baseline_rows_run(isolated: Path) -> None
     assert row["baseline_id"] == "E-test"
     assert row["before"] == {"run_id": base["run_id"], "correct": row["after"]["correct"]}
     assert row["after"]["run_id"] == row["run_id"]
-    assert (row["d"], row["sign_test_p"], row["kept"]) == (0, 1.0, False)
+    assert (row["d"], row["sign_test_p"], row["kept"]) == (None, None, "pending")
+    assert row["comparison"]["pooled_with"] is None
     checks = row["comparison"]["keep_checks"]
     assert set(checks) == {"gain", "language_loss", "f_nm_zero", "dev_bar", "cost", "latency"}
     assert (checks["gain"], checks["language_loss"], checks["f_nm_zero"]) == (False, True, True)
@@ -601,3 +612,167 @@ def test_a_held_render_lock_skips_the_render_with_a_warning(
     assert not (isolated / "experiments.md").exists()
     assert lock.exists()
     assert "warning: ledger appended but experiments.md not rendered" in capsys.readouterr().err
+
+
+def test_keep_rule_counts_en_and_fr_twins_as_one_item() -> None:
+    same_items = {f"01.01.00{n}0." for n in range(9)}
+    en = _compared("en", dict.fromkeys(same_items, 1), 50)
+    fr = _compared("fr", dict.fromkeys(same_items, 1), 50)
+
+    pooled = runner.keep_verdict([en, fr])
+
+    assert (pooled["d"], pooled["gain"]) == (9, 18)
+    assert pooled["sign_test_p"] == runner.sign_test_p(9, 9)
+
+
+def test_an_item_that_flips_both_ways_is_one_discordant_tie() -> None:
+    en = _compared("en", {"A": 1, "B": 1}, 50)
+    fr = _compared("fr", {"A": -1}, 50)
+
+    pooled = runner.keep_verdict([en, fr])
+
+    assert (pooled["d"], pooled["gain"]) == (2, 1)
+    assert pooled["sign_test_p"] == runner.sign_test_p(1, 1)
+
+
+def _ledger_row(lang: str, run_id: str, deltas: dict[str, int]) -> dict[str, Any]:
+    compared = _compared(lang, deltas, 50)
+    return {
+        "id": "E-01",
+        "run_id": run_id,
+        "lang": lang,
+        "side": "dev",
+        "profile": "b3",
+        "slice_sha256": None,
+        "limit": None,
+        "metrics": compared["metrics"],
+    }
+
+
+def _comparison(row: dict[str, Any], deltas: dict[str, int]) -> dict[str, Any]:
+    return {
+        "baseline_id": "E-00",
+        "before_run_id": f"base-{row['lang']}",
+        "before_correct": 50,
+        "after_correct": 50 + sum(deltas.values()),
+        "item_deltas": deltas,
+    }
+
+
+def test_one_language_alone_is_pending_until_its_twin_row_exists(tmp_path: Path) -> None:
+    ledger = tmp_path / "experiments.jsonl"
+    gain = {f"I{n}": 1 for n in range(9)}
+    en = _ledger_row("en", "run-en", gain)
+
+    first = runner.with_comparison(en, _comparison(en, gain), ledger)
+
+    assert first["kept"] == "pending"
+    assert (first["d"], first["sign_test_p"]) == (None, None)
+    assert first["comparison"]["pooled_with"] is None
+    runner.append_ledger(ledger, first)
+    fr = _ledger_row("fr", "run-fr", {})
+    second = runner.with_comparison(fr, _comparison(fr, {}), ledger)
+    assert second["kept"] is True
+    assert second["comparison"]["pooled_with"] == "run-en"
+    assert second["d"] == 9
+
+
+def test_rendered_pending_row_shows_the_pooled_verdict(tmp_path: Path) -> None:
+    ledger = tmp_path / "experiments.jsonl"
+    gain = {f"I{n}": 1 for n in range(9)}
+    en = _ledger_row("en", "run-en", gain)
+    runner.append_ledger(ledger, runner.with_comparison(en, _comparison(en, gain), ledger))
+    fr = _ledger_row("fr", "run-fr", {})
+    runner.append_ledger(ledger, runner.with_comparison(fr, _comparison(fr, {}), ledger))
+
+    renderer = runner.load_renderer()
+    lines = renderer.render(renderer.read_rows(ledger)).splitlines()
+
+    assert "pending; pooled with run-fr: kept (d=9" in lines[-2]
+    assert "kept (d=9" in lines[-1]
+
+
+def test_lockbox_session_refuses_a_fake_or_replayed_llm(isolated: Path) -> None:
+    for llm in ("fake", f"replay:{isolated}"):
+        factory = RecordingFactory()
+        args = [*argv(isolated, "en", "--side", "all", "--lockbox-session"), "--llm", llm]
+        code = runner.main(args, make_runtime(isolated, factory, Git("eval-freeze\n")))
+        assert code == runner.EXIT_REFUSED
+        assert factory.fakes == []
+    assert not lockbox_log(isolated).exists()
+
+
+@pytest.mark.parametrize(
+    "status",
+    [" M src/oris_matcher/prompts/v1/system.txt\n", " M config/policy.yaml\n", "?? eval/new.py\n"],
+)
+def test_lockbox_session_refuses_a_dirty_tree(isolated: Path, status: str) -> None:
+    factory = RecordingFactory()
+    git = Git("eval-freeze\n", status)
+    code = runner.main(argv(isolated, "en", *SESSION), make_runtime(isolated, factory, git))
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+    assert ("git", "status", "--porcelain") in git.calls
+
+
+def test_lockbox_session_ignores_run_folders_and_the_log_in_git_status(isolated: Path) -> None:
+    status = " M eval/lockbox_log.md\n?? runs/submission/x/manifest.json\n"
+    runtime = make_runtime(isolated, RecordingFactory(), Git("eval-freeze\n", status))
+    assert runner.main(argv(isolated, "en", *SESSION), runtime) == 0
+    row = lockbox_log(isolated).read_text(encoding="utf-8")
+    assert "mode " in row
+    assert "llm anthropic" in row
+    assert "code_dirty False" in row
+
+
+def test_lockbox_log_option_is_gone(isolated: Path) -> None:
+    with pytest.raises(SystemExit):
+        runner.build_parser().parse_args(
+            [*argv(isolated, "en", *SESSION), "--lockbox-log", str(isolated / "other.md")]
+        )
+
+
+class ScorerDown:
+    """Replaces score_run: the scorer fails after the paid calls."""
+
+    def __call__(self, *args: Any) -> dict[str, Any]:
+        raise runner.ExperimentError("the scorer rejected the output")
+
+
+def test_a_failure_after_the_calls_still_appends_a_failed_row(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    factory = RecordingFactory()
+    monkeypatch.setattr(runner, "score_run", ScorerDown())
+
+    code = runner.main(argv(isolated, "en", "--limit", "2"), make_runtime(isolated, factory))
+
+    assert code == runner.EXIT_ERROR
+    assert factory.requests
+    row = ledger_rows(isolated)[0]
+    assert row["status"] == "failed"
+    assert row["kept"] == "failed"
+    assert "scorer rejected" in row["error"]
+    assert (isolated / "runs" / row["run_id"] / "manifest.json").is_file()
+
+
+def test_a_failed_lockbox_session_is_logged_and_still_uses_its_slot(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(runner, "score_run", ScorerDown())
+    runtime = make_runtime(isolated, RecordingFactory(), Git("eval-freeze\n"))
+
+    assert runner.main(argv(isolated, "en", *SESSION), runtime) == runner.EXIT_ERROR
+    assert "FAILED" in lockbox_log(isolated).read_text(encoding="utf-8")
+    assert runner.main(argv(isolated, "en", *SESSION), runtime) == runner.EXIT_REFUSED
+
+
+def test_a_bad_baseline_id_is_refused_before_any_call(isolated: Path) -> None:
+    runtime = make_runtime(isolated)
+    assert runner.main(argv(isolated, "en", "--limit", "2"), runtime) == 0
+    factory = RecordingFactory()
+    later = make_runtime(isolated, factory)
+    for extra in (("--limit", "3", "--baseline-id", "E-test"), ("--baseline-id", "E-none")):
+        assert runner.main(argv(isolated, "en", *extra), later) == runner.EXIT_ERROR
+    assert factory.fakes == []
+    assert len(ledger_rows(isolated)) == 1

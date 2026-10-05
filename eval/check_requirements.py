@@ -104,6 +104,7 @@ NOT_A_MATERIAL_REASONS = frozenset({ReasonCode.HEADER, ReasonCode.EMPTY_ROW, Rea
 UNANSWERED_REASONS = frozenset({ReasonCode.LLM_UNAVAILABLE, ReasonCode.BUDGET_CAP})
 
 LIVE_MODE = "live"
+RUN_MODES = frozenset({LIVE_MODE, "cached", "replay", "fake", "rules"})
 MAX_COST_PER_100_LINES_USD = 2.0
 LINES_PER_COST_UNIT = 100
 MAX_SECONDS_PER_ROUTED_LINE = 2.0
@@ -725,6 +726,14 @@ def nullable_pins(manifest: dict[str, Any]) -> frozenset[str]:
     return NULLABLE_PINS
 
 
+def mode_problems(manifest: dict[str, Any]) -> list[str]:
+    """Refuse a mode the service never writes: live, cached, replay, fake, or rules (B0, A58)."""
+    mode = manifest.get("mode")
+    if "mode" in manifest and mode not in RUN_MODES:
+        return [f"mode {mode!r} is not one of {', '.join(sorted(RUN_MODES))}"]
+    return []
+
+
 def tier_problems(manifest: dict[str, Any]) -> list[str]:
     """Refuse an ``unknown`` rate-limit tier on a live run; other modes may not know it."""
     if manifest.get("mode") == LIVE_MODE and manifest.get("rate_limit_tier") == UNKNOWN_TIER:
@@ -742,6 +751,7 @@ def check_manifest(context: Context) -> str:
         for name in MANIFEST_PINS
         if name not in manifest or (manifest[name] is None and name not in nullable)
     ]
+    problems += mode_problems(manifest)
     problems += tier_problems(manifest)
     problems += config_problems(manifest, context.inputs.config_dir)
     if manifest.get("library_sha256") != sha256_of(context.inputs.library):
