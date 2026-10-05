@@ -47,6 +47,7 @@ from oris_matcher.llm.base import (
     select_rate_limit_headers,
 )
 from oris_matcher.prompts.v1.schema import (
+    EVIDENCE_MAX_WORDS,
     BatchAnswer,
     LineAnswer,
     output_json_schema,
@@ -513,11 +514,12 @@ def test_line_answer_rejects_confidence_out_of_range(confidence: int) -> None:
 
 
 def test_line_answer_evidence_word_limit() -> None:
-    twelve = " ".join(["word"] * 12)
-    assert LineAnswer.model_validate(_answer(evidence=twelve)).evidence == twelve
+    assert EVIDENCE_MAX_WORDS == 25
+    at_limit = " ".join(["word"] * 25)
+    assert LineAnswer.model_validate(_answer(evidence=at_limit)).evidence == at_limit
     assert LineAnswer.model_validate(_answer(evidence="")).evidence == ""
     with pytest.raises(ValidationError, match="evidence"):
-        LineAnswer.model_validate(_answer(evidence=twelve + " more"))
-    batch = json.dumps({"lines": [_answer(evidence=twelve + " more")]})
+        LineAnswer.model_validate(_answer(evidence=at_limit + " more"))
+    batch = json.dumps({"lines": [_answer(evidence=at_limit + " more")]})
     with pytest.raises(ValidationError, match="evidence"):
         BatchAnswer.model_validate_json(batch)

@@ -27,6 +27,7 @@ from oris_matcher.doctor import (
 from oris_matcher.llm.fake_llm import default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
 from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.prompts.v1.schema import EVIDENCE_MAX_WORDS
 from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.settings import Settings
 
@@ -286,11 +287,11 @@ def test_live_rate_limited_call_fails_the_call_check(tmp_path: Path) -> None:
 
 
 class OverCapApi(Api):
-    """Answers every line, but with evidence over the 12-word cap (G1 observation O5)."""
+    """Answers every line, but with evidence over the validator's word cap (G1 observation O5)."""
 
     def _answer(self, payload: str) -> str:
         ids = re.findall(r'"id": "(L\d+)"', payload)
-        long_evidence = " ".join(["word"] * 14)
+        long_evidence = " ".join(["mot"] * (EVIDENCE_MAX_WORDS + 1))
         lines = [{**default_answer(line_id), "evidence": long_evidence} for line_id in ids]
         return json.dumps({"lines": lines})
 
