@@ -572,6 +572,19 @@ def test_rq10_zero_call_run_with_a_refused_configured_model_fails(world: World) 
     assert _status(world, "RQ10") == "FAIL"
 
 
+def test_rq10_served_run_detail_counts_the_models(world: World) -> None:
+    result = _statuses(world)["RQ10"]
+    assert result.status == "PASS"
+    assert result.detail == f"1 model(s) on the allowlist: {MODEL}"
+
+
+def test_rq10_run_with_calls_but_no_served_models_is_not_a_zero_call_run(world: World) -> None:
+    world.manifest["served_models"] = []
+    result = _statuses(world)["RQ10"]
+    assert result.status == "PASS"
+    assert result.detail == f"1 model(s) on the allowlist: {MODEL}"
+
+
 # --- RQ11 replay -----------------------------------------------------------------------
 
 
