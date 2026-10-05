@@ -1,0 +1,7 @@
+item_no,short,long,unit,qty
+0,General,,,
+00.01.,Concrete,,,
+00.01.0010.,bitumen for coating ,  long text  ,m2 ,5 
+00.01.0020.,Rebar,,t,
+,,,,
+00.01.0030.,Note without unit,,,
