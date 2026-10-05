@@ -775,8 +775,17 @@ def run_models(folder: RunFolder) -> set[str]:
     return {str(model) for model in models if model}
 
 
+def served_anything(folder: RunFolder) -> bool:
+    """Whether the run made a call or recorded a served model; a 0-call run did neither."""
+    return bool(folder.calls) or bool(folder.manifest.get("served_models"))
+
+
 def check_allowlist(context: Context) -> str:
-    """RQ10: every model the run requested, served or configured is on the allowlist."""
+    """RQ10: every model the run requested, served or configured is on the allowlist.
+
+    A run with no call record and no served model still has its configured models checked;
+    its detail says that nothing was served.
+    """
     try:
         config = load_models_config(context.inputs.config_dir / MODELS_FILE)
     except ConfigError as error:
@@ -786,7 +795,10 @@ def check_allowlist(context: Context) -> str:
         model for model in models if not is_model_allowed(model, config.allowlist.patterns)
     )
     fail_on([f"model {model!r} is not on the allowlist" for model in refused])
-    return f"{len(models)} model(s) on the allowlist: {', '.join(sorted(models))}"
+    listed = ", ".join(sorted(models))
+    if not served_anything(context.run_folder()):
+        return f"no served model (0 calls); configured on the allowlist: {listed}"
+    return f"{len(models)} model(s) on the allowlist: {listed}"
 
 
 # --- RQ11: replay ----------------------------------------------------------------------
