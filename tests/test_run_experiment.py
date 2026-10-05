@@ -31,6 +31,8 @@ LIBRARIES = {
     "en": ROOT / "data" / "oris_materials_global.csv",
     "fr": ROOT / "data" / "oris_materials_fr.csv",
 }
+SCORED_LIBRARY = LIBRARIES["en"]
+REFERENCE = ROOT / "data" / "boq_dataset_matched_GT.csv"
 ALLOWLIST = load_models_config(CONFIG / "models.toml").allowlist.patterns
 FIXED_NOW = datetime(2026, 10, 5, 10, 0, tzinfo=UTC)
 SMOKE_LIMIT = 5
@@ -119,7 +121,7 @@ def argv(tmp_path: Path, lang: str = "en", *extra: str) -> list[str]:
         "--input",
         str(INPUTS[lang]),
         "--library",
-        str(LIBRARIES[lang]),
+        str(SCORED_LIBRARY),
         "--split",
         str(SPLIT),
         "--llm",
@@ -456,3 +458,146 @@ def test_score_json_and_ledger_are_byte_portable(isolated: Path) -> None:
         assert str(ROOT) not in text
         assert str(isolated) not in text
         assert str(isolated.as_posix()) not in text
+
+
+def _with_library(arguments: list[str], library: Path) -> list[str]:
+    index = arguments.index("--library") + 1
+    return [*arguments[:index], str(library), *arguments[index + 1 :]]
+
+
+def test_fr_library_against_the_gt_is_refused_before_any_call(
+    isolated: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    factory = RecordingFactory()
+    args = _with_library(argv(isolated, "fr", "--slice", str(SLICE)), LIBRARIES["fr"])
+
+    code = runner.main(args, make_runtime(isolated, factory))
+
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+    assert factory.requests == []
+    assert not (isolated / "runs").exists()
+    assert not (isolated / "experiments.jsonl").exists()
+    error = capsys.readouterr().err
+    assert "refused:" in error
+    assert "oris_materials_fr.csv" in error
+    assert "0 of 244" in error
+
+
+def test_global_library_covers_every_reference_triple(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    coverage = runner.check_reference_coverage(REFERENCE, SCORED_LIBRARY)
+    assert (coverage.shared, coverage.total) == (244, 244)
+    assert coverage.ratio == 1.0
+    assert "warning:" not in capsys.readouterr().err
+
+
+def _library_of(tmp_path: Path, triples: Sequence[tuple[str, str, str]]) -> Path:
+    library = tmp_path / "part_library.csv"
+    lines = ['"material_type","material_usage","material_subtype"']
+    lines += [",".join(f'"{cell}"' for cell in triple) for triple in triples]
+    library.write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+    return library
+
+
+@pytest.mark.parametrize(("kept", "warns"), [(122, False), (121, True)])
+def test_coverage_warning_starts_below_half(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], kept: int, warns: bool
+) -> None:
+    triples = sorted(runner.reference_triples(REFERENCE))
+    coverage = runner.check_reference_coverage(REFERENCE, _library_of(tmp_path, triples[:kept]))
+    assert (coverage.shared, coverage.total) == (kept, 244)
+    assert ("warning:" in capsys.readouterr().err) is warns
+
+
+def test_low_reference_coverage_warns_but_runs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rows = SCORED_LIBRARY.read_text(encoding="utf-8").splitlines()
+    small = tmp_path / "small_library.csv"
+    small.write_bytes(("\n".join(rows[:40]) + "\n").encode("utf-8"))
+
+    coverage = runner.check_reference_coverage(REFERENCE, small)
+
+    assert 0 < coverage.shared < coverage.total / 2
+    assert "warning:" in capsys.readouterr().err
+
+
+def test_refusal_reports_a_library_sharing_no_reference_triple(tmp_path: Path) -> None:
+    disjoint = tmp_path / "disjoint.csv"
+    disjoint.write_bytes(b"material_type,material_usage,material_subtype\nX,Y,Z\n")
+    with pytest.raises(runner.RefusedError, match="0 of 244"):
+        runner.check_reference_coverage(REFERENCE, disjoint)
+
+
+def test_every_append_renders_experiments_md(isolated: Path) -> None:
+    runtime = make_runtime(isolated)
+    assert runner.main(argv(isolated, "en", "--limit", "2"), runtime) == 0
+    assert runner.main(argv(isolated, "fr", "--limit", "2"), runtime) == 0
+
+    rendered = (isolated / "experiments.md").read_bytes()
+    renderer = runner.load_renderer()
+    expected = renderer.render(renderer.read_rows(isolated / "experiments.jsonl"))
+    assert rendered == expected.encode("utf-8")
+    assert rendered.decode("utf-8").count("| E-test |") == 2
+
+
+def _rendered_matches_ledger(folder: Path) -> bool:
+    renderer = runner.load_renderer()
+    expected = renderer.render(renderer.read_rows(folder / "experiments.jsonl"))
+    return (folder / "experiments.md").read_bytes() == expected.encode("utf-8")
+
+
+class FailingRenderer:
+    """A renderer whose write fails, as a locked experiments.md would on Windows."""
+
+    def write(self, ledger: Path, output: Path) -> None:
+        raise OSError(f"cannot write {output.name}")
+
+
+def test_a_failed_render_keeps_the_run_exit_code_and_the_row(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(runner, "load_renderer", FailingRenderer)
+
+    code = runner.main(argv(isolated, "en", "--limit", "2"), make_runtime(isolated))
+
+    assert code == 0
+    assert len(ledger_rows(isolated)) == 1
+    error = capsys.readouterr().err
+    assert "warning: ledger appended but experiments.md not rendered" in error
+    assert "render_ledger.py" in error
+
+
+def test_a_concurrent_append_is_in_the_final_table(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_append = runner.append_ledger
+
+    def append_then_other(path: Path, row: dict[str, Any]) -> None:
+        real_append(path, row)
+        real_append(path, {**row, "id": "E-other", "run_id": "run-other"})
+
+    monkeypatch.setattr(runner, "append_ledger", append_then_other)
+    assert runner.main(argv(isolated, "en", "--limit", "2"), make_runtime(isolated)) == 0
+
+    assert _rendered_matches_ledger(isolated)
+    assert "| E-other |" in (isolated / "experiments.md").read_text(encoding="utf-8")
+    assert not runner.render_lock_path(isolated / "experiments.jsonl").exists()
+
+
+def test_a_held_render_lock_skips_the_render_with_a_warning(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(runner, "RENDER_LOCK_TIMEOUT_SECONDS", 0.05)
+    lock = runner.render_lock_path(isolated / "experiments.jsonl")
+    lock.write_bytes(b"")
+
+    code = runner.main(argv(isolated, "en", "--limit", "2"), make_runtime(isolated))
+
+    assert code == 0
+    assert len(ledger_rows(isolated)) == 1
+    assert not (isolated / "experiments.md").exists()
+    assert lock.exists()
+    assert "warning: ledger appended but experiments.md not rendered" in capsys.readouterr().err

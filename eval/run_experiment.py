@@ -6,11 +6,12 @@ lines of the requested split side, optionally narrowed to ``--slice`` and to the
 ``--limit`` selected items in file order, and runs ``MatchService`` on that selection only:
 no other item line is batched, rendered or sent. It writes ``runs/<run_id>/`` with the output
 CSV, scores the output with ``eval/score.py`` (``--strict`` when the whole side was run) and
-appends one ledger row, append-only. With ``--baseline-id <ledger id>`` the row also carries
-the §7.2 comparison against that id's run in the same language: before/after correct matches,
-d (discordant items, pooled per item over EN and FR once both languages' rows exist), the exact
-one-sided sign-test p and the keep verdict; without it those fields are null and kept is
-``baseline``.
+appends one ledger row, append-only, then re-renders ``eval/experiments.md`` from the ledger
+(``eval/render_ledger.py``) so the table never drifts from it. With ``--baseline-id <ledger
+id>`` the row also carries the §7.2 comparison against that id's run in the same language:
+before/after correct matches, d (discordant items, pooled per item over EN and FR once both
+languages' rows exist), the exact one-sided sign-test p and the keep verdict; without it those
+fields are null and kept is ``baseline``.
 
 The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
 --lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, with neither
@@ -18,6 +19,10 @@ The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
 (profile, language, code SHA), never reads the response cache, scores the lockbox side and
 appends its row to ``eval/lockbox_log.md``; a second session of the same rung is refused.
 ``--side lockbox`` alone is always refused.
+
+Before any model call, the reference's labelled triples are checked against the library: a
+library sharing none of them (e.g. the FR library against the global-library ground truth) is
+refused, since nothing could score; coverage under 50% is warned about on stderr.
 
 Usage::
 
@@ -37,11 +42,14 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 import re
 import subprocess
 import sys
+import time
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from fractions import Fraction
@@ -52,6 +60,7 @@ from typing import Any
 from oris_matcher.cli import MatchJob, MatchOutcome, execute_match
 from oris_matcher.doctor import Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
+from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
 from oris_matcher.service import RunProfile
 from oris_matcher.settings import ConfigError, Settings
@@ -61,6 +70,13 @@ ENCODING = "utf-8"
 LEDGER_NEWLINE = "\n"
 SCORER_PATH = Path(__file__).resolve().parent / "score.py"
 SCORER_MODULE = "oris_eval_score_for_experiments"
+RENDERER_PATH = Path(__file__).resolve().parent / "render_ledger.py"
+RENDERER_MODULE = "oris_eval_render_ledger_for_experiments"
+LEDGER_MD_SUFFIX = ".md"
+RENDER_LOCK_SUFFIX = ".lock"
+RENDER_LOCK_TIMEOUT_SECONDS = 10.0
+RENDER_LOCK_POLL_SECONDS = 0.05
+MIN_REFERENCE_COVERAGE = 0.5
 DEFAULT_LEDGER = ROOT / "eval" / "experiments.jsonl"
 DEFAULT_LOCKBOX_LOG = ROOT / "eval" / "lockbox_log.md"
 DEFAULT_REFERENCE = ROOT / "data" / "boq_dataset_matched_GT.csv"
@@ -105,8 +121,31 @@ class ExperimentError(Exception):
     """The experiment's inputs are inconsistent: an unreadable split, a slice outside the side."""
 
 
+class RenderLockTimeoutError(OSError):
+    """Another process held the render lock for longer than the timeout."""
+
+
 class RefusedError(Exception):
-    """The run would expose lockbox lines outside the single post-freeze lockbox session."""
+    """The run is refused: it would expose lockbox lines, or nothing in it could score."""
+
+
+@dataclass(frozen=True)
+class ReferenceCoverage:
+    """How many of the reference's distinct labelled triples are rows of the library.
+
+    Attributes:
+        shared: Distinct non-blank reference triples that are exact library rows.
+        total: Distinct non-blank reference triples.
+
+    """
+
+    shared: int
+    total: int
+
+    @property
+    def ratio(self) -> float:
+        """The shared share of the reference's triples; 0.0 for a reference with none."""
+        return self.shared / self.total if self.total else 0.0
 
 
 @dataclass(frozen=True)
@@ -296,17 +335,75 @@ def check_once_only(args: argparse.Namespace, runtime: Runtime) -> None:
             )
 
 
-def load_scorer() -> ModuleType:
-    """Load ``eval/score.py`` (a standalone script, not a package module) once."""
-    if SCORER_MODULE in sys.modules:
-        return sys.modules[SCORER_MODULE]
-    spec = importlib.util.spec_from_file_location(SCORER_MODULE, SCORER_PATH)
+def _load_script(name: str, path: Path) -> ModuleType:
+    """Load a standalone ``eval/`` script (not a package module) once, by file path."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
-        raise ExperimentError(f"cannot load the scorer at {SCORER_PATH}")
+        raise ExperimentError(f"cannot load {path}")
     module = importlib.util.module_from_spec(spec)
-    sys.modules[SCORER_MODULE] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def load_scorer() -> ModuleType:
+    """Load ``eval/score.py`` once."""
+    return _load_script(SCORER_MODULE, SCORER_PATH)
+
+
+def load_renderer() -> ModuleType:
+    """Load ``eval/render_ledger.py`` once."""
+    return _load_script(RENDERER_MODULE, RENDERER_PATH)
+
+
+def reference_triples(reference: Path) -> frozenset[tuple[str, str, str]]:
+    """Return the reference's distinct non-blank (type, usage, subtype) labels, exact strings.
+
+    Raises:
+        ExperimentError: The scorer cannot read the reference or find its label columns.
+
+    """
+    scorer = load_scorer()
+    try:
+        parsed = scorer.parse_reference(scorer.read_table(reference), None, False)
+    except scorer.ScoreError as error:
+        raise ExperimentError(f"cannot read the reference: {error}") from error
+    return frozenset(row.labels for row in parsed.rows if row.labels != scorer.BLANK)
+
+
+def library_triples(library: Path) -> frozenset[tuple[str, str, str]]:
+    """Return the library's rows as exact (type, usage, subtype) strings."""
+    rows = load_library(library.read_bytes()).rows
+    return frozenset((row.material_type, row.material_usage, row.material_subtype) for row in rows)
+
+
+def check_reference_coverage(reference: Path, library: Path) -> ReferenceCoverage:
+    """Refuse a library that shares no labelled triple with the reference (G1 O2).
+
+    Args:
+        reference: The ground-truth CSV the run is scored against.
+        library: The library the run would match against.
+
+    Returns:
+        The coverage; a warning goes to stderr when it is under 50%.
+
+    Raises:
+        RefusedError: No reference triple is a library row, so no match could ever score.
+
+    """
+    wanted = reference_triples(reference)
+    coverage = ReferenceCoverage(len(wanted & library_triples(library)), len(wanted))
+    summary = (
+        f"{coverage.shared} of {coverage.total} labelled triples of {reference.name} "
+        f"are rows of {library.name}"
+    )
+    if coverage.shared == 0:
+        raise RefusedError(f"{summary}: nothing could score; is this the reference's library?")
+    if coverage.ratio < MIN_REFERENCE_COVERAGE:
+        print(f"warning: only {summary} ({coverage.ratio:.0%})", file=sys.stderr)
+    return coverage
 
 
 def is_strict_valid(args: argparse.Namespace) -> bool:
@@ -488,7 +585,7 @@ def baseline_row(args: argparse.Namespace) -> dict[str, Any]:
 
 def _baseline_output(args: argparse.Namespace, row: Mapping[str, Any], root: Path) -> Path:
     """Return the baseline run's output CSV: its run folder's copy, else its recorded path."""
-    candidates = [args.runs_dir / str(row["run_id"]) / OUTPUT_FILE]
+    candidates: list[Path] = [args.runs_dir / str(row["run_id"]) / OUTPUT_FILE]
     if isinstance(row.get("output"), str):
         candidates.append(root / row["output"])
     found = next((path for path in candidates if path.is_file()), None)
@@ -823,6 +920,68 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
     )
 
 
+def render_lock_path(ledger: Path) -> Path:
+    """Return the lock file that serialises renders of ``ledger``'s Markdown view."""
+    return ledger.with_name(ledger.name + RENDER_LOCK_SUFFIX)
+
+
+@contextmanager
+def render_lock(ledger: Path) -> Iterator[None]:
+    """Hold an exclusive lock file next to the ledger while rendering its Markdown view.
+
+    Args:
+        ledger: The JSONL ledger.
+
+    Yields:
+        Nothing; the lock is held for the ``with`` body.
+
+    Raises:
+        RenderLockTimeoutError: The lock stayed taken for the whole timeout.
+
+    """
+    lock = render_lock_path(ledger)
+    deadline = time.monotonic() + RENDER_LOCK_TIMEOUT_SECONDS
+    while True:
+        try:
+            handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                message = f"{lock} is held; remove it if no run is active"
+                raise RenderLockTimeoutError(message) from None
+            time.sleep(RENDER_LOCK_POLL_SECONDS)
+    try:
+        yield
+    finally:
+        os.close(handle)
+        lock.unlink(missing_ok=True)
+
+
+def render_markdown(ledger: Path) -> None:
+    """Re-render the ledger's Markdown view under the lock; a failure only warns.
+
+    The ledger row is already appended, so a render failure must not change the run's exit
+    code: a re-run would pay again and append a duplicate row. Each render reads the whole
+    ledger after this process's append, so the last render under the lock holds every row.
+
+    Args:
+        ledger: The JSONL ledger.
+
+    """
+    markdown = ledger.with_suffix(LEDGER_MD_SUFFIX)
+    try:
+        with render_lock(ledger):
+            load_renderer().write(ledger, markdown)
+    except (OSError, ValueError) as error:
+        print(
+            f"warning: ledger appended but {markdown.name} not rendered: {error}; "
+            "run eval/render_ledger.py",
+            file=sys.stderr,
+        )
+        return
+    print(f"ledger: rendered {markdown}")
+
+
 def record(args: argparse.Namespace, outcome: MatchOutcome, runtime: Runtime) -> None:
     """Score the run and append its ledger row, or its lockbox log row for the session."""
     score = score_run(args, outcome, runtime.root())
@@ -837,6 +996,7 @@ def record(args: argparse.Namespace, outcome: MatchOutcome, runtime: Runtime) ->
     row = with_comparison(row, comparison, args.ledger)
     append_ledger(args.ledger, row)
     print(f"ledger: appended {args.id} ({outcome.result.run_id}) to {args.ledger}")
+    render_markdown(args.ledger)
 
 
 def run(args: argparse.Namespace, runtime: Runtime) -> int:
@@ -852,6 +1012,7 @@ def run(args: argparse.Namespace, runtime: Runtime) -> int:
     """
     check_lockbox_gate(args, runtime)
     check_once_only(args, runtime)
+    check_reference_coverage(args.reference, args.library)
     selection = build_selection(args)
     outcome = execute_match(build_job(args, selection), Settings(), runtime)
     record(args, outcome, runtime)
