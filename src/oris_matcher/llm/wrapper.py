@@ -2,7 +2,8 @@
 
 This is the single place for retries, throttling, the circuit breaker, the per-line and run
 budgets, bisection and id reconciliation. Response checks run in the §11.3 order: the stop
-reason (in the adapter), then strict Pydantic validation here. The case-sensitive code check
+reason (in the adapter), then strict Pydantic validation here, of the envelope once and of each
+line object on its own (G1-T1a). The case-sensitive code check
 against the library belongs to the domain; ``WrapperDeps.answer_hook`` sees every validated
 answer for callers that want to inspect it.
 """
@@ -72,6 +73,7 @@ JSON_KEY_SEPARATOR = ":"
 JSON_ARRAY_END = "]"
 JSON_OBJECT_END = "}"
 LINES_KEY = "lines"
+ID_KEY = "id"
 HTTP_SERVER_ERROR_MIN = 500
 HTTP_SERVER_ERROR_MAX = 599
 CONTENT_STATUSES = frozenset(
@@ -401,7 +403,9 @@ class LineOutcome:
         answer: The validated answer.
         failure: The ``LLM_FAILURE`` kind when no valid answer arrived.
         line_failure: ``LLM_UNAVAILABLE`` or ``BUDGET_CAP`` when the line was never answered.
-        raw_line_response: The line's verbatim JSON object, cut from the accepted response.
+        raw_line_response: The line's verbatim JSON object from the deciding response:
+            the accepted answer, or the invalid object a per-line ``MALFORMED`` failure
+            kept for the audit; empty otherwise.
 
     """
 
@@ -497,6 +501,22 @@ class _LineState:
     inflight_ms: int = 0
     last_failure: LLMFailureKind | None = None
     conflicts: int = 0
+
+
+@dataclass(frozen=True)
+class _LineEntry:
+    """One element of a response's ``lines`` array.
+
+    Attributes:
+        raw: The element's verbatim JSON text.
+        answer: The strictly validated answer, or None when the element failed validation.
+        declared_id: The id the element names, when it is a string; None otherwise.
+
+    """
+
+    raw: str
+    answer: LineAnswer | None
+    declared_id: str | None
 
 
 class LLMWrapper:
@@ -892,11 +912,11 @@ class _BatchRun:
         if result.status != LLMStatus.OK:
             self._fail(task.line_ids, failure=failure_kind(result))
             return
-        pairs = _validated_lines(result.raw_text)
-        if pairs is None:
+        entries = _validated_lines(result.raw_text)
+        if entries is None:
             self._bisect(task.line_ids, call_id, LLMFailureKind.MALFORMED)
             return
-        self._reconcile(task.line_ids, pairs, call_id)
+        self._reconcile(task.line_ids, entries, call_id)
 
     def _bisect(self, line_ids: tuple[str, ...], call_id: str, kind: LLMFailureKind) -> None:
         """Split a failed batch in halves, or fail a single line with the kind."""
@@ -909,20 +929,24 @@ class _BatchRun:
             self.queue.append(_Task(half, ReasonForCall.SPLIT, call_id))
 
     def _reconcile(
-        self, line_ids: tuple[str, ...], pairs: list[tuple[LineAnswer, str]], call_id: str
+        self, line_ids: tuple[str, ...], entries: list[_LineEntry], call_id: str
     ) -> None:
-        """Accept unique answers; re-ask missing and conflicting ids; ignore unknown ids."""
-        grouped = _group_by_id(pairs, frozenset(line_ids), call_id)
+        """Settle unique objects; re-ask missing and conflicting ids; ignore unknown ids.
+
+        An object without a usable id is ignored like an unknown id, so its line is missing and
+        re-asked. Two different objects for one id conflict whether or not both are valid.
+        """
+        grouped = _group_by_id(entries, frozenset(line_ids), call_id)
         missing: list[str] = []
         conflicting: list[str] = []
         for line_id in line_ids:
-            entries = grouped.get(line_id, [])
-            if not entries:
+            found = grouped.get(line_id, [])
+            if not found:
                 missing.append(line_id)
-            elif len({raw for _, raw in entries}) > 1:
+            elif len({entry.raw for entry in found}) > 1:
                 conflicting.append(line_id)
             else:
-                self._accept(line_id, *entries[0])
+                self._settle(line_id, found[0])
         self._reask(missing, LLMFailureKind.MISSING_ITEM, ReasonForCall.REASK_MISSING, call_id)
         self._reask_conflicts(conflicting, call_id)
 
@@ -953,6 +977,23 @@ class _BatchRun:
         for line_id in line_ids:
             self.states[line_id].last_failure = kind
 
+    def _settle(self, line_id: str, entry: _LineEntry) -> None:
+        """Accept a line's single valid object, or fail the line on its invalid one.
+
+        An invalid object that names a line of the batch fails only that line as
+        ``malformed``, keeping its verbatim JSON for the audit. It is not re-asked: the same
+        prompt is expected to reproduce the same violation (an evidence cap, a range, an enum),
+        so a re-ask would spend budget for the same failure.
+        """
+        if entry.answer is None:
+            call_ids = tuple(self.states[line_id].call_ids)
+            failure = LLMFailureKind.MALFORMED
+            self.done[line_id] = LineOutcome(
+                line_id, call_ids, failure=failure, raw_line_response=entry.raw
+            )
+            return
+        self._accept(line_id, entry.answer, entry.raw)
+
     def _accept(self, line_id: str, answer: LineAnswer, raw: str) -> None:
         """Store a validated answer, after the answer hook."""
         checked = self.wrapper.deps.answer_hook(answer)
@@ -980,13 +1021,59 @@ class _BatchRun:
             self._fail((line_id,), failure=kind)
 
 
-def _validated_lines(raw_text: str) -> list[tuple[LineAnswer, str]] | None:
-    """Validate a batch strictly; pair each answer with its verbatim JSON object."""
+def _validated_lines(raw_text: str) -> list[_LineEntry] | None:
+    """Validate the envelope once, then each line object on its own (DESIGN.md §11.3, G1-T1a).
+
+    A batch that validates whole is taken as before, so a fully valid batch is decided exactly
+    as it always was. Otherwise the envelope must be a JSON object holding only a ``lines``
+    list; anything else returns None, and the caller bisects. Each element is then validated
+    strictly as a ``LineAnswer``, and an element that fails keeps its verbatim text and the id
+    it names, so one bad line never sinks the others.
+
+    Args:
+        raw_text: The delivered response text.
+
+    Returns:
+        One entry per element of ``lines``, in order, or None when the envelope is broken.
+
+    """
     try:
         batch = BatchAnswer.model_validate_json(raw_text)
     except ValidationError:
+        if not _envelope_is_valid(raw_text):
+            return None
+        return [_line_entry(raw) for raw in line_slices(raw_text)]
+    pairs = zip(batch.lines, line_slices(raw_text), strict=True)
+    return [_LineEntry(raw, answer, answer.id) for answer, raw in pairs]
+
+
+def _envelope_is_valid(raw_text: str) -> bool:
+    """Tell whether a text is a JSON object whose only key is a ``lines`` list."""
+    try:
+        document = json.loads(raw_text)
+    except (ValueError, RecursionError):
+        return False
+    if not isinstance(document, dict) or set(document) != {LINES_KEY}:
+        return False
+    return isinstance(document[LINES_KEY], list)
+
+
+def _line_entry(raw: str) -> _LineEntry:
+    """Validate one verbatim line object strictly, keeping its declared id when it fails."""
+    try:
+        answer = LineAnswer.model_validate_json(raw)
+    except ValidationError:
+        return _LineEntry(raw, None, _declared_id(raw))
+    return _LineEntry(raw, answer, answer.id)
+
+
+def _declared_id(raw: str) -> str | None:
+    """Return the string ``id`` a JSON element names, or None when it names none."""
+    document = json.loads(raw)
+    if not isinstance(document, dict):
         return None
-    return list(zip(batch.lines, line_slices(raw_text), strict=True))
+    declared = document.get(ID_KEY)
+    return declared if isinstance(declared, str) else None
 
 
 def _skip_whitespace(text: str, index: int) -> int:
@@ -1021,7 +1108,7 @@ def line_slices(raw_text: str) -> list[str]:
     wins.
 
     Args:
-        raw_text: A response that passed strict validation.
+        raw_text: A response whose envelope passed validation.
 
     Returns:
         One verbatim substring per element of ``lines``, in order.
@@ -1040,13 +1127,16 @@ def line_slices(raw_text: str) -> list[str]:
 
 
 def _group_by_id(
-    pairs: list[tuple[LineAnswer, str]], known: frozenset[str], call_id: str
-) -> dict[str, list[tuple[LineAnswer, str]]]:
-    """Group answers by id, logging and dropping ids the request did not carry."""
-    grouped: dict[str, list[tuple[LineAnswer, str]]] = {}
-    for answer, raw in pairs:
-        if answer.id not in known:
-            LOGGER.warning("ignoring unknown line id %r in call %s", answer.id, call_id)
+    entries: list[_LineEntry], known: frozenset[str], call_id: str
+) -> dict[str, list[_LineEntry]]:
+    """Group line objects by id, logging and dropping those without a known id."""
+    grouped: dict[str, list[_LineEntry]] = {}
+    for entry in entries:
+        if entry.declared_id is None:
+            LOGGER.warning("ignoring a line object without a usable id in call %s", call_id)
             continue
-        grouped.setdefault(answer.id, []).append((answer, raw))
+        if entry.declared_id not in known:
+            LOGGER.warning("ignoring unknown line id %r in call %s", entry.declared_id, call_id)
+            continue
+        grouped.setdefault(entry.declared_id, []).append(entry)
     return grouped

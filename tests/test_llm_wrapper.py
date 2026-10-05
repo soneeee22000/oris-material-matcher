@@ -3,6 +3,7 @@
 import json
 import logging
 import random
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -357,16 +358,17 @@ async def test_malformed_output_bisects_and_isolates_the_bad_line() -> None:
 
 
 async def test_schema_invalid_output_counts_as_malformed() -> None:
-    """Schema invalid output counts as malformed."""
+    """Schema invalid line objects are malformed per line, kept verbatim, never bisected.
 
-    def rule(call_no: int, req: LLMRequest) -> Fault | None:
-        """Choose the fault for one call."""
-        return Fault(FaultKind.INVALID_SCHEMA) if "L2" in req.line_ids else None
-
-    harness = Harness(scripted(rule=rule))
+    The fake's INVALID_SCHEMA fault breaks every line object of the response, so since G1-T1a
+    every line of that one call fails as malformed; none is re-asked.
+    """
+    harness = Harness(scripted(Fault(FaultKind.INVALID_SCHEMA)))
     outcome = await harness.run()
-    assert failures(outcome)["L2"] == LLMFailureKind.MALFORMED
-    assert answered(outcome) == {"L1", "L3", "L4"}
+    assert set(failures(outcome).values()) == {LLMFailureKind.MALFORMED}
+    assert len(harness.fake.calls) == 1
+    for line_id, line in outcome.lines.items():
+        assert json.loads(line.raw_line_response)["id"] == line_id
 
 
 # ---------------------------------------------------------------- ids
@@ -838,3 +840,247 @@ async def test_empty_batch_makes_no_call() -> None:
     outcome = await harness.run(())
     assert outcome.lines == {}
     assert harness.fake.calls == []
+
+
+# ---------------------------------------------------------------- per-line validation (G1-T1a)
+
+TEN_IDS = tuple(f"L{number}" for number in range(1, 11))
+LONG_EVIDENCE = " ".join(["mot"] * 14)
+BROKEN_ENVELOPE = '{"lines": [{"id": "L1"'
+
+
+class ByRequest:
+    """An adapter that delivers, as a 200 end_turn response, the text a function picks."""
+
+    def __init__(self, pick: Callable[[LLMRequest], str]) -> None:
+        """Keep the function from request to raw text."""
+        self.pick = pick
+        self.calls: list[LLMRequest] = []
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        """Deliver the picked text, unparsed, as an OK result."""
+        self.calls.append(req)
+        return LLMResult(
+            status=LLMStatus.OK,
+            raw_text=self.pick(req),
+            finish_reasons=("end_turn",),
+            http_status=200,
+        )
+
+
+def element(line_id: str, **changes: Any) -> str:
+    """Serialise one answer object for a line, with some fields changed."""
+    return json.dumps({**default_answer(line_id), **changes}, ensure_ascii=False)
+
+
+def envelope(elements: Iterable[str]) -> str:
+    """Wrap verbatim element texts in a batch envelope."""
+    return '{"lines": [' + ", ".join(elements) + "]}"
+
+
+def valid_text(req: LLMRequest) -> str:
+    """Return a fully valid batch for the request's lines."""
+    return envelope(element(line_id) for line_id in req.line_ids)
+
+
+def with_bad(line_id: str, bad: str) -> Callable[[LLMRequest], str]:
+    """Return a picker that puts ``bad`` in place of one line's object on every call."""
+
+    def pick(req: LLMRequest) -> str:
+        """Serialise the batch with the one bad object."""
+        return envelope(bad if i == line_id else element(i) for i in req.line_ids)
+
+    return pick
+
+
+async def test_one_invalid_line_fails_alone_without_bisection() -> None:
+    """1 of 10 lines breaks the evidence cap: 9 accepted, 1 malformed with raw kept, 1 call."""
+    bad = element("L7", evidence=LONG_EVIDENCE)
+    adapter = ByRequest(with_bad("L7", bad))
+    harness = Harness(adapter=adapter)
+    outcome = await harness.run(TEN_IDS)
+    assert answered(outcome) == set(TEN_IDS) - {"L7"}
+    assert failures(outcome)["L7"] == LLMFailureKind.MALFORMED
+    assert outcome.lines["L7"].raw_line_response == bad
+    assert outcome.lines["L7"].answer is None
+    assert len(adapter.calls) == 1
+    assert [r.reason_for_call for r in harness.sink.records] == [ReasonForCall.FIRST]
+    assert outcome.lines["L7"].call_ids == (harness.sink.records[0].call_id,)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"confidence": 101},
+        {"confidence": "80"},
+        {"kind": "mineral"},
+        {"extra_field": 1},
+    ],
+    ids=["confidence_range", "confidence_type", "bad_enum", "extra_field"],
+)
+async def test_each_line_level_violation_fails_only_its_line(changes: dict[str, Any]) -> None:
+    """Any strict-validation failure of one line object stays with that line."""
+    bad = element("L2", **changes)
+    adapter = ByRequest(with_bad("L2", bad))
+    outcome = await Harness(adapter=adapter).run()
+    assert failures(outcome) == {"L1": None, "L2": LLMFailureKind.MALFORMED, "L3": None, "L4": None}
+    assert outcome.lines["L2"].raw_line_response == bad
+    assert len(adapter.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [
+        BROKEN_ENVELOPE,
+        "not json",
+        '{"lines": [], "note": "extra"}',
+        '{"lines": {"id": "L1"}}',
+        '["lines"]',
+        valid_text(make_request(IDS)) + " trailing",
+    ],
+    ids=["truncated_json", "not_json", "extra_key", "lines_not_a_list", "not_an_object", "trail"],
+)
+async def test_a_broken_envelope_still_bisects(broken: str) -> None:
+    """When the envelope itself is broken, §11.3 bisection applies as before."""
+    adapter = ByRequest(lambda req: broken if len(req.line_ids) > 1 else valid_text(req))
+    harness = Harness(adapter=adapter)
+    outcome = await harness.run()
+    assert answered(outcome) == set(IDS)
+    assert [len(r.line_ids) for r in harness.sink.records] == [4, 2, 2, 1, 1, 1, 1]
+    assert all(r.reason_for_call == ReasonForCall.SPLIT for r in harness.sink.records[1:])
+
+
+async def test_a_broken_envelope_on_a_single_line_fails_as_malformed() -> None:
+    """A single line whose envelope is broken fails as malformed, as before."""
+    adapter = ByRequest(lambda req: BROKEN_ENVELOPE)
+    outcome = await Harness(adapter=adapter).run(("L1",))
+    assert failures(outcome) == {"L1": LLMFailureKind.MALFORMED}
+    assert outcome.lines["L1"].raw_line_response == ""
+    assert len(adapter.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "orphan",
+    [
+        json.dumps({**default_answer("L2"), "id": None, "confidence": 500}),
+        json.dumps({key: value for key, value in default_answer("L2").items() if key != "id"}),
+        json.dumps({**default_answer("L2"), "id": 2}),
+        "42",
+        '"L2"',
+        "[]",
+    ],
+    ids=["null_id", "no_id", "int_id", "number", "string", "array"],
+)
+async def test_an_invalid_line_without_a_usable_id_is_missing_and_re_asked(
+    orphan: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An invalid object without a usable id is ignored and its line re-asked as missing."""
+    first_call = with_bad("L2", orphan)
+    adapter = ByRequest(lambda req: valid_text(req) if len(req.line_ids) == 1 else first_call(req))
+    harness = Harness(adapter=adapter)
+    with caplog.at_level(logging.WARNING):
+        outcome = await harness.run()
+    assert answered(outcome) == set(IDS)
+    first, reask = harness.sink.records
+    assert reask.reason_for_call == ReasonForCall.REASK_MISSING
+    assert reask.line_ids == ("L2",)
+    assert outcome.lines["L2"].call_ids == (first.call_id, reask.call_id)
+    assert "ignoring" in caplog.text
+
+
+async def test_an_always_orphaned_line_fails_as_missing_within_the_budget() -> None:
+    """The missing-id re-ask keeps its per-line budget when the id never comes back usable."""
+    adapter = ByRequest(with_bad("L2", json.dumps({**default_answer("L2"), "id": None})))
+    outcome = await Harness(adapter=adapter).run()
+    assert failures(outcome)["L2"] == LLMFailureKind.MISSING_ITEM
+    assert answered(outcome) == {"L1", "L3", "L4"}
+    assert len(adapter.calls) == 6
+
+
+async def test_an_invalid_line_with_an_unknown_id_is_ignored_and_logged(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An invalid object naming an id outside the batch is dropped like any unknown id."""
+    stray = element("L99", confidence=-1)
+    adapter = ByRequest(lambda req: envelope([*(element(i) for i in req.line_ids), stray]))
+    with caplog.at_level(logging.WARNING):
+        outcome = await Harness(adapter=adapter).run()
+    assert answered(outcome) == set(IDS)
+    assert "L99" in caplog.text
+    assert len(adapter.calls) == 1
+
+
+async def test_a_valid_and_an_invalid_object_for_one_id_conflict() -> None:
+    """Two different objects for one id conflict, whether or not both are valid."""
+    bad = element("L1", confidence=101)
+
+    def pick(req: LLMRequest) -> str:
+        """Add an invalid duplicate of L1 on the first call only."""
+        extra = [bad] if len(req.line_ids) > 1 else []
+        return envelope([*(element(i) for i in req.line_ids), *extra])
+
+    harness = Harness(adapter=ByRequest(pick))
+    outcome = await harness.run()
+    assert answered(outcome) == set(IDS)
+    assert harness.sink.records[1].reason_for_call == ReasonForCall.REASK_CONFLICT
+    assert harness.sink.records[1].line_ids == ("L1",)
+
+
+async def test_byte_identical_invalid_duplicates_fail_once_as_malformed() -> None:
+    """Identical invalid objects for one id collapse into one malformed outcome."""
+    bad = element("L1", confidence=101)
+    adapter = ByRequest(lambda req: envelope([bad, bad, *(element(i) for i in IDS[1:])]))
+    outcome = await Harness(adapter=adapter).run()
+    assert failures(outcome)["L1"] == LLMFailureKind.MALFORMED
+    assert outcome.lines["L1"].raw_line_response == bad
+    assert len(adapter.calls) == 1
+
+
+async def test_the_answer_hook_never_sees_an_invalid_line() -> None:
+    """Only validated answers reach the answer hook."""
+    seen: list[str] = []
+
+    def hook(answer: LineAnswer) -> LineAnswer:
+        """Note the answer's id and pass it on."""
+        seen.append(answer.id)
+        return answer
+
+    adapter = ByRequest(with_bad("L3", element("L3", evidence=LONG_EVIDENCE)))
+    harness = Harness(adapter=adapter)
+    deps = replace(harness.wrapper.deps, answer_hook=hook)
+    harness.wrapper = LLMWrapper(adapter, PRICING, harness.ledger, None, deps)
+    await harness.run()
+    assert seen == ["L1", "L2", "L4"]
+
+
+async def test_replay_reproduces_a_per_line_malformed_outcome() -> None:
+    """Replaying a run with one invalid line gives the same outcome from the one record."""
+    adapter = ByRequest(with_bad("L4", element("L4", evidence=LONG_EVIDENCE)))
+    live = Harness(adapter=adapter)
+    live_outcome = await live.run()
+    replay = replayer(live.sink.records)
+    replayed = await replay.run()
+    assert replayed.lines == live_outcome.lines
+    assert [r.source_call_id for r in replay.sink.records] == [r.call_id for r in live.sink.records]
+
+
+async def test_an_invalid_line_on_a_missing_re_ask_fails_without_another_re_ask() -> None:
+    """A known id that comes back invalid on the re-ask fails as malformed with both call ids."""
+    bad = element("L2", evidence=LONG_EVIDENCE)
+
+    def pick(req: LLMRequest) -> str:
+        """Omit L2 on the first call, then return it over the evidence cap."""
+        if len(req.line_ids) > 1:
+            return envelope(element(i) for i in req.line_ids if i != "L2")
+        return envelope([bad])
+
+    adapter = ByRequest(pick)
+    harness = Harness(adapter=adapter)
+    outcome = await harness.run()
+    first, reask = harness.sink.records
+    assert reask.reason_for_call == ReasonForCall.REASK_MISSING
+    assert answered(outcome) == {"L1", "L3", "L4"}
+    assert failures(outcome)["L2"] == LLMFailureKind.MALFORMED
+    assert outcome.lines["L2"].raw_line_response == bad
+    assert outcome.lines["L2"].call_ids == (first.call_id, reask.call_id)
+    assert len(adapter.calls) == 2
