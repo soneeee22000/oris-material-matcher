@@ -1,4 +1,6 @@
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from oris_matcher.domain.normalize import normalize
 
@@ -36,3 +38,30 @@ def test_normalize(text: str, expected: str) -> None:
 @pytest.mark.parametrize("text", ["  Béton ∅100 12,5 m³ ", f"{FULLWIDTH_ABC}  x", "Straße Ø"])
 def test_normalize_is_idempotent(text: str) -> None:
     assert normalize(normalize(text)) == normalize(text)
+
+
+FULLWIDTH_COMMA_DECIMAL = "12" + chr(0xFF0C) + "5"
+FULLWIDTH_DIGITS = "".join(chr(0xFF10 + digit) for digit in (1, 2))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (FULLWIDTH_COMMA_DECIMAL, "12.5"),
+        (FULLWIDTH_DIGITS + ",5", "12.5"),
+        ("1, 5", "1, 5"),
+        ("XC4,XA1", "xc4,xa1"),
+        ("ø160", "ø160"),
+        ("DN 160\r\n", "dn 160"),
+    ],
+)
+def test_normalize_edge_cases(text: str, expected: str) -> None:
+    assert normalize(text) == expected
+
+
+@given(st.text())
+def test_normalize_is_idempotent_on_any_text(text: str) -> None:
+    once = normalize(text)
+    assert normalize(once) == once
+    assert once == once.strip()
+    assert "  " not in once
