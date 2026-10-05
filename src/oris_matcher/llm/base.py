@@ -7,15 +7,28 @@ always return the raw response text.
 import copy
 import hashlib
 import json
-from collections.abc import Mapping
+import time
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Any, Protocol
 
+import httpx2
+
+from oris_matcher.settings import DEFAULT_PER_CALL_TIMEOUT_S, is_model_allowed
+
 HASH_ENCODING = "utf-8"
 ANTHROPIC_RATE_LIMIT_PREFIX = "anthropic-ratelimit-"
 OPENAI_RATE_LIMIT_PREFIX = "x-ratelimit-"
+RETRY_AFTER_HEADER = "retry-after"
+RETRY_AFTER_MS_HEADER = "retry-after-ms"
+SHOULD_RETRY_HEADER = "x-should-retry"
+MILLISECONDS_PER_SECOND = 1000.0
+REPLAY_MISS_ERROR_CLASS = "ReplayMiss"
+REFUSAL_FINISH_REASON = "refusal"
+REFUSAL_FINISH_REASONS = frozenset({REFUSAL_FINISH_REASON, "content_filter"})
+TRUNCATION_FINISH_REASONS = frozenset({"max_tokens", "length", "model_context_window_exceeded"})
 
 
 class LLMStatus(StrEnum):
@@ -224,3 +237,130 @@ class LLMPort(Protocol):
 
         """
         ...
+
+
+class ModelNotAllowedError(ValueError):
+    """A model id is not admitted by the allowlist in ``config/models.toml`` (DESIGN.md A33)."""
+
+
+def require_allowed_model(model_id: str, allowlist: Iterable[str]) -> None:
+    """Refuse a model id that the allowlist does not admit.
+
+    Args:
+        model_id: Model snapshot id.
+        allowlist: Patterns from ``ModelsConfig.allowlist.patterns``.
+
+    Raises:
+        ModelNotAllowedError: No pattern admits the id.
+
+    """
+    if not is_model_allowed(model_id, allowlist):
+        raise ModelNotAllowedError(f"model {model_id!r} is not on the allowlist")
+
+
+@dataclass(frozen=True)
+class AdapterOptions:
+    """Transport options shared by the HTTP adapters.
+
+    Attributes:
+        timeout_s: Per-call timeout; SDK retries are always off.
+        http_client: Injected async HTTP client, e.g. one over ``httpx2.MockTransport``.
+        clock: Monotonic clock in seconds, used to measure latency.
+
+    """
+
+    timeout_s: float = DEFAULT_PER_CALL_TIMEOUT_S
+    http_client: httpx2.AsyncClient | None = None
+    clock: Callable[[], float] = time.perf_counter
+
+
+def parse_json_object(text: str) -> dict[str, Any] | None:
+    """Parse text as a JSON object.
+
+    Args:
+        text: Raw response text.
+
+    Returns:
+        The object, or None when the text is not JSON or not an object.
+
+    """
+    try:
+        value = json.loads(text)
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def classify_content(
+    finish_reasons: Iterable[str], raw_text: str
+) -> tuple[LLMStatus, dict[str, Any] | None]:
+    """Classify a delivered response, in the §11.3 order: stop reason first, then JSON.
+
+    Args:
+        finish_reasons: The provider's stop or finish reasons.
+        raw_text: The response text.
+
+    Returns:
+        ``REFUSAL``, ``TRUNCATED``, ``MALFORMED`` or ``OK``, with the parsed object when OK.
+
+    """
+    reasons = set(finish_reasons)
+    if reasons & REFUSAL_FINISH_REASONS:
+        return LLMStatus.REFUSAL, None
+    if reasons & TRUNCATION_FINISH_REASONS:
+        return LLMStatus.TRUNCATED, None
+    parsed = parse_json_object(raw_text)
+    if parsed is None:
+        return LLMStatus.MALFORMED, None
+    return LLMStatus.OK, parsed
+
+
+def _header(headers: Mapping[str, str], name: str) -> str | None:
+    """Return a header value by case-insensitive name."""
+    for key, value in headers.items():
+        if key.lower() == name:
+            return value
+    return None
+
+
+def _seconds(value: str | None, scale: float) -> float | None:
+    """Parse a non-negative number of seconds, or return None."""
+    if value is None:
+        return None
+    try:
+        seconds = float(value) / scale
+    except ValueError:
+        return None
+    return seconds if seconds >= 0 else None
+
+
+def parse_retry_after(headers: Mapping[str, str]) -> float | None:
+    """Read the server-suggested wait from ``retry-after-ms`` or ``retry-after`` (seconds).
+
+    An HTTP-date ``retry-after`` is not used; the wrapper's backoff applies instead.
+
+    Args:
+        headers: Response headers.
+
+    Returns:
+        The wait in seconds, or None.
+
+    """
+    milliseconds = _seconds(_header(headers, RETRY_AFTER_MS_HEADER), MILLISECONDS_PER_SECOND)
+    if milliseconds is not None:
+        return milliseconds
+    return _seconds(_header(headers, RETRY_AFTER_HEADER), 1.0)
+
+
+def parse_should_retry(headers: Mapping[str, str]) -> bool | None:
+    """Read the provider's ``x-should-retry`` hint.
+
+    Args:
+        headers: Response headers.
+
+    Returns:
+        True or False when the header says so, otherwise None.
+
+    """
+    value = (_header(headers, SHOULD_RETRY_HEADER) or "").strip().lower()
+    return {"true": True, "false": False}.get(value)

@@ -1,0 +1,25 @@
+{
+  "id": "chatcmpl-01ABC",
+  "object": "chat.completion",
+  "created": 1759622400,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "{\"lines\": [{\"id\": \"L1\", \"evidence\": \"concrete C30/37\", \"element_or_application\": \"wall\", \"material_family\": \"concrete\", \"kind\": \"material\", \"nm_category\": \"\", \"top1\": \"T01.U01.S01\", \"top2\": \"\", \"confidence\": 90, \"self_reported_candidate_gap\": \"clear\"}, {\"id\": \"L2\", \"evidence\": \"rebar B500B\", \"element_or_application\": \"wall\", \"material_family\": \"concrete\", \"kind\": \"material\", \"nm_category\": \"\", \"top1\": \"T01.U01.S01\", \"top2\": \"\", \"confidence\": 90, \"self_reported_candidate_gap\": \"clear\"}]}",
+        "refusal": null
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 3120,
+    "completion_tokens": 80,
+    "total_tokens": 3200,
+    "prompt_tokens_details": {
+      "cached_tokens": 3000
+    }
+  }
+}
