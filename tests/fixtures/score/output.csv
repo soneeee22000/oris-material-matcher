@@ -1,0 +1,17 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty,decision,material_type,material_usage,material_subtype,reason,model,prompt_version,latency_ms,cost_usd,suggested_type,suggested_usage,suggested_subtype,library_row_id,call_ids,suggested_2_type,suggested_2_usage,suggested_2_subtype
+1,Section one,,,,not_a_material,,,,HEADER,rules,v1,0,0.000000,,,,,,,,
+01.01.,Subsection,,,,not_a_material,,,,HEADER,rules,v1,0,0.000000,,,,,,,,
+01.01.0010.,Footing,C30/37 footing,m³,10,matched,Concrete,for footings,C30/37,ok,m,v1,100,0.001000,Concrete,for footings,C30/37,r1,c1,,,
+01.01.0020.,Footing plain,plain footing,m³,10,matched,Concrete,for footings,,ok,m,v1,100,0.001000,Concrete,for footings,,r2,c1,,,
+01.01.0030.,Footing wrong subtype,footing,m³,10,matched,Concrete,for footings,C30/37,ok,m,v1,100,0.001000,Concrete,for footings,C30/37,r1,c1,,,
+01.01.0040.,Pier,pier C30/37,m³,10,matched,Concrete,for footings,C30/37,ok,m,v1,100,0.001000,Concrete,for footings,C30/37,r1,c1,,,
+01.01.0050.,Coating,bitumen coat,t,1,matched,Bitumen,bitumen for coating,Normal,ok,m,v1,100,0.001000,Bitumen,bitumen for coating,Normal,r3,c1,,,
+01.01.0060.,Pot bearing,bearing,pcs,2,matched,Steel,for rebar,B500,ok,m,v1,100,0.001000,Steel,for rebar,B500,r4,c1,,,
+01.01.0070.,Survey,survey,LS,1,not_a_material,,,,G2_SERVICE,rules,v1,0,0.000000,,,,,,,,
+01.01.0080.,Rebar,rebar,t,5,not_a_material,,,,G2_SERVICE,rules,v1,0,0.000000,,,,,,,,
+01.01.0090.,Rebar again,rebar,t,5,needs_review,,,,low,m,v1,100,0.001000,Steel,for rebar,B500,r4,c2,Steel,for mesh,B500
+01.01.0100.,Cement,CEM I,t,3,needs_review,,,,low,m,v1,100,0.001000,Cement,CEM II,,r5,c2,Cement,CEM I,
+01.01.0110.,Joint,PU sealant,m,4,needs_review,,,,NO_LIBRARY_EQUIVALENT,m,v1,100,0.001000,,,,,c2,,,
+01.01.0120.,Base,AC base,t,9,matched,Asphalt,base,AC,ok,m,v1,100,0.001000,Asphalt,base,AC,r6,c3,,,
+01.01.0130.,Base again,AC base,t,9,matched,Concrete,base,AC,ok,m,v1,100,0.001000,Concrete,base,AC,r7,c3,,,
+01.01.0140.,Footing grade,footing grade,m³,10,matched,Concrete,for footings,,ok,m,v1,100,0.001000,Concrete,for footings,,r2,c1,,,
