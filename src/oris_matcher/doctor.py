@@ -14,6 +14,7 @@ when its key is present. The report goes to ``evidence/doctor_<YYYY-MM-DD>.json`
 """
 
 import asyncio
+import dataclasses
 import json
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -28,6 +29,7 @@ from anthropic.types import MessageParam
 
 from oris_matcher.domain.boq import BoqLine, LineKind
 from oris_matcher.domain.decision import LLM_FAILURE_PREFIX, ReasonCode
+from oris_matcher.domain.library import Library
 from oris_matcher.io import audit
 from oris_matcher.io.audit import (
     CALLS_FILE,
@@ -43,9 +45,11 @@ from oris_matcher.llm.anthropic_llm import AnthropicLLM, system_param
 from oris_matcher.llm.base import AdapterOptions, LLMPort, LLMRequest, LLMResult, LLMStatus
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.openai_llm import OpenAIChatLLM
+from oris_matcher.llm.recording import DeclinedAttempt
 from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ResponseCache
 from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps, WrapperPolicy
-from oris_matcher.prompts.v1.render import CANONICAL_V1, build_request
+from oris_matcher.prompts.v1.render import CANONICAL_V1, VARIANTS, PromptVariant, build_request
+from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.service import (
     CACHE_MIN_TOKENS,
     DEFAULT_MAX_TOKENS,
@@ -94,6 +98,10 @@ TIER_UNKNOWN = "unknown"
 RATE_LIMIT_FROM_CALL = "last_live_call"
 RATE_LIMIT_NONE = "none"
 RATE_LIMIT_CHECK = "rate_limit_tier"
+DECLINED_FIELD = "declined_attempts"
+COUNT_CHECK = "count_tokens"
+RENDERED_CHECK = "rendered_tokens"
+TOKEN_CHECKS = (COUNT_CHECK, RENDERED_CHECK)
 SYNTHETIC_BOQ = (
     "Item No.,Short Description,Long Description,Unit,BoQ Qty\r\n"
     "D.1,Ready-mix concrete C30/37 for foundations,,m3,10\r\n"
@@ -205,6 +213,32 @@ class Runtime:
     http_client: Callable[[], httpx2.AsyncClient | None] = _no_http_client
     git: GitRunner = audit._run_git
     adapter_factory: AdapterFactory | None = None
+
+
+def recorded_declines(run_dir: Path) -> list[DeclinedAttempt] | None:
+    """Return the attempts a recorded run declined, from its manifest.
+
+    Args:
+        run_dir: The run folder.
+
+    Returns:
+        The declined attempts; None when the manifest predates them or cannot be read, so the
+        replay re-derives breaker and budget refusals as before.
+
+    Raises:
+        WiringError: A declined record is malformed.
+
+    """
+    try:
+        records = read_manifest(run_dir).get(DECLINED_FIELD)
+    except WiringError:
+        return None
+    if not isinstance(records, list):
+        return None
+    try:
+        return [DeclinedAttempt.from_json(record) for record in records]
+    except (KeyError, TypeError, ValueError) as error:
+        raise WiringError(f"{run_dir}: unreadable {DECLINED_FIELD} ({error})") from error
 
 
 def read_manifest(run_dir: Path) -> dict[str, Any]:
@@ -375,7 +409,8 @@ def build_adapter(
             recorded = RecordedRun.from_calls_jsonl(calls)
         except (OSError, ValueError, KeyError) as error:
             raise WiringError(f"{calls}: cannot read the recorded calls ({error})") from error
-        return ReplayLLM(recorded, model, allowlist, strict=False)
+        declined = recorded_declines(spec.run_dir)
+        return ReplayLLM(recorded, model, allowlist, strict=False, declined=declined)
     return live_adapter(spec.kind, model, settings, allowlist, runtime)
 
 
@@ -828,6 +863,28 @@ def newest_tier_evidence(evidence_dir: Path) -> TierEvidence | None:
     return None
 
 
+def live_context(context: ManifestContext, headers: Mapping[str, str]) -> ManifestContext:
+    """Add what a run that reached a live model records: tier evidence and rate-limit headers.
+
+    Args:
+        context: The run's manifest context.
+        headers: The rate-limit headers of its last successful live call, or {}.
+
+    Returns:
+        The context with the tier of the newest doctor evidence (``unknown`` without one) and
+        the headers.
+
+    """
+    evidence = newest_tier_evidence(context.root / DEFAULT_EVIDENCE_DIR)
+    return dataclasses.replace(
+        context,
+        rate_limit_tier=evidence.tier if evidence else TIER_UNKNOWN,
+        rate_limit_tier_source=evidence.path if evidence else None,
+        rate_limit_headers=headers,
+        rate_limit_source=RATE_LIMIT_FROM_CALL if headers else RATE_LIMIT_NONE,
+    )
+
+
 def _rate_limit_check(probe: _Probe) -> Check:
     """Report the rate-limit headers and the tier they imply."""
     headers = dict(probe.headers)
@@ -839,27 +896,150 @@ def _rate_limit_check(probe: _Probe) -> Check:
     return Check("rate_limit_tier", status, detail, {"tier": tier, "headers": headers})
 
 
+async def _count_rendering(
+    client: anthropic.AsyncAnthropic, library: Library, variant: PromptVariant, model: str
+) -> int:
+    """Count one rendering's system blocks plus the 2-line synthetic user message.
+
+    Raises:
+        anthropic.AnthropicError: The count failed.
+
+    """
+    request = build_request(
+        _synthetic_lines(), library, variant, model=model, max_tokens=DEFAULT_MAX_TOKENS
+    )
+    counted = await client.messages.count_tokens(
+        model=model,
+        system=system_param(request),
+        messages=[MessageParam(role="user", content=request.user_payload)],
+    )
+    return counted.input_tokens
+
+
 async def _count_library(
     client: anthropic.AsyncAnthropic, library_id: str, settings: Settings, model: str
-) -> Check:
-    """Count the tokens of one library's rendered prompt with the SDK's ``count_tokens``."""
-    name = f"count_tokens:{library_id}"
+) -> list[Check]:
+    """Count every pre-registered rendering of one library with the SDK's ``count_tokens``.
+
+    Returns:
+        ``count_tokens:<id>`` (the canonical rendering and its cache eligibility) and
+        ``rendered_tokens:<id>`` (every rendering by prompt version, with the library SHA and
+        the model), which runs reuse as their measured size (§9.6, A28).
+
+    """
     library = load_catalogue(library_id, settings)
-    request = build_request(
-        _synthetic_lines(), library, CANONICAL_V1, model=model, max_tokens=DEFAULT_MAX_TOKENS
-    )
     try:
-        counted = await client.messages.count_tokens(
-            model=model,
-            system=system_param(request),
-            messages=[MessageParam(role="user", content=request.user_payload)],
-        )
+        counts = {
+            prompt_version(variant): await _count_rendering(client, library, variant, model)
+            for variant in VARIANTS
+        }
     except anthropic.AnthropicError as error:
-        return Check(name, CheckStatus.FAIL, f"{type(error).__name__}: {error}")
-    tokens = counted.input_tokens
+        failed = f"{type(error).__name__}: {error}"
+        return [Check(f"{name}:{library_id}", CheckStatus.FAIL, failed) for name in TOKEN_CHECKS]
+    tokens = counts[prompt_version(CANONICAL_V1)]
     eligible = tokens >= CACHE_MIN_TOKENS
     detail = f"{tokens} tokens, cache-eligible {'yes' if eligible else 'no'}"
-    return Check(name, CheckStatus.PASS, detail, {"tokens": tokens, "cache_eligible": eligible})
+    data = {"library_sha256": library.sha256, "model": model, "by_prompt_version": counts}
+    by_version = ", ".join(f"{version} {count}" for version, count in counts.items())
+    return [
+        Check(f"{COUNT_CHECK}:{library_id}", CheckStatus.PASS, detail, _eligibility(tokens)),
+        Check(f"{RENDERED_CHECK}:{library_id}", CheckStatus.PASS, by_version, data),
+    ]
+
+
+def _eligibility(tokens: int) -> dict[str, Any]:
+    """Return a count and whether it reaches the prompt cache's minimum."""
+    return {"tokens": tokens, "cache_eligible": tokens >= CACHE_MIN_TOKENS}
+
+
+@dataclass(frozen=True)
+class RenderedTokens:
+    """A doctor's measured size of each rendering of one library, for one model.
+
+    Attributes:
+        by_version: Prompt version -> counted input tokens.
+        path: The evidence file it came from.
+
+    """
+
+    by_version: Mapping[str, int]
+    path: Path
+
+
+def _rendered_checks(path: Path) -> list[dict[str, Any]]:
+    """Return the ``rendered_tokens:*`` check data of one evidence file; [] when unreadable."""
+    try:
+        report = json.loads(path.read_text(encoding=TEXT_ENCODING))
+    except (OSError, ValueError):
+        return []
+    checks = report.get("checks") if isinstance(report, dict) else None
+    return [
+        check["data"]
+        for check in (checks if isinstance(checks, list) else [])
+        if isinstance(check, dict)
+        and str(check.get("name", "")).startswith(f"{RENDERED_CHECK}:")
+        and isinstance(check.get("data"), dict)
+    ]
+
+
+def newest_rendered_tokens(
+    evidence_dir: Path, library_sha256: str, model: str, versions: Sequence[str]
+) -> RenderedTokens | None:
+    """Return the newest doctor measurement of every given rendering of a library and model.
+
+    Args:
+        evidence_dir: The evidence folder.
+        library_sha256: The run's library SHA-256.
+        model: The run's requested model.
+        versions: The run's prompt versions; each must have been counted.
+
+    Returns:
+        The counts of those versions and their file, or None when no file has them all.
+
+    """
+    pattern = f"{EVIDENCE_PREFIX}*{EVIDENCE_SUFFIX}"
+    for path in sorted(evidence_dir.glob(pattern), reverse=True):
+        for data in _rendered_checks(path):
+            counts = data.get("by_prompt_version")
+            same = data.get("library_sha256") == library_sha256 and data.get("model") == model
+            if same and isinstance(counts, dict) and all(v in counts for v in versions):
+                return RenderedTokens({v: int(counts[v]) for v in versions}, path)
+    return None
+
+
+def with_measured_tokens(
+    manifest: Mapping[str, Any], evidence_dir: Path, root: Path
+) -> dict[str, Any]:
+    """Replace a manifest's estimated library size with the doctor's ``count_tokens`` (§9.6).
+
+    Args:
+        manifest: A run's manifest; its library SHA, requested model and prompt versions key
+            the lookup.
+        evidence_dir: The evidence folder.
+        root: The repository root, for the source path.
+
+    Returns:
+        The manifest with the measured size, per rendering, its cache eligibility and its
+        source file; unchanged when no doctor evidence measured these renderings.
+
+    """
+    versions = [str(version) for version in manifest.get("prompt_version") or ()]
+    found = newest_rendered_tokens(
+        evidence_dir,
+        str(manifest.get("library_sha256")),
+        str(manifest.get("requested_model")),
+        versions,
+    )
+    if not versions or found is None:
+        return dict(manifest)
+    tokens = max(found.by_version.values())
+    measured = {
+        **_eligibility(tokens),
+        "by_variant": dict(found.by_version),
+        "estimated": False,
+        "source": audit.portable_path(found.path, root),
+    }
+    return {**manifest, "library_rendered_tokens": measured}
 
 
 async def _token_checks(settings: Settings, env: _Env, runtime: Runtime) -> list[Check]:
@@ -875,7 +1055,10 @@ async def _token_checks(settings: Settings, env: _Env, runtime: Runtime) -> list
         timeout=settings.per_call_timeout_s,
         http_client=runtime.http_client(),
     )
-    return [await _count_library(client, lib, settings, model) for lib in settings.libraries]
+    checks: list[Check] = []
+    for library_id in settings.libraries:
+        checks += await _count_library(client, library_id, settings, model)
+    return checks
 
 
 async def _fallback_check(

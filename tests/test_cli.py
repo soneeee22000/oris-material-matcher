@@ -24,6 +24,8 @@ from oris_matcher.doctor import LLMKind, LLMSpec, Runtime, WiringError, parse_ll
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind, default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.settings import Settings, load_models_config
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -297,14 +299,20 @@ def test_replay_writes_output_when_asked(workdir: Path) -> None:
     assert copy.read_bytes() == output.read_bytes()
 
 
-def test_replay_miss_gives_exit_code_3_and_never_calls_live(workdir: Path) -> None:
+def test_replay_miss_gives_exit_code_3_and_never_calls_live(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     assert invoke(match_args(workdir / "first.csv", "--llm", "fake")).exit_code == 0
     folder = only_run(workdir)
     (folder / "calls.jsonl").write_bytes(b"")
     output = workdir / "missed.csv"
+    requests: list[httpx2.Request] = []
+    _live_runtime(workdir, monkeypatch, requests)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-test-never-called")
 
     result = invoke(match_args(output, "--llm", f"replay:{folder}"))
 
+    assert requests == []
     assert result.exit_code == 3, result.output
     text = output.read_text(encoding="utf-8")
     assert "LLM_FAILURE:replay_miss" in text
@@ -949,3 +957,70 @@ def test_a_b0_run_folder_passes_check_requirements(
     statuses = {item.rq: item.status for item in results}
     assert statuses["RQ11"] == check.PASS
     assert statuses["RQ9"] == check.PASS
+
+
+def _rendered_tokens_evidence(workdir: Path, model: str = HAIKU) -> None:
+    versions = {prompt_version(variant): 3380 for variant in (CANONICAL_V1, REVERSE_V1, B2)}
+    data = {
+        "library_sha256": hashlib.sha256(FR_LIBRARY.read_bytes()).hexdigest(),
+        "model": model,
+        "by_prompt_version": versions,
+    }
+    check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
+    evidence = workdir / "evidence" / "doctor_2026-10-05.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+
+
+def test_a_live_run_records_the_measured_library_size(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _rendered_tokens_evidence(workdir)
+    requests: list[httpx2.Request] = []
+    _live_runtime(workdir, monkeypatch, requests)
+
+    assert run_and_note("live", match_args(workdir / "live.csv", "--no-cache")).exit_code == 0
+
+    size = manifest_of(workdir / "runs" / RUN_OUTPUTS["live"])["library_rendered_tokens"]
+    assert size["estimated"] is False
+    assert size["tokens"] == 3380
+    assert size["source"] == "evidence/doctor_2026-10-05.json"
+    assert set(size["by_variant"]) == {prompt_version(v) for v in (CANONICAL_V1, REVERSE_V1)}
+
+
+def test_a_fake_run_keeps_the_estimate(workdir: Path) -> None:
+    _rendered_tokens_evidence(workdir)
+    assert invoke(match_args(workdir / "out.csv", "--llm", "fake")).exit_code == 0
+    assert manifest_of(only_run(workdir))["library_rendered_tokens"]["estimated"] is True
+
+
+def _always_down(spec: LLMSpec, model: str) -> FakeLLM:
+    del spec
+    return FakeLLM(model, ALLOWLIST, FakeBehaviour(rule=lambda n, r: Fault(FaultKind.SERVER_ERROR)))
+
+
+def test_a_breaker_trip_is_recorded_and_replayed_from_the_manifest(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ORIS_BREAKER_CONSECUTIVE_FAILURES", "1")
+    monkeypatch.setenv("ORIS_MAX_RETRIES", "0")
+    monkeypatch.setattr(
+        cli, "RUNTIME", make_runtime(root=lambda: workdir, adapter_factory=_always_down)
+    )
+    output = workdir / "out.csv"
+
+    assert invoke(match_args(output, "--llm", "fake")).exit_code == 3
+    folder = only_run(workdir)
+    declined = manifest_of(folder)["declined_attempts"]
+    assert declined
+    assert {record["reason"] for record in declined} == {"LLM_UNAVAILABLE"}
+    assert "LLM_UNAVAILABLE" in output.read_text(encoding="utf-8")
+
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: workdir))
+    replayed = invoke(["replay", str(folder), "--check", str(output)])
+    assert replayed.exit_code == 3, replayed.output
+    assert "byte-identical" in replayed.output
+    again = invoke(match_args(workdir / "again.csv", "--llm", f"replay:{folder}"))
+    assert again.exit_code == 3
+    newest = max((workdir / "runs").iterdir(), key=lambda path: path.name != folder.name)
+    assert manifest_of(newest)["declined_attempts"] == declined

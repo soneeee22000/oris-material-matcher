@@ -1,6 +1,7 @@
 """``oris doctor``: offline checks, and live checks over an HTTP MockTransport (§11.3, §12)."""
 
 import csv
+import hashlib
 import json
 import re
 from collections.abc import Sequence
@@ -21,9 +22,12 @@ from oris_matcher.doctor import (
     infer_tier,
     render_table,
     run_doctor,
+    with_measured_tokens,
 )
 from oris_matcher.llm.fake_llm import default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.settings import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -330,3 +334,78 @@ def test_doctor_run_manifest_records_the_rate_limit_tier(tmp_path: Path) -> None
     assert manifest["rate_limit_tier"] == "2"
     assert manifest["rate_limit_headers"]["anthropic-ratelimit-requests-limit"]
     assert manifest["mode"] == "live"
+
+
+RENDERINGS = (CANONICAL_V1, REVERSE_V1, B2)
+FR_SHA = hashlib.sha256(LIBRARIES["fr"].read_bytes()).hexdigest()
+
+
+def test_live_doctor_counts_every_rendering_of_each_library(tmp_path: Path) -> None:
+    api = Api()
+    report = run_doctor(
+        make_settings(anthropic=True), options(tmp_path, live=True), runtime_for(tmp_path, api)
+    )
+
+    checks = {check.name: check for check in report.checks}
+    rendered = checks["rendered_tokens:fr"]
+    assert rendered.status == CheckStatus.PASS
+    assert rendered.data["library_sha256"] == FR_SHA
+    assert rendered.data["model"] == HAIKU
+    versions = {prompt_version(variant) for variant in RENDERINGS}
+    assert rendered.data["by_prompt_version"] == dict.fromkeys(versions, COUNTED_TOKENS)
+    assert checks["count_tokens:fr"].data == {"tokens": COUNTED_TOKENS, "cache_eligible": True}
+
+
+def _token_evidence(folder: Path, sha: str, model: str, counts: dict[str, int]) -> Path:
+    check = {
+        "name": "rendered_tokens:fr",
+        "status": "pass",
+        "detail": "",
+        "data": {"library_sha256": sha, "model": model, "by_prompt_version": counts},
+    }
+    path = folder / "evidence" / "doctor_2026-10-05.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+    return path
+
+
+def _estimated_manifest(versions: list[str]) -> dict[str, Any]:
+    estimate = {"tokens": 13700, "by_variant": {}, "estimated": True, "cache_eligible": True}
+    return {
+        "library_sha256": FR_SHA,
+        "requested_model": HAIKU,
+        "prompt_version": versions,
+        "library_rendered_tokens": estimate,
+    }
+
+
+def test_a_run_records_the_doctor_measurement_of_its_library_model_and_prompt(
+    tmp_path: Path,
+) -> None:
+    canonical, reverse = (prompt_version(variant) for variant in (CANONICAL_V1, REVERSE_V1))
+    _token_evidence(tmp_path, FR_SHA, HAIKU, {canonical: 3380, reverse: 3390})
+    manifest = _estimated_manifest([canonical, reverse])
+
+    measured = with_measured_tokens(manifest, tmp_path / "evidence", tmp_path)
+
+    assert measured["library_rendered_tokens"] == {
+        "tokens": 3390,
+        "by_variant": {canonical: 3380, reverse: 3390},
+        "estimated": False,
+        "cache_eligible": False,
+        "source": "evidence/doctor_2026-10-05.json",
+    }
+
+
+@pytest.mark.parametrize("mismatch", ["sha", "model", "version"])
+def test_a_run_keeps_its_estimate_without_a_matching_measurement(
+    tmp_path: Path, mismatch: str
+) -> None:
+    canonical = prompt_version(CANONICAL_V1)
+    sha = "0" * 64 if mismatch == "sha" else FR_SHA
+    model = GPT if mismatch == "model" else HAIKU
+    version = prompt_version(B2) if mismatch == "version" else canonical
+    _token_evidence(tmp_path, sha, model, {version: 3380})
+    manifest = _estimated_manifest([canonical])
+
+    assert with_measured_tokens(manifest, tmp_path / "evidence", tmp_path) == manifest

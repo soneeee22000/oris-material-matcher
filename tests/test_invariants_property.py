@@ -1,4 +1,7 @@
+import asyncio
+import csv
 import dataclasses
+import io
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -6,9 +9,9 @@ from typing import Any
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from oris_matcher.domain.attributes import Attributes
-from oris_matcher.domain.batching import Batch, plan_batches
-from oris_matcher.domain.boq import BoqLine, LineKind, SectionHeader, make_line_id
+from oris_matcher.domain.attributes import Attributes, AttrResult, compare, extract
+from oris_matcher.domain.batching import Batch, plan_batches, transport_id
+from oris_matcher.domain.boq import BoqFile, BoqLine, LineKind, SectionHeader, make_line_id
 from oris_matcher.domain.decision import (
     NOT_A_MATERIAL_REASONS,
     Decision,
@@ -26,8 +29,20 @@ from oris_matcher.domain.decision import (
     make_haystack,
 )
 from oris_matcher.domain.library import Library, LibraryRow
+from oris_matcher.io.boq_reader import read_boq
+from oris_matcher.io.writer import render_csv
+from oris_matcher.llm.base import LLMRequest
+from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind, default_answer
+from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps
 from oris_matcher.prompts.v1.schema import LineAnswer
-from oris_matcher.settings import load_service_units, load_unit_aliases
+from oris_matcher.service import MatchService, RunProfile, RunResult
+from oris_matcher.settings import (
+    Settings,
+    load_models_config,
+    load_pricing,
+    load_service_units,
+    load_unit_aliases,
+)
 
 CONFIG = Path(__file__).resolve().parents[1] / "config"
 SERVICE_UNITS = load_service_units(CONFIG / "service_units.yaml").units
@@ -213,7 +228,8 @@ def run_inputs(draw: Any) -> list[DecisionInput]:
     return [_input(line, by_line.get(line.line_id, ()), draw) for line in lines]
 
 
-def _check_decision(decision: LineDecision) -> None:
+def _check_decision(decision: LineDecision, library: Library | None = None) -> None:
+    library = library or LIBRARY
     assert is_frozen_reason(decision.reason)
     if decision.decision == Decision.NOT_A_MATERIAL:
         assert decision.reason in NOT_A_MATERIAL_REASONS
@@ -222,8 +238,8 @@ def _check_decision(decision: LineDecision) -> None:
         assert decision.row is None
         return
     assert decision.row is not None
-    assert any(decision.row is row for row in LIBRARY.rows)
-    assert decision.row is LIBRARY.by_code[decision.top1]
+    assert any(decision.row is row for row in library.rows)
+    assert decision.row is library.by_code[decision.top1]
 
 
 DECIDERS: list[Callable[[DecisionInput, Library], LineDecision]] = [decide, decide_b2]
@@ -280,3 +296,139 @@ def test_measured_unit_never_reaches_not_a_material(decision_input: DecisionInpu
 def test_measured_units_cover_the_configured_canonicals() -> None:
     assert {"m", "m²", "m³", "t", "kg", "l", "pcs"} <= set(MEASURED_UNITS)
     assert not set(MEASURED_UNITS) & SERVICE_UNITS
+
+
+# --- the same invariants end to end: MatchService, LLMWrapper and FakeLLM's faults ------
+
+ROOT = Path(__file__).resolve().parents[1]
+FR_LIBRARY = ROOT / "data" / "oris_materials_fr.csv"
+HAIKU = "claude-haiku-4-5-20251001"
+ALLOWLIST = load_models_config(CONFIG / "models.toml").allowlist.patterns
+PRICING = load_pricing(CONFIG / "pricing.toml")
+SERVICE = MatchService.from_settings(
+    Settings(_env_file=None, config_dir=CONFIG, libraries={"fr": FR_LIBRARY})  # type: ignore[call-arg]
+)
+FR_ROWS = SERVICE.library("fr").rows
+LIBRARY_TRIPLES = {(r.material_type, r.material_usage, r.material_subtype) for r in FR_ROWS}
+INPUT_HEADER = "Item No.,Short Description,Long Description,Unit,BoQ Qty\r\n"
+SHORT_TEXTS = (
+    "Béton C30/37 pour fondations",
+    "Ready-mix concrete C25/30",
+    "Acier HA B500B",
+    "Main d'oeuvre, forfait",
+    "Gros oeuvre",
+    "Enrobé bitumineux 0/10",
+    "",
+)
+UNITS = ("m3", "m²", "t", "Ft", "ens", "")
+ROW_TEXTS = tuple(
+    sorted(
+        {
+            f"{row.material_type} {row.material_subtype}".strip()
+            for row in FR_ROWS
+            if row.attributes != Attributes() and not {",", '"'} & set(row.material_subtype)
+        }
+    )
+)
+FAULTS: tuple[FaultKind | None, ...] = (None, *FaultKind)
+ID_FAULTS = frozenset(
+    {
+        FaultKind.DROP_IDS,
+        FaultKind.DUPLICATE_IDS,
+        FaultKind.CONFLICTING_DUPLICATES,
+        FaultKind.UNKNOWN_IDS,
+    }
+)
+
+
+async def _no_sleep(seconds: float) -> None:
+    del seconds
+
+
+@st.composite
+def boq_rows(draw: Any) -> list[tuple[str, str, str, str]]:
+    """Random BoQ rows: headers, items, service lines, blanks and exact duplicates."""
+    count = draw(st.integers(min_value=1, max_value=24))
+    rows: list[tuple[str, str, str, str]] = []
+    for index in range(count):
+        if rows and draw(st.integers(0, 9)) == 0:
+            rows.append(rows[-1])
+            continue
+        code = draw(st.sampled_from(["", "1", f"01.0{index % 9}.", f"01.01.{index:04d}."]))
+        short = draw(st.sampled_from(SHORT_TEXTS) | st.sampled_from(ROW_TEXTS))
+        unit = draw(st.sampled_from(UNITS))
+        rows.append((code, short, unit, "12" if unit else ""))
+    return rows
+
+
+def _boq_bytes(rows: list[tuple[str, str, str, str]]) -> bytes:
+    """Render rows as a BoQ CSV the reader accepts."""
+    body = "".join(f'"{code}","{short}","","{unit}","{qty}"\r\n' for code, short, unit, qty in rows)
+    return (INPUT_HEADER + body).encode("utf-8")
+
+
+def _agreeing_codes(line: BoqLine) -> list[str]:
+    """Codes of library rows whose hard attributes agree with the line's, so it can match."""
+    stated = extract(f"{line.short} {line.long}")
+    return [row.code for row in FR_ROWS if compare(stated, row.attributes) == AttrResult.AGREE]
+
+
+def _answers(draw: Any, items: list[BoqLine]) -> dict[str, dict[str, Any]]:
+    """One answer per item: evidence from its text, an agreeing, other or invalid code."""
+    others = [row.code for row in FR_ROWS] + ["T99.U99.S99", ""]
+    answers: dict[str, dict[str, Any]] = {}
+    for line in items:
+        codes = _agreeing_codes(line) or others
+        top1 = draw(st.sampled_from(codes) | st.sampled_from(others))
+        answers[transport_id(line)] = {
+            **default_answer(transport_id(line)),
+            "evidence": (line.short.split() or [""])[0],
+            "top1": top1,
+            "confidence": draw(st.sampled_from([0, 55, 75, 85, 95, 100])),
+        }
+    return answers
+
+
+def _fault_rule(faults: list[FaultKind | None]) -> Callable[[int, LLMRequest], Fault | None]:
+    """Pick the call's fault from a drawn cycle; id faults act on the request's first line."""
+
+    def rule(call_no: int, req: LLMRequest) -> Fault | None:
+        kind = faults[(call_no - 1) % len(faults)]
+        if kind is None:
+            return None
+        ids = req.line_ids[:1] if kind in ID_FAULTS else ()
+        return Fault(kind, ids=ids)
+
+    return rule
+
+
+def _run(boq: BoqFile, fake: FakeLLM) -> RunResult:
+    """Run B3 through a real wrapper over the fake, without waiting between retries."""
+    deps = WrapperDeps(sleep=_no_sleep)
+    wrapper = LLMWrapper(fake, PRICING, BudgetLedger(100.0), None, deps)
+    coroutine = SERVICE.match(boq, "fr", profile=RunProfile.B3, llm=wrapper)
+    return asyncio.run(coroutine)
+
+
+@settings(max_examples=40, deadline=None)
+@given(boq_rows(), st.lists(st.sampled_from(FAULTS), min_size=1, max_size=6), st.data())
+def test_service_output_keeps_input_length_order_and_ids_under_fake_faults(
+    rows: list[tuple[str, str, str, str]], faults: list[FaultKind | None], data: Any
+) -> None:
+    boq = read_boq(_boq_bytes(rows))
+    items = [line for line in boq.lines if line.kind == LineKind.ITEM]
+    behaviour = FakeBehaviour(answers=_answers(data.draw, items), rule=_fault_rule(faults))
+
+    result = _run(boq, FakeLLM(HAIKU, ALLOWLIST, behaviour))
+
+    line_ids = [item.line.line_id for item in result.lines]
+    assert line_ids == [line.line_id for line in boq.lines]
+    assert len(set(line_ids)) == len(line_ids)
+    for item in result.lines:
+        _check_decision(item.decision, SERVICE.library("fr"))
+        if item.decision.decision == Decision.MATCHED:
+            row = item.decision.row
+            assert row is not None
+            assert (row.material_type, row.material_usage, row.material_subtype) in LIBRARY_TRIPLES
+    rendered = list(csv.reader(io.StringIO(render_csv(result).decode("utf-8"))))
+    assert [row[0] for row in rendered[1:]] == [line.item_no for line in boq.lines]

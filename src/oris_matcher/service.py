@@ -57,6 +57,7 @@ from oris_matcher.llm.base import HASH_ENCODING, LLMPort, LLMRequest, SystemBloc
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.recording import (
     CallRecord,
+    DeclinedAttempt,
     LineAttribution,
     attribute_costs,
     system_blocks_sha256,
@@ -607,12 +608,14 @@ class _Rescue:
         outcomes: Each (pass, batch) job's outcome, fallback answers merged in.
         served: Transport ids of the lines the fallback re-ran.
         policy: The policy the fallback's lines are decided with, when it ran.
+        declined: The attempts the fallback wrapper declined.
 
     """
 
     outcomes: Mapping[JobKey, BatchOutcome]
     served: frozenset[str] = frozenset()
     policy: ResolvedPolicy | None = None
+    declined: tuple[DeclinedAttempt, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -945,9 +948,12 @@ class MatchService:
 
         The fallback wrapper shares the run's ledger, limits, recording and cache; its lines
         are decided at the fallback model's policy, the strictest threshold unless certified.
+        A line is ``LLM_UNAVAILABLE`` only once the breaker tripped (live) or where the
+        recorded run declined it (replay), so pending lines alone decide the take-over: a
+        replay's own breaker sees the attempts in another order and may not have tripped.
         """
         pending = _unavailable(outcomes)
-        if options.fallback is None or not llm.breaker.tripped or not pending:
+        if options.fallback is None or not pending:
             return _Rescue(outcomes)
         model = self.resources.fallback_model
         target = _Target(plan.library, model, provider_for(model, llm.pricing))
@@ -963,7 +969,7 @@ class MatchService:
             merged[job] = _merged(merged[job], rerun)
         served = frozenset(transport for ids in pending.values() for transport in ids)
         policy = self._policy(plan.boq, target, plan.profile, options.threshold)
-        return _Rescue(merged, served, policy)
+        return _Rescue(merged, served, policy, tuple(backup.declined))
 
     def _builder(self, target: _Target, batch: Batch, variant: PromptVariant) -> RequestBuilder:
         """Return the wrapper's request builder for any subset of one batch's transport ids."""
@@ -1020,6 +1026,7 @@ class _Assembly:
             for transport in batch.transport_ids
         }
         self.versions = tuple(prompt_version(variant) for variant in plan.variants)
+        self.declined = (*llm.declined, *rescue.declined)
 
     def result(self, info: _RunInfo) -> RunResult:
         """Build the run result."""
@@ -1157,6 +1164,7 @@ class _Assembly:
             "max_tokens": resources.max_tokens,
             **_usage_fields(self.calls, attributed),
             **_count_fields(plan, lines),
+            "declined_attempts": declined_records(self.declined),
             "exit_code": exit_code,
         }
 
@@ -1229,6 +1237,20 @@ def _policy_fields(policy: ResolvedPolicy) -> dict[str, Any]:
         "policy_claimed_certified_by": policy.claimed_certified_by,
         "threshold_id": policy.threshold.threshold_id,
     }
+
+
+def declined_records(declined: Iterable[DeclinedAttempt]) -> list[dict[str, Any]]:
+    """Return the manifest's ``declined_attempts``, sorted so the manifest is stable.
+
+    Args:
+        declined: Every attempt the run's wrappers declined.
+
+    Returns:
+        One record per attempt, by request hash, parent, attempt number and reason.
+
+    """
+    records = [attempt.to_json() for attempt in declined]
+    return sorted(records, key=lambda r: canonical_json([r[k] for k in sorted(r)]))
 
 
 def _fallback_fields(rescue: _Rescue) -> dict[str, Any]:

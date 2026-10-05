@@ -34,9 +34,6 @@ from oris_matcher.doctor import (
     DEFAULT_EVIDENCE_DIR,
     DEFAULT_RUNS_DIR,
     LIVE_KINDS,
-    RATE_LIMIT_FROM_CALL,
-    RATE_LIMIT_NONE,
-    TIER_UNKNOWN,
     CapturingPort,
     DoctorOptions,
     LLMKind,
@@ -45,13 +42,14 @@ from oris_matcher.doctor import (
     WiringError,
     WrapperSetup,
     build_adapter,
+    live_context,
     make_wrapper,
-    newest_tier_evidence,
     parse_llm_spec,
     read_manifest,
     render_table,
     resolve_spec_model,
     run_doctor,
+    with_measured_tokens,
 )
 from oris_matcher.domain.boq import BoqFile
 from oris_matcher.io.audit import (
@@ -686,15 +684,7 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
     )
     if not reaches_model(job, prepared.spec):
         return context
-    headers = prepared.rate_limit_headers
-    evidence = newest_tier_evidence(root / DEFAULT_EVIDENCE_DIR)
-    return dataclasses.replace(
-        context,
-        rate_limit_tier=evidence.tier if evidence else TIER_UNKNOWN,
-        rate_limit_tier_source=evidence.path if evidence else None,
-        rate_limit_headers=headers,
-        rate_limit_source=RATE_LIMIT_FROM_CALL if headers else RATE_LIMIT_NONE,
-    )
+    return live_context(context, prepared.rate_limit_headers)
 
 
 def _extra_fields(job: MatchJob, prepared: PreparedRun, cap: float, root: Path) -> dict[str, Any]:
@@ -769,6 +759,9 @@ def execute_match(job: MatchJob, base: Settings, runtime: Runtime) -> MatchOutco
     result, cap = run_match(job, prepared, runtime)
     extra = _extra_fields(job, prepared, cap, runtime.root())
     manifest = {**build_manifest(result, _context(job, prepared, runtime)), **extra}
+    if reaches_model(job, prepared.spec) and prepared.spec.kind == LLMKind.ANTHROPIC:
+        root = runtime.root()
+        manifest = with_measured_tokens(manifest, root / DEFAULT_EVIDENCE_DIR, root)
     folder = write_run(result, job.runs_dir, manifest)
     keep_external_inputs(job, folder, runtime.root())
     output_path = job.output_path or folder / OUTPUT_FILE
