@@ -87,6 +87,26 @@ def test_b1_appends_one_ledger_row_per_language_with_one_id(recorded: Path) -> N
     assert markdown.count("| B1-dev |") == len(rows)
 
 
+def test_b1_rerun_keeps_one_run_folder_and_appends_two_more_rows(
+    tmp_path: Path,
+) -> None:
+    argv = ["--ledger", str(tmp_path / "experiments.jsonl"), "--runs-dir", str(tmp_path / "runs")]
+    for _ in range(2):
+        assert b1_ledger.main(argv, root=tmp_path, clock=lambda: FIXED_NOW) == 0
+    folders = sorted(path.name for path in (tmp_path / "runs").iterdir())
+    assert len(folders) == 1
+    assert folders[0].startswith("b1-dev-")
+    assert len(_rows(tmp_path)) == len(b1_ledger.LANGUAGES) * 2
+
+
+def test_b1_missing_input_exits_2_without_a_row_or_a_temp_folder(tmp_path: Path) -> None:
+    argv = ["--ledger", str(tmp_path / "experiments.jsonl"), "--runs-dir", str(tmp_path / "runs")]
+    argv += ["--input-en", str(tmp_path / "no_such_input.csv")]
+    assert b1_ledger.main(argv, root=tmp_path, clock=lambda: FIXED_NOW) == b1_ledger.EXIT_ERROR
+    assert not (tmp_path / "experiments.jsonl").exists()
+    assert list((tmp_path / "runs").iterdir()) == []
+
+
 def test_b1_baseline_output_resolves(recorded: Path) -> None:
     for row in _rows(recorded):
         args = argparse.Namespace(runs_dir=recorded / "runs", baseline_id="B1-dev")
