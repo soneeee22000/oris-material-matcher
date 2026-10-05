@@ -38,6 +38,7 @@ from oris_matcher.llm.base import (
 from oris_matcher.llm.recording import (
     CallRecord,
     CallSink,
+    DeclinedAttempt,
     MemoryCallSink,
     ReasonForCall,
     system_blocks_sha256,
@@ -524,9 +525,14 @@ class LLMWrapper:
 
     With a ``ReplayLLM`` adapter the wrapper replays: the recorded attempt for each request is
     the authority, and its record is copied (call id, timestamps, cost, latency) with
-    ``cache_hit`` set and ``source_call_id`` naming the source. Waits are skipped. The breaker
-    and the ledger are fed the copied values only to explain attempts the live run never made
-    (``LLM_UNAVAILABLE``, ``BUDGET_CAP``); any other absence is a replay miss.
+    ``cache_hit`` set and ``source_call_id`` naming the source. Waits are skipped.
+
+    Every attempt the wrapper declines (``LLM_UNAVAILABLE`` once the breaker tripped,
+    ``BUDGET_CAP`` when a reservation did not fit) is kept in ``declined``. A live run
+    interleaves its concurrent batches and a replay does not, so a replay reads those reasons
+    back from the recorded run rather than asking its own breaker and ledger, which would
+    change state in another order. Only a run recorded before declines were kept falls back
+    to re-deriving them. Any other absence is a replay miss.
     """
 
     def __init__(
@@ -556,6 +562,7 @@ class LLMWrapper:
         self._replay = adapter if isinstance(adapter, ReplayLLM) else None
         self._issued: dict[str, int] = {}
         self._occurrences: dict[str, int] = {}
+        self.declined: list[DeclinedAttempt] = []
 
     async def run_batch(self, line_ids: Sequence[str], build: RequestBuilder) -> BatchOutcome:
         """Get one validated answer or one failure for every line of a batch.
@@ -603,8 +610,29 @@ class LLMWrapper:
             await self.deps.sleep(self.wait_s(retry_index, result))
 
     def blocked(self, req: LLMRequest, meta: _AttemptMeta) -> bool:
-        """Tell whether the tripped breaker forbids this attempt; a recorded attempt never is."""
-        return self.breaker.tripped and self._recorded(req, meta) is None
+        """Tell whether the tripped breaker forbids this attempt, and keep the refusal.
+
+        A recorded attempt is never blocked. A replay is blocked exactly where the recorded run
+        declined the attempt as ``LLM_UNAVAILABLE``; a live run, or a replay of a run recorded
+        without declines, asks its breaker.
+        """
+        if self._recorded(req, meta) is not None:
+            return False
+        replay = self._replay
+        if replay is not None and replay.declined is not None:
+            reason = replay.declined_reason(req, meta.parent_call_id, meta.attempt_no)
+            unavailable = reason == ReasonCode.LLM_UNAVAILABLE
+        else:
+            unavailable = self.breaker.tripped
+        if unavailable:
+            self._decline(req, meta, ReasonCode.LLM_UNAVAILABLE)
+        return unavailable
+
+    def _decline(self, req: LLMRequest, meta: _AttemptMeta, reason: ReasonCode) -> ReasonCode:
+        """Keep an attempt the wrapper refused to make, keyed like that attempt."""
+        key = (req.sha256(), meta.parent_call_id, meta.attempt_no)
+        self.declined.append(DeclinedAttempt(*key, reason.value))
+        return reason
 
     def wants_retry(self, req: LLMRequest, attempt: _Attempt, meta: _AttemptMeta) -> bool:
         """Tell whether to retry after an attempt, or, in replay, whether the live run did.
@@ -644,7 +672,7 @@ class LLMWrapper:
         price = self.pricing.lookup(req.provider, req.model)
         reserve = self._reservation(req, price)
         if not self.ledger.try_reserve(reserve):
-            return ReasonCode.BUDGET_CAP
+            return self._decline(req, meta, ReasonCode.BUDGET_CAP)
         return await self._live(req, meta, price, reserve)
 
     def _reservation(self, req: LLMRequest, price: ModelPrice) -> float:
@@ -685,14 +713,27 @@ class LLMWrapper:
         if source is not None:
             replay.take(req)
             return self._from_replay(req, source)
+        if replay.declined is None:
+            return self._rederived(replay, req, meta)
+        reason = replay.declined_reason(req, meta.parent_call_id, meta.attempt_no)
+        if reason is not None:
+            return self._decline(req, meta, ReasonCode(reason))
+        return None if meta.attempt_no > 1 else self._missed(replay, req, meta)
+
+    def _rederived(
+        self, replay: ReplayLLM, req: LLMRequest, meta: _AttemptMeta
+    ) -> _Attempt | ReasonCode | None:
+        """Explain an absent attempt from this replay's own breaker and ledger (legacy runs)."""
         if self.breaker.tripped:
-            return ReasonCode.LLM_UNAVAILABLE
+            return self._decline(req, meta, ReasonCode.LLM_UNAVAILABLE)
         reserve = self._reservation(req, self.pricing.lookup(req.provider, req.model))
         if not self.ledger.try_reserve(reserve):
-            return ReasonCode.BUDGET_CAP
+            return self._decline(req, meta, ReasonCode.BUDGET_CAP)
         self.ledger.settle(reserve, 0.0)
-        if meta.attempt_no > 1:
-            return None
+        return None if meta.attempt_no > 1 else self._missed(replay, req, meta)
+
+    def _missed(self, replay: ReplayLLM, req: LLMRequest, meta: _AttemptMeta) -> _Attempt:
+        """Record a replay miss: a free, non-retryable attempt that never reaches a model."""
         result = replay.miss(req)
         moment = self.deps.now()
         return _Attempt(result, self._record(req, result, meta, _Timing(moment, moment, 0.0, 0)))

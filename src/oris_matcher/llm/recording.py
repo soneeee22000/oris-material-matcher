@@ -145,6 +145,59 @@ CALL_RECORD_KEYS: tuple[str, ...] = tuple(
 )
 
 
+@dataclass(frozen=True)
+class DeclinedAttempt:
+    """An attempt the wrapper declined to make, and why: the record a replay reads it from.
+
+    A live run interleaves its concurrent batches, so the breaker and the budget ledger change
+    state in an order a replay cannot reproduce. The run therefore records each attempt it
+    refused (``LLM_UNAVAILABLE`` once the breaker tripped, ``BUDGET_CAP`` when the reservation
+    did not fit), keyed like the attempt it replaces, and a replay reads the reason back.
+
+    Attributes:
+        request_sha256: The request's hash.
+        parent_call_id: The attempt that caused it, or None for a first call.
+        attempt_no: Its position in the retry chain.
+        reason: ``LLM_UNAVAILABLE`` or ``BUDGET_CAP``.
+
+    """
+
+    request_sha256: str
+    parent_call_id: str | None
+    attempt_no: int
+    reason: str
+
+    @property
+    def key(self) -> tuple[str, str | None, int]:
+        """The attempt it stands for: request hash, parent call id and attempt number."""
+        return (self.request_sha256, self.parent_call_id, self.attempt_no)
+
+    def to_json(self) -> dict[str, Any]:
+        """Return the manifest form."""
+        return {
+            "request_sha256": self.request_sha256,
+            "parent_call_id": self.parent_call_id,
+            "attempt_no": self.attempt_no,
+            "reason": str(self.reason),
+        }
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> "DeclinedAttempt":
+        """Read the manifest form.
+
+        Raises:
+            KeyError: A field is missing.
+
+        """
+        parent = data["parent_call_id"]
+        return cls(
+            str(data["request_sha256"]),
+            None if parent is None else str(parent),
+            int(data["attempt_no"]),
+            str(data["reason"]),
+        )
+
+
 class CallSink(Protocol):
     """Where call records go."""
 

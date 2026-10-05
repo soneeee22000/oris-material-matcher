@@ -1,5 +1,6 @@
 """Tests for the LLM wrapper: retries, budgets, breaker, ids, cache, replay (§11.3)."""
 
+import asyncio
 import json
 import logging
 import random
@@ -21,7 +22,13 @@ from oris_matcher.llm.fake_llm import (
     FaultRule,
     default_answer,
 )
-from oris_matcher.llm.recording import CallRecord, MemoryCallSink, ReasonForCall, attribute_costs
+from oris_matcher.llm.recording import (
+    CallRecord,
+    DeclinedAttempt,
+    MemoryCallSink,
+    ReasonForCall,
+    attribute_costs,
+)
 from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ReplayMissError, ResponseCache
 from oris_matcher.llm.wrapper import (
     BatchOutcome,
@@ -1084,3 +1091,88 @@ async def test_an_invalid_line_on_a_missing_re_ask_fails_without_another_re_ask(
     assert outcome.lines["L2"].raw_line_response == bad
     assert outcome.lines["L2"].call_ids == (first.call_id, reask.call_id)
     assert len(adapter.calls) == 2
+
+
+class Yielding:
+    """A live-like adapter: it yields to the event loop before answering, as a real call does."""
+
+    def __init__(self, inner: LLMPort | None = None) -> None:
+        self.inner = inner
+        self.model = HAIKU
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        """Yield once, then answer with the inner adapter or an HTTP 500."""
+        await asyncio.sleep(0)
+        if self.inner is not None:
+            return await self.inner.complete(req)
+        return LLMResult(
+            LLMStatus.API_ERROR, "", http_status=500, error_class="InternalServerError"
+        )
+
+
+async def _two_batches(harness: Harness) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Run two one-line batches concurrently, as the service fans batches out."""
+    first, second = await asyncio.gather(
+        harness.wrapper.run_batch(("L1",), make_request),
+        harness.wrapper.run_batch(("L2",), make_request),
+    )
+    return failures(first), failures(second)
+
+
+def _replay_of(live: Harness, **options: Any) -> Harness:
+    """Replay a live harness's records and the attempts it declined."""
+    replay = ReplayLLM(
+        RecordedRun.from_records(live.sink.records),
+        HAIKU,
+        ALLOWLIST,
+        strict=False,
+        declined=live.wrapper.declined,
+    )
+    return Harness(adapter=replay, **options)
+
+
+async def test_replay_reproduces_a_breaker_trip_between_concurrent_batches() -> None:
+    """The breaker trips on interleaved attempts; replay reads the refusal, never recomputes it."""
+    policy = WrapperPolicy(max_retries=2, breaker_threshold=3)
+    live = Harness(adapter=Yielding(), policy=policy)
+
+    live_failures = await _two_batches(live)
+    replay = _replay_of(live, policy=policy)
+    replayed = await _two_batches(replay)
+
+    unavailable = ReasonCode.LLM_UNAVAILABLE
+    assert live_failures == ({"L1": unavailable}, {"L2": unavailable})
+    assert replayed == live_failures
+    assert replay.wrapper.declined == live.wrapper.declined
+    assert {d.reason for d in live.wrapper.declined} == {unavailable}
+
+
+async def test_replay_reproduces_a_budget_cap_between_concurrent_batches() -> None:
+    """Live, the second batch finds the first one's reservation held; replay reads that."""
+    usage = Usage(input_tokens=1, output_tokens=1)
+    fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=answers(), usage=usage))
+    price = PRICING.lookup("anthropic", HAIKU)
+    one = make_request(("L1",))
+    cap = reservation_usd(one, price, PRICING.per_tokens, prefix_read=False, count_tokens=len)
+    live = Harness(adapter=Yielding(fake), cap_usd=cap * 1.5)
+
+    live_failures = await _two_batches(live)
+    replayed = await _two_batches(_replay_of(live, cap_usd=cap * 1.5))
+
+    assert live_failures == ({"L1": None}, {"L2": ReasonCode.BUDGET_CAP})
+    assert replayed == live_failures
+
+
+def test_declined_attempts_round_trip_through_json() -> None:
+    declined = DeclinedAttempt("a" * 64, "c1", 2, ReasonCode.BUDGET_CAP)
+    assert DeclinedAttempt.from_json(json.loads(json.dumps(declined.to_json()))) == declined
+
+
+async def test_a_replay_without_declined_records_keeps_the_legacy_explanation() -> None:
+    """Runs recorded before declines were kept still replay their breaker trips."""
+    live = Harness(scripted(rule=lambda n, r: Fault(FaultKind.SERVER_ERROR)))
+    live_outcomes = [await live.run((line_id,)) for line_id in IDS]
+    replay = replayer(live.sink.records, strict=False)
+    assert replay.wrapper.declined == []
+    replay_outcomes = [await replay.run((line_id,)) for line_id in IDS]
+    assert [o.lines for o in replay_outcomes] == [o.lines for o in live_outcomes]

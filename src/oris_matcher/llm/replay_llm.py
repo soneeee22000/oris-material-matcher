@@ -5,7 +5,10 @@ order. ``ReplayLLM`` serves the k-th request with a hash from the k-th recorded 
 that hash, so a replay walks the same attempts as the live run. It holds no live adapter, so a
 miss can never fall through to a paid call: it raises ``ReplayMissError`` in strict (test) mode
 and returns a non-retryable result marked ``REPLAY_MISS_ERROR_CLASS`` at runtime, which the
-wrapper reports as ``LLM_FAILURE:replay_miss``.
+wrapper reports as ``LLM_FAILURE:replay_miss``. It also holds the attempts the recorded run
+declined (``DeclinedAttempt``), so the wrapper reads a breaker or budget refusal back instead of
+recomputing it in replay order; ``declined=None`` marks a run recorded before declines were
+kept.
 
 ``ResponseCache`` is the live ``--cache`` store. It keeps content responses only, per hash in
 recording order, and serves them by occurrence.
@@ -23,7 +26,7 @@ from oris_matcher.llm.base import (
     classify_content,
     require_allowed_model,
 )
-from oris_matcher.llm.recording import CallRecord, read_calls_jsonl
+from oris_matcher.llm.recording import CallRecord, DeclinedAttempt, read_calls_jsonl
 
 HTTP_OK = 200
 HTTP_RATE_LIMITED = 429
@@ -251,6 +254,7 @@ class ReplayLLM:
         allowlist: Iterable[str],
         *,
         strict: bool = True,
+        declined: Iterable[DeclinedAttempt] | None = None,
     ) -> None:
         """Build the replay adapter, refusing a model outside the allowlist.
 
@@ -259,6 +263,8 @@ class ReplayLLM:
             model: The model id of the replayed run.
             allowlist: Patterns from ``config/models.toml``.
             strict: Raise on a miss (tests) instead of returning a replay-miss result.
+            declined: The attempts the recorded run declined; None for a run recorded before
+                they were kept, whose refusals the wrapper then re-derives.
 
         Raises:
             ModelNotAllowedError: The model is not on the allowlist.
@@ -270,6 +276,30 @@ class ReplayLLM:
         self.run = run
         self.strict = strict
         self._served: dict[str, int] = {}
+        self.declined: dict[tuple[str, str | None, int], DeclinedAttempt] | None = None
+        if declined is not None:
+            self.declined = {}
+            for attempt in declined:
+                self.declined.setdefault(attempt.key, attempt)
+
+    def declined_reason(
+        self, req: LLMRequest, parent_call_id: str | None, attempt_no: int
+    ) -> str | None:
+        """Return why the recorded run declined this attempt, or None when it did not.
+
+        Args:
+            req: The request.
+            parent_call_id: The attempt's parent.
+            attempt_no: Its position in the retry chain.
+
+        Returns:
+            ``LLM_UNAVAILABLE`` or ``BUDGET_CAP``; None when not declined or not recorded.
+
+        """
+        if self.declined is None:
+            return None
+        found = self.declined.get((req.sha256(), parent_call_id, attempt_no))
+        return None if found is None else found.reason
 
     def peek(self, req: LLMRequest) -> CallRecord | None:
         """Return the next recorded attempt for a request without consuming it.
