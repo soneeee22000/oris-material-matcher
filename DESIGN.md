@@ -1041,7 +1041,7 @@ GET  /v1/diagnostics/llm    (one explicit, logged connectivity call, on demand)
 
 ### 11.7 Tests
 
-All of these run offline in CI, on Linux and Windows, with FakeLLM and ReplayLLM and `pytest --disable-socket`: [A49]
+All of these run offline in CI, on Linux and Windows, with FakeLLM and ReplayLLM and pytest-socket restricted to loopback (`--allow-hosts=127.0.0.1,::1`), so no test can reach an external host: [A49, A53]
 
 - `ruff check`, `ruff format --check`, `mypy --strict src`; coverage ≥ 80% on the domain and the service; [A49]
 - the decision truth table;
@@ -1116,7 +1116,7 @@ Lines are sent as one JSON object, so line text cannot forge a record boundary, 
 - **Not used:** LangChain, LlamaIndex, LiteLLM or any gateway, instructor, Celery/Redis, any database (D-17).
 - **Settings:** one pydantic-settings `Settings` (prefix `ORIS_`, keys as `SecretStr`). Domain YAML loads with `extra='forbid'` and fails at startup if invalid.
 - **Portability:** explicit encodings enforced by ruff PLW1514; the CLI calls `sys.stdout.reconfigure(encoding='utf-8', errors='replace')`; manifests use repo-relative POSIX paths; outputs as in §9.6.
-- **CI** (ubuntu-latest + windows-latest): `uv sync --locked --all-extras --no-extra retrieval` → `ruff check` → `ruff format --check` → `mypy --strict src` → `pytest --disable-socket --cov`, with no keys; `HybridRetriever` tests are skipped when the `[retrieval]` extra is absent. The golden replay and the prompt-hash snapshot must match byte for byte on both operating systems.
+- **CI** (ubuntu-latest + windows-latest): `uv sync --locked --all-extras --no-extra retrieval` → `ruff check` → `ruff format --check` → `mypy --strict src` → `pytest --cov` (pytest-socket, loopback only [A53]), with no keys; `HybridRetriever` tests are skipped when the `[retrieval]` extra is absent. The golden replay and the prompt-hash snapshot must match byte for byte on both operating systems.
 - **Dockerfile:** core dependencies only, non-root, 1 worker; optional and deferred. `make demo` is replaced by `uv run oris demo`.
 
 [A24, A37, A45, A49]
@@ -1313,6 +1313,10 @@ The veto leaves a median of 342 and a minimum of 266 candidate rows per line, wh
 - A50 · §3.1, §5.1, §5.2, §5.3 D-16, §9.1, §9.5, §11.2–§11.4, §13 · Service core: async, deterministic batching, replay that fails closed · merged before any model call
 - A51 · §9.1, §11.4, §11.8, §13 · Minimal API hardening · merged before any model call
 - A52 · §4.5, §5.3 D-02 and new D-18, §10.8, §11.6, §12 · Decision-register corrections · merged before any model call
+
+### A53 · 2026-10-05 · Offline test guard: loopback only, not `--disable-socket`
+
+`--disable-socket` breaks every async test on Windows, because the Proactor event loop creates a loopback socket pair at start-up (`AttributeError: 'ProactorEventLoop' object has no attribute '_ssock'`, seen on the empty scaffold). The guard becomes pytest-socket with `--allow-hosts=127.0.0.1,::1`: sockets can be created, and any connection to a non-loopback host fails the test. The guarantee that no test reaches a paid API is unchanged. Changed: §11.7, §11.10. Results existing at the time: none; no model call had been made.
 
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
