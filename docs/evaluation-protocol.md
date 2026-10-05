@@ -489,7 +489,7 @@ The scorer is the deliverable ORIS reruns on its own labels, so it is lenient on
 - **Report:** matched precision with its one-sided 95% CP lower bound (§3); C₂₅₂ (C_labelled); cumulative per-level accuracy over matched rows and over all labelled rows; decision shares over all rows and over item rows; the false not_a_material count; hit@1/2 on review lines (A21); mean `cost_usd` and attributed `latency_ms`. Bootstrap, McNemar, risk–coverage and plots stay in `eval/report.py`.
 - The scorer never writes the experiment ledger (§6).
 
-### Offline in pytest (no network, `--disable-socket`, runs in CI on every commit)
+### Offline in pytest (no network: pytest-socket, loopback only [A53], runs in CI on every commit)
 
 - **Scorer fixtures** [A-34]:
   - a hand-computed reference/output pair of about 15 rows: blank subtype in both directions; a match on a blank-GT line; a `whitespace_only_mismatch`; `n/a` precision when nothing is matched; both denominators; CP lower bounds and Wilson values to 3 decimals;

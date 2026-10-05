@@ -1,0 +1,453 @@
+{
+  "version": "slice_v1",
+  "rule": "40 dev items (item_ids_dev of eval/split_v1.json only), the same ids for EN and FR. Strata = L1 section (first 5 characters of Item No.) x reference class: labelled_subtype (GT triple with a subtype), labelled_blank_subtype (GT triple with a blank subtype), blank_gt_service and no_equivalent_material (blank GT, class from eval/annotations/blank_line_classes.csv). Places are allocated proportionally to stratum size by the largest remainder method (ties: larger stratum first, then section and class in ascending order). Within a stratum, items are ranked by sha256(salt + item_no) ascending and the first `allocated` are taken. ids_sha256 is the SHA-256 of the sorted ids joined by '\\n' with a trailing '\\n', UTF-8.",
+  "salt": "oris-material-matcher/slice_v1",
+  "split_sha256": "c9a6d1f0aaafdd9f3b7499bf50f59f786f00270c3350e7d5cad7982b855039bd",
+  "population": 162,
+  "size": 40,
+  "strata": [
+    {
+      "section": "00.01",
+      "class": "blank_gt_service",
+      "population": 3,
+      "allocated": 1
+    },
+    {
+      "section": "00.02",
+      "class": "blank_gt_service",
+      "population": 3,
+      "allocated": 1
+    },
+    {
+      "section": "00.03",
+      "class": "blank_gt_service",
+      "population": 5,
+      "allocated": 1
+    },
+    {
+      "section": "01.01",
+      "class": "blank_gt_service",
+      "population": 2,
+      "allocated": 1
+    },
+    {
+      "section": "01.02",
+      "class": "labelled_subtype",
+      "population": 18,
+      "allocated": 4
+    },
+    {
+      "section": "01.04",
+      "class": "labelled_blank_subtype",
+      "population": 3,
+      "allocated": 1
+    },
+    {
+      "section": "01.04",
+      "class": "labelled_subtype",
+      "population": 6,
+      "allocated": 2
+    },
+    {
+      "section": "01.04",
+      "class": "no_equivalent_material",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "02.01",
+      "class": "blank_gt_service",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "02.01",
+      "class": "labelled_blank_subtype",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "02.01",
+      "class": "no_equivalent_material",
+      "population": 2,
+      "allocated": 1
+    },
+    {
+      "section": "02.02",
+      "class": "labelled_blank_subtype",
+      "population": 3,
+      "allocated": 1
+    },
+    {
+      "section": "02.02",
+      "class": "labelled_subtype",
+      "population": 2,
+      "allocated": 1
+    },
+    {
+      "section": "03.02",
+      "class": "labelled_blank_subtype",
+      "population": 10,
+      "allocated": 2
+    },
+    {
+      "section": "03.02",
+      "class": "labelled_subtype",
+      "population": 11,
+      "allocated": 3
+    },
+    {
+      "section": "03.03",
+      "class": "labelled_subtype",
+      "population": 16,
+      "allocated": 4
+    },
+    {
+      "section": "03.03",
+      "class": "no_equivalent_material",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "03.04",
+      "class": "labelled_subtype",
+      "population": 6,
+      "allocated": 1
+    },
+    {
+      "section": "03.04",
+      "class": "no_equivalent_material",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "03.05",
+      "class": "labelled_blank_subtype",
+      "population": 5,
+      "allocated": 1
+    },
+    {
+      "section": "03.05",
+      "class": "no_equivalent_material",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "04.01",
+      "class": "labelled_blank_subtype",
+      "population": 2,
+      "allocated": 1
+    },
+    {
+      "section": "04.01",
+      "class": "labelled_subtype",
+      "population": 10,
+      "allocated": 2
+    },
+    {
+      "section": "04.03",
+      "class": "labelled_subtype",
+      "population": 13,
+      "allocated": 3
+    },
+    {
+      "section": "05.01",
+      "class": "labelled_blank_subtype",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "05.01",
+      "class": "labelled_subtype",
+      "population": 6,
+      "allocated": 1
+    },
+    {
+      "section": "05.01",
+      "class": "no_equivalent_material",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "07.01",
+      "class": "labelled_blank_subtype",
+      "population": 7,
+      "allocated": 2
+    },
+    {
+      "section": "07.01",
+      "class": "no_equivalent_material",
+      "population": 2,
+      "allocated": 1
+    },
+    {
+      "section": "08.02",
+      "class": "labelled_blank_subtype",
+      "population": 1,
+      "allocated": 0
+    },
+    {
+      "section": "08.02",
+      "class": "labelled_subtype",
+      "population": 4,
+      "allocated": 1
+    },
+    {
+      "section": "08.04",
+      "class": "labelled_blank_subtype",
+      "population": 3,
+      "allocated": 1
+    },
+    {
+      "section": "08.04",
+      "class": "labelled_subtype",
+      "population": 11,
+      "allocated": 3
+    }
+  ],
+  "items": [
+    {
+      "item_no": "00.01.0030.",
+      "section": "00.01",
+      "class": "blank_gt_service"
+    },
+    {
+      "item_no": "00.02.0010.",
+      "section": "00.02",
+      "class": "blank_gt_service"
+    },
+    {
+      "item_no": "00.03.0040.",
+      "section": "00.03",
+      "class": "blank_gt_service"
+    },
+    {
+      "item_no": "01.01.0010.",
+      "section": "01.01",
+      "class": "blank_gt_service"
+    },
+    {
+      "item_no": "01.02.0020.",
+      "section": "01.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.02.0100.",
+      "section": "01.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.02.0140.",
+      "section": "01.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.02.0210.",
+      "section": "01.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.04.0010.",
+      "section": "01.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.04.0060.",
+      "section": "01.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "01.04.0070.",
+      "section": "01.04",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "02.01.0020.",
+      "section": "02.01",
+      "class": "no_equivalent_material"
+    },
+    {
+      "item_no": "02.02.0020.",
+      "section": "02.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "02.02.0040.",
+      "section": "02.02",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "03.02.0060.",
+      "section": "03.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.02.0070.",
+      "section": "03.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.02.0160.",
+      "section": "03.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.02.0190.",
+      "section": "03.02",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "03.02.0210.",
+      "section": "03.02",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "03.03.0010.",
+      "section": "03.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.03.0050.",
+      "section": "03.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.03.0070.",
+      "section": "03.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.03.0250.",
+      "section": "03.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.04.0050.",
+      "section": "03.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "03.05.0040.",
+      "section": "03.05",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "04.01.0050.",
+      "section": "04.01",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "04.01.0080.",
+      "section": "04.01",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "04.01.0110.",
+      "section": "04.01",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "04.03.0040.",
+      "section": "04.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "04.03.0070.",
+      "section": "04.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "04.03.0080.",
+      "section": "04.03",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "05.01.0040.",
+      "section": "05.01",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "07.01.0030.",
+      "section": "07.01",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "07.01.0050.",
+      "section": "07.01",
+      "class": "labelled_blank_subtype"
+    },
+    {
+      "item_no": "07.01.0080.",
+      "section": "07.01",
+      "class": "no_equivalent_material"
+    },
+    {
+      "item_no": "08.02.0010.",
+      "section": "08.02",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "08.04.0030.",
+      "section": "08.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "08.04.0060.",
+      "section": "08.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "08.04.0110.",
+      "section": "08.04",
+      "class": "labelled_subtype"
+    },
+    {
+      "item_no": "08.04.0120.",
+      "section": "08.04",
+      "class": "labelled_blank_subtype"
+    }
+  ],
+  "item_ids": [
+    "00.01.0030.",
+    "00.02.0010.",
+    "00.03.0040.",
+    "01.01.0010.",
+    "01.02.0020.",
+    "01.02.0100.",
+    "01.02.0140.",
+    "01.02.0210.",
+    "01.04.0010.",
+    "01.04.0060.",
+    "01.04.0070.",
+    "02.01.0020.",
+    "02.02.0020.",
+    "02.02.0040.",
+    "03.02.0060.",
+    "03.02.0070.",
+    "03.02.0160.",
+    "03.02.0190.",
+    "03.02.0210.",
+    "03.03.0010.",
+    "03.03.0050.",
+    "03.03.0070.",
+    "03.03.0250.",
+    "03.04.0050.",
+    "03.05.0040.",
+    "04.01.0050.",
+    "04.01.0080.",
+    "04.01.0110.",
+    "04.03.0040.",
+    "04.03.0070.",
+    "04.03.0080.",
+    "05.01.0040.",
+    "07.01.0030.",
+    "07.01.0050.",
+    "07.01.0080.",
+    "08.02.0010.",
+    "08.04.0030.",
+    "08.04.0060.",
+    "08.04.0110.",
+    "08.04.0120."
+  ],
+  "ids_sha256": "248da575dde907de7df6e6e112b22f4930a3cafe3e5b2526cebc64aad6d565a7"
+}

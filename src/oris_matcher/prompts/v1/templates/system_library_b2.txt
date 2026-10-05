@@ -1,0 +1,4 @@
+The material library follows as CSV. The code column holds each row's code; only these codes are valid answers.
+<library>
+$library
+</library>

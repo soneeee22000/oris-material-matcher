@@ -1,0 +1,40 @@
+# Words that mark a material being supplied (DESIGN.md D-04, §6), used by gate G2.
+# A line containing any marker can never be auto-skipped as a service.
+# Matched on normalised text (NFKC, casefold) as whole words or phrases.
+markers:
+  # English
+  - supply
+  - supplies
+  - supplied
+  - supplying
+  - supply and install
+  - supply and lay
+  - supply and fix
+  - provide
+  - provided
+  - providing
+  - provision of
+  - furnish
+  - furnished
+  - furnishing
+  - deliver
+  - delivered
+  - delivery
+  # French
+  - fourniture
+  - fournitures
+  - fournir
+  - fourni
+  - fournie
+  - fournis
+  - fournies
+  - y compris fourniture
+  - compris fourniture
+  - fourniture et pose
+  - fourniture et mise en œuvre
+  - livraison
+  - livrer
+  - livré
+  - livrée
+  - livrés
+  - livrées

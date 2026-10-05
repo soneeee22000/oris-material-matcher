@@ -1,0 +1,7 @@
+# Library rows that must never be accepted as a match (DESIGN.md §9.2, decision rule D6).
+# Each pattern is a Python regular expression searched in one library field.
+# field is one of: material_type, material_usage, material_subtype.
+patterns:
+  - field: material_usage
+    regex: '^Custom material \(Carbon impact in [^()]+\)$'
+    note: unit-only placeholder rows that carry no material identity

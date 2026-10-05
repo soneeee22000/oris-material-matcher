@@ -1,0 +1,4 @@
+Code,Unit,decision,material_type,material_usage,material_subtype
+K1,,not_a_material,,,
+K2,,not_a_material,,,
+K3,t,matched,Steel,for rebar,B500

@@ -694,6 +694,7 @@ The **reason-code enum is frozen**, issued here as one list, and the UI shows it
 - `decision, material_type, material_usage, material_subtype`;
 - the sample's audit columns `reason, model, prompt_version, latency_ms, cost_usd`;
 - then `suggested_type, suggested_usage, suggested_subtype, library_row_id, call_ids` (`;`-joined, empty for rule-decided rows). [A36]
+- then `suggested2_type, suggested2_usage, suggested2_subtype` (the valid top-2 row, else blank). [A56]
 
 The `model` column holds the served model, which is the fallback model when it decided the line. [A33]
 
@@ -1041,7 +1042,7 @@ GET  /v1/diagnostics/llm    (one explicit, logged connectivity call, on demand)
 
 ### 11.7 Tests
 
-All of these run offline in CI, on Linux and Windows, with FakeLLM and ReplayLLM and `pytest --disable-socket`: [A49]
+All of these run offline in CI, on Linux and Windows, with FakeLLM and ReplayLLM and pytest-socket restricted to loopback (`--allow-hosts=127.0.0.1,::1`), so no test can reach an external host: [A49, A53]
 
 - `ruff check`, `ruff format --check`, `mypy --strict src`; coverage ≥ 80% on the domain and the service; [A49]
 - the decision truth table;
@@ -1116,7 +1117,7 @@ Lines are sent as one JSON object, so line text cannot forge a record boundary, 
 - **Not used:** LangChain, LlamaIndex, LiteLLM or any gateway, instructor, Celery/Redis, any database (D-17).
 - **Settings:** one pydantic-settings `Settings` (prefix `ORIS_`, keys as `SecretStr`). Domain YAML loads with `extra='forbid'` and fails at startup if invalid.
 - **Portability:** explicit encodings enforced by ruff PLW1514; the CLI calls `sys.stdout.reconfigure(encoding='utf-8', errors='replace')`; manifests use repo-relative POSIX paths; outputs as in §9.6.
-- **CI** (ubuntu-latest + windows-latest): `uv sync --locked --all-extras --no-extra retrieval` → `ruff check` → `ruff format --check` → `mypy --strict src` → `pytest --disable-socket --cov`, with no keys; `HybridRetriever` tests are skipped when the `[retrieval]` extra is absent. The golden replay and the prompt-hash snapshot must match byte for byte on both operating systems.
+- **CI** (ubuntu-latest + windows-latest): `uv sync --locked --all-extras --no-extra retrieval` → `ruff check` → `ruff format --check` → `mypy --strict src` → `pytest --cov` (pytest-socket, loopback only [A53]), with no keys; `HybridRetriever` tests are skipped when the `[retrieval]` extra is absent. The golden replay and the prompt-hash snapshot must match byte for byte on both operating systems.
 - **Dockerfile:** core dependencies only, non-root, 1 worker; optional and deferred. `make demo` is replaced by `uv run oris demo`.
 
 [A24, A37, A45, A49]
@@ -1314,6 +1315,48 @@ The veto leaves a median of 342 and a minimum of 266 candidate rows per line, wh
 - A51 · §9.1, §11.4, §11.8, §13 · Minimal API hardening · merged before any model call
 - A52 · §4.5, §5.3 D-02 and new D-18, §10.8, §11.6, §12 · Decision-register corrections · merged before any model call
 
+### A53 · 2026-10-05 · Offline test guard: loopback only, not `--disable-socket`
+
+`--disable-socket` breaks every async test on Windows, because the Proactor event loop creates a loopback socket pair at start-up (`AttributeError: 'ProactorEventLoop' object has no attribute '_ssock'`, seen on the empty scaffold). The guard becomes pytest-socket with `--allow-hosts=127.0.0.1,::1`: sockets can be created, and any connection to a non-loopback host fails the test. The guarantee that no test reaches a paid API is unchanged. Changed: §11.7, §11.10. Results existing at the time: none; no model call had been made.
+
+### A54 · 2026-10-05 · The 40-item dev slice is fixed before the first model call
+
+§7.1 step 3 and §14 G1 name "a stratified 40-line dev slice" without defining it. It is now `eval/slice_v1.json`, written by `eval/make_slice.py`:
+
+- 40 items, drawn from `item_ids_dev` of `eval/split_v1.json` only (population 162: 139 labelled + 23 blank-GT), with the same ids in EN and FR.
+- Strata: L1 section × reference class (labelled with a subtype, labelled with a blank subtype, blank-GT service, no-equivalent material from `eval/annotations/blank_line_classes.csv`). There are 33 strata, and places are allocated proportionally by largest remainder.
+- Within a stratum, items are ranked by `sha256("oris-material-matcher/slice_v1" + item_no)`, with no RNG.
+- `ids_sha256 = 248da575dde907de7df6e6e112b22f4930a3cafe3e5b2526cebc64aad6d565a7`; the file's SHA-256 is `b41cf9512032cfbd35ccce660ca03e18bc3b3c251b899d1e9cc229327be51f2f`. A test pins both.
+
+The slice serves smoke runs and the A25 benchmark only. Selection (§10.6) always uses all dev items. Changed: §7.1, §14. Results existing at the time: B1 dev numbers and the label-free TF-IDF reproduction (no model call).
+
+### A55 · 2026-10-05 · A file without item codes never auto-skips a header
+
+§10.9 asked that the FR input with its codes removed give "the same header decisions" as the original. That would need a header rule based on text shape alone, which D-03 rejects, because a material line with an empty unit could then reach `not_a_material`. The criterion becomes: with codes removed, the **section paths** are identical to the original, and every former header is `HEADER_UNCONFIRMED` (D0b, `needs_review`); no row is `HEADER`. The renumbered `1 / 1.1 / 1.1.1` fixture still gives identical decisions and paths. Changed: §9.1, §10.9. Results existing at the time: none from any model.
+
+### A56 · 2026-10-05 · Second suggestion in the output CSV
+
+§10.1 reports hit@2, but the §9.6 columns carry only the first suggestion, so the scorer could not compute it from the CSV. Three columns are **appended after `call_ids`**: `suggested2_type, suggested2_usage, suggested2_subtype`, holding top-2 when it is a valid library row, otherwise blank. The A36 column order is unchanged. The scorer reads them when present, and prints hit@2 as n/a when they are absent. Changed: §9.6, §10.1. Results existing at the time: none from any model.
+
+### A57 · 2026-10-05 · A per-run floor on the budget cap
+
+The §11.3 cap of $1.80 per 100 lines scales with the run. For a run of a few lines it is smaller than one call's reservation: the cached library prefix at the cache-write rate plus `max_tokens` of output. So a one-line API request could never dispatch and always returned `BUDGET_CAP`. The cap becomes `max($1.80 × n_lines / 100, $0.10)`, and the effective cap is recorded in the manifest as `budget_cap_usd`. The $2.00 per 100 lines target (§10.1) is unchanged and is still measured on cold live runs. Changed: §11.3. Results existing at the time: none from any model.
+
+### A58 · 2026-10-05 · Interpretations made while building G1
+
+This records how the code resolves points that this document leaves open, so the spec and the code can be read side by side. None of them changes the split, the candidates, the selection rule or the form of the claim. Results existing at the time: the doctor and the B2 smoke and slice runs on dev (`docs/gates/G1.md`). None of the items below was chosen to change a measured number.
+
+1. **B0's reason code.** B0 sends nothing to a model, so its non-header lines get `LOW_SIGNAL:v+b+confidence`: all three signals failed, because none exists. Changed: §10.5.
+2. **Section paths compare code segments.** Codes are split on `.`, `-` and spaces, leading zeros are dropped, and a strict segment prefix is required. A plain string prefix cannot place `01.01.0010.` under L0 header `1`. The header rule itself stays exactly as in §9.1. Changed: §9.1.
+3. **Hard attributes that cannot be compared never veto.** A line that states several values of one family ("DN 125 and DN 100", "CEM I or CEM III") or a decimal value is recorded as stating that family, so G2 still sees a hard attribute, but it has no comparable value, so it never vetoes. EWC codes after an exclusion phrase ("other than", "autres que") are dropped. Changed: §9.3.
+4. **Units are matched case-sensitively.** `Ft` (forfait, a lump sum) is a service unit; `ft` and `FT` (feet) are measured units and never reach G2. Changed: §9.5 D2.
+5. **Answers are validated line by line.** The response envelope is parsed once. Each line object is then validated on its own: valid lines are accepted, and an invalid one fails only its own line as `LLM_FAILURE:malformed`, with its raw JSON kept. §11.3 bisection still applies when the envelope is broken (truncation or invalid JSON). Before this, one over-long evidence quote failed all ten lines of its batch (`docs/gates/G1.md` O5). An invalid line is not re-asked, because the same prompt would produce the same violation. An invalid object with no usable id counts as missing and is re-asked within the line's budget. A valid and an invalid object for the same id count as a conflicting duplicate. A run recorded before this change that contains split calls caused by one invalid line would not replay byte for byte; no such run exists. The live doctor now passes its call check only on schema-valid answers. Changed: §11.3.
+6. **Run modes.** A run's manifest mode is `fake` (FakeLLM), `replay`, `cached` (at least one cache hit, with `source_run_id` set), `live`, or `rules` (B0, no model call). The response cache is seeded only from earlier `live` runs of the same provider and model. Changed: §9.6, §11.5.
+7. **The fallback model decides at the strictest threshold.** When the breaker trips and the gpt-4o-mini fallback engages, the whole run resolves to the strictest threshold unless the fallback is certified, and the manifest records `fallback_engaged`. Changed: §10.6, §11.3.
+8. **Before the freeze, the CLI refuses a live run over a whole exercise input.** The only routes to the model before `eval-freeze` are `eval/run_experiment.py --side dev` and offline modes (`fake`, `replay`, B0). The runner also refuses to score a library that shares no row with the reference labels (`docs/gates/G1.md` O2). Changed: §10.3.
+9. **B2 cannot fire G2.** B2 runs without extractors or supply markers (§10.5), so a line the model calls non-material is `NM_UNCONFIRMED` in B2, never `G2_SERVICE`. Changed: §10.5.
+10. **`calls.jsonl` holds transport ids.** `line_ids` in a call record are the batch's transport ids (`L<position>`), and cost attribution maps them back to lines. They are not part of the request hash. Changed: §9.6.
+
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
 **Rejected (not merged):**
@@ -1331,3 +1374,16 @@ The veto leaves a median of 342 and a minimum of 266 candidate rows per line, wh
 _Append-only, dated. Filled as each gate produces measured numbers. Nothing here is an estimate._
 
 _(none yet: no model call has been made at the time of pre-registration)_
+
+### 2026-10-05 · G1 (v0.1), dev only
+
+Dev only, before `eval-freeze`; 162 items per language, 139 labelled; FR input scored against the global library. Record: `docs/gates/G1.md` §5–§6.
+
+- **B0** (rules only, both full files, runs `20261005T151248Z-d669eb87` EN, `20261005T151251Z-74b773b1` FR): 37 `not_a_material` (HEADER), 282 `needs_review`, 0 calls, F_NM 0, dev C₂₅₂ 0.
+- **B1** (TF-IDF, threshold .1126, below the dev bar): EN P .413 (43/104), CP-LB .332, C₂₅₂ .309; FR P .429 (12/28), CP-LB .269, C₂₅₂ .086; F_NM 0.
+- **B1 label-free scorer check:** top-1 triple EN .405, FR .159 (type .722 / .560, type+usage .524 / .210), matching the brief.
+- **B2 slice** (40 items; `20261005T144408Z-72765ec5` EN, `20261005T144524Z-f2fd2efa` FR): EN P .788 (26/33), CP-LB .638; FR P .690 (20/29), CP-LB .521; both replay byte-identical at $0.
+- **B2 all dev** (`20261005T151020Z-33c38c05` EN, `20261005T151104Z-0c9b50d6` FR): EN P .780 (103/132), CP-LB .713, C₂₅₂ .741; FR P .803 (106/132), CP-LB .737, C₂₅₂ .763; F_NM 0 both.
+- **B2 per level over matched** (type / type+usage / triple): EN .939 / .818 / .780; FR .947 / .856 / .803.
+- **B2 cost and latency:** mean attributed cost per line EN $0.00095, FR $0.00092; wall clock 40.9 s EN and 40.4 s FR for 162 routed lines; 40 calls per run.
+- **Live spend at G1:** $0.6713 billed, of the $3 G1 cap (`docs/gates/G1.md` §5).

@@ -1,0 +1,52 @@
+# Units that denote time or a lump-sum service (DESIGN.md D-04, §6), used by gate G2.
+# Compared exactly against the raw unit with surrounding whitespace removed: case is significant,
+# so "Ft" (forfait) never captures "ft" or "FT" (feet). Measured units (t, m, m², m³, kg, l, pcs,
+# U, nr, ft, FT, LF, SF, SY, CY, EA) must never appear here. Every unit here is LS, day, week,
+# month or h, or one of their aliases in unit_aliases.yaml.
+units:
+  # lump sum
+  - LS
+  - ls
+  - L.S.
+  - lump sum
+  - sum
+  - Ft
+  - Forfait
+  - forfait
+  - FF
+  - F
+  - Ens
+  - ens
+  - ensemble
+  - Ensemble
+  - PM
+  # day
+  - day
+  - days
+  - Day
+  - j
+  - J
+  - jour
+  - jours
+  # week
+  - week
+  - weeks
+  - wk
+  - sem
+  - semaine
+  - semaines
+  # month
+  - month
+  - months
+  - Month
+  - mo
+  - mois
+  - Mois
+  # hour
+  - h
+  - hr
+  - hrs
+  - hour
+  - hours
+  - heure
+  - heures

@@ -1,0 +1,7 @@
+material_type,material_usage,material_subtype
+Steel,Rebar,B500B
+Concrete,for footings,C30/37
+Concrete,for footings,
+Concrete,for walls,C30/37
+Aggregates,Unbound mixtures,0/31.5
+Concrete,for footings,C25/30

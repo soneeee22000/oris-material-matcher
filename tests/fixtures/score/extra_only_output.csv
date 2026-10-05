@@ -1,0 +1,4 @@
+Item No.,Unit,decision,material_type,material_usage,material_subtype
+X1,m³,matched,Concrete,for footings,C30/37
+X2,t,matched,Steel,for rebar,B500
+Z9,t,matched,Steel,for rebar,B500
