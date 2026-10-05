@@ -301,6 +301,7 @@ COMPONENTS = (
     (render, "schema_json"),
     (version, "renderer_source"),
     (version, "library_coding_source"),
+    (version, "prompt_helper_source"),
 )
 
 
@@ -316,6 +317,23 @@ def test_each_component_changes_the_prompt_version(
             assert after[variant.name] == before[variant.name]
         else:
             assert after[variant.name] != before[variant.name]
+
+
+@pytest.mark.parametrize(
+    ("module_name", "constant"),
+    [
+        ("oris_matcher.domain.decision", "PATH_SEPARATOR"),
+        ("oris_matcher.domain.decision", "HEADER_PART_SEPARATOR"),
+        ("oris_matcher.domain.batching", "TRANSPORT_ID_PREFIX"),
+    ],
+)
+def test_a_prompt_helper_constant_changes_every_prompt_version(
+    monkeypatch: pytest.MonkeyPatch, module_name: str, constant: str
+) -> None:
+    before = {variant.name: prompt_version(variant) for variant in VARIANTS}
+    monkeypatch.setattr(f"{module_name}.{constant}", "#changed#")
+    after = {variant.name: prompt_version(variant) for variant in VARIANTS}
+    assert all(after[name] != before[name] for name in before)
 
 
 def test_glossary_entries_are_tagged_and_general() -> None:

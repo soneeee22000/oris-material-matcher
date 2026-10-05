@@ -21,7 +21,9 @@ from typing import Annotated, Literal, Self
 import yaml
 from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError, model_validator
 
+from oris_matcher.domain.batching import transport_id
 from oris_matcher.domain.boq import BoqLine
+from oris_matcher.domain.decision import section_path_text
 from oris_matcher.domain.library import CODE_SEPARATOR, Library, LibraryRow
 from oris_matcher.llm.base import LLMRequest, SystemBlock, canonical_json
 from oris_matcher.prompts.v1.schema import output_json_schema
@@ -34,10 +36,7 @@ LIBRARY_TEMPLATE = "system_library.txt"
 B2_LIBRARY_TEMPLATE = "system_library_b2.txt"
 USER_TEMPLATE = "user.txt"
 INDENT = "  "
-PATH_SEPARATOR = " > "
-HEADER_PART_SEPARATOR = " "
 BLANK_LEAF_LABEL = "(no subtype)"
-TRANSPORT_ID_PREFIX = "L"
 DEFAULT_PROVIDER = "anthropic"
 TEMPERATURE = 0.0
 CSV_LINE_END = "\n"
@@ -295,29 +294,6 @@ def render_system_blocks(
         library=render_coded_tree(library, variant.rendering),
     )
     return vocabulary, SystemBlock(text=text, cache=True)
-
-
-def section_path_text(line: BoqLine) -> str:
-    """Render a line's section path, outermost header first.
-
-    Args:
-        line: The BoQ line.
-
-    Returns:
-        Each header's raw item number and text, joined by ``PATH_SEPARATOR``; empty when the
-        line has no section context.
-
-    """
-    headers = (
-        HEADER_PART_SEPARATOR.join(part for part in (header.item_no, header.text) if part)
-        for header in line.section_path
-    )
-    return PATH_SEPARATOR.join(headers)
-
-
-def transport_id(line: BoqLine) -> str:
-    """Return the line's id inside a batch, ``L<position>``."""
-    return f"{TRANSPORT_ID_PREFIX}{line.position}"
 
 
 def line_record(line: BoqLine, profile: Profile) -> dict[str, str]:
