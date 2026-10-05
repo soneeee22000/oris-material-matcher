@@ -1376,6 +1376,40 @@ This records how the code resolves points that this document leaves open, so the
 - R4 · Keyboard-first queue with self-timed minutes saved · a self-graded benchmark whose sort conflicts with A14.
 - R5 · Cut the UI before evidence because of time · its ordering survives in A14 and A16; time caps return with A32.
 
+### A60 · 2026-10-06 · G2 interpretations and owner decisions, fixed before any B3 run
+
+**Results existing at the time:** B0, B1 and B2 on dev (§17, `docs/gates/G1.md`). No B3 run has been made. None of the items below uses a B3 result. They come from a read-only audit of the G2 ticket sheet (four lenses, each adversarially verified). They are interpretations only: none changes the split, the candidates, the selection rule or the form of the claim. Items 15 and 16 record owner decisions.
+
+1. **Ledger ids.** Rows of one configuration share a language-neutral id and baseline id. The B2 baseline for the evidence remedy is re-recorded at $0 as `B2-dev-w12` (a replay of the two B2 dev runs under the 12-word cap). `R-10.9-evidence` is adopted under §10.9 (A59.1). Its §7.2 `kept` field is informational, because B2 has no threshold and so cannot meet the dev bar.
+2. **§10.9 wording.** "The prompt version bumped" reads as "the validator's evidence tolerance is widened; the prompt and prompt_version are unchanged because the limit is not part of the generated schema".
+3. **§10.6 rule, as already implemented for B1.**
+   - Qualifies ⇔ matched ≥ 40 and P ≥ .95 in each language (strict scoring, all 162 dev items, so a matched blank-GT line counts as wrong). Qualifiers need not be contiguous.
+   - "Within 3 summed correct" is measured once against the loosest qualifier, and the strictest qualifier within that window ships.
+   - Fallback: maximise the min-over-languages one-sided CP lower bound, with 0 when matched = 0 and ties to the stricter. The within-3 rule does not apply in the fallback.
+   - Sensitivity rows (per language; `--target`) are never shipped.
+   - Candidates are forced by a temporary override policy file. Selection never reads `config/policy.yaml`.
+4. **Trade-off columns.** Review load follows evaluation-protocol.md:87 (needs_review per 100 lines, N basis). Cost per threshold is the source run's attributed cost and is identical across thresholds. Match-all and B2 are reference rows, never candidates.
+5. **Below the dev bar.** The policy entry is `certified_by: dev_selection` in both outcomes. The "below the dev bar" label lives in `eval/selection_v1.json` (`dev_bar_met`), G2.md, the §17 entry and the README.
+6. **Arm baseline.** Arms are compared with `B3-dev-sel`, a $0 replay of the T5 votes decided at the selected threshold. They are never compared with the T5 rows, which were decided at `T1` (fallback_strictest). A kept arm is followed by a $0 re-selection, logged as a new ledger row.
+7. **Errors.** Kinds and fields are those of evaluation-protocol.md §6.
+   - A blank-GT line in needs_review or not_a_material is not an error.
+   - The family is the GT type, else the predicted type. The "top 8 + other" grouping belongs only to the §10.5 lockbox table.
+   - A §10.7 trigger counts primary causes, unweighted, per language: ≥ 5 rows in one language or ≥ 20% of one language's error rows. The ×2 weighting is for the Pareto display only.
+8. **gt_suspect.** A candidate is an error row where both passes returned kind material with the same library top1 (v = k) and that triple ≠ GT, blank GT included. The adjudicator rules once per Item No., and the tag goes on both language rows.
+9. **κ.** Unweighted Cohen's κ on the primary cause, pooled and per language, with n. It is "undefined" when p_e = 1.
+10. **Precision by v and by gap.**
+    - The population is lines where every pass answered validly and the plurality is a material with a valid top1. Matched lines alone would make the measure degenerate at k = 2.
+    - The systematic-error share = wrong with v = k / wrong in that population.
+    - A line's gap is the weakest gap among the passes that support the plurality top1, mirroring the min-confidence rule.
+11. **Risk–coverage bands.** 1,000 Item No. resamples (protocol §4). The 10,000 figure applies only to paired precision differences. Per-signal curves are deferred diagnostics.
+12. **D5a false rejects.** A D5a false reject is a line with reason `EVIDENCE_NOT_IN_LINE` whose plurality top1 triple equals GT. It is measured on the B3 dev runs. More than 3 in total re-triggers §10.9, and any further change is written as its own amendment before it runs.
+13. **Undefined responses.** A §10.7 response that is not a specified E-arm (not_in_library guard, header_context rendering) has its exact change and ledger id written as an amendment before its first run, citing the error rows that triggered it.
+14. **Latency.** In the keep rule, latency is checked only where a cold live run measured it. Otherwise it is recorded as "not measured" and checked at the G3 cold run.
+15. **Owner decisions D1 and D2 (Tue 6 Oct, before any B3 result).**
+    - D1, missed rows: a `missed` row (a correct proposal sent to review) gets the cause of the signal that failed: `llm_failure` for D1/D1b, otherwise the panel's best fit for why v or b failed. It counts in the trigger denominator.
+    - D2, keep rule under a shortfall: clause (iii) is read literally, as `run_experiment.py` codes it. If no threshold meets the dev bar, an arm cannot be kept; it is reverted and its gain is logged as directional.
+16. **Owner decision D3: no time cut on triggered arms.** §14's "triggered arms, only within the cap" and "the optional ~$0.50 fallback certification if G2 closes on time" no longer bind scope. Every triggered arm is built and run, and the fallback certification is in scope. The $3 G2 spend cap and the `eval-freeze` boundary (§10.3, Thu 8 Oct 12:00) are unchanged. If G2 runs past its Wed 7 Oct 12:00 cap, the slip is recorded in `docs/gates/G2.md`.
+
 ---
 
 ## 17. Results
