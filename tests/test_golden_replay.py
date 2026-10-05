@@ -48,9 +48,13 @@ GOLDEN_ITEM_COUNT = 20
 GOLDEN_REASONS = {"SIGNAL:B2", "NM_UNCONFIRMED"}
 MALFORMED_REASON = "LLM_FAILURE:malformed"
 ITEM_COLUMN = "Item No."
-LINES_REJECTED_AT_12_WORDS = frozenset(
-    {"00.03.0030.", "00.03.0040.", "01.02.0160.", "01.02.0200.", "01.02.0210."}
-)
+DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS = {
+    "00.03.0030.": "NM_UNCONFIRMED",
+    "00.03.0040.": "NM_UNCONFIRMED",
+    "01.02.0160.": "SIGNAL:B2",
+    "01.02.0200.": "SIGNAL:B2",
+    "01.02.0210.": "SIGNAL:B2",
+}
 REASON_COLUMN = "reason"
 
 
@@ -144,10 +148,13 @@ def test_golden_output_covers_matched_and_unconfirmed_lines() -> None:
 def test_golden_lines_rejected_at_12_words_are_decided_at_25() -> None:
     rows = {row[ITEM_COLUMN]: row for row in _csv_rows(EXPECTED.read_bytes())}
 
-    assert set(rows) >= LINES_REJECTED_AT_12_WORDS
-    assert {rows[item][REASON_COLUMN] for item in LINES_REJECTED_AT_12_WORDS}.isdisjoint(
-        {MALFORMED_REASON}
-    )
+    decided = {
+        item: rows[item][REASON_COLUMN]
+        for item in DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS
+        if item in rows
+    }
+
+    assert decided == DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS
     assert MALFORMED_REASON not in {row[REASON_COLUMN] for row in rows.values()}
 
 
