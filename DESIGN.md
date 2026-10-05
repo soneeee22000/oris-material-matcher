@@ -1357,6 +1357,15 @@ This records how the code resolves points that this document leaves open, so the
 9. **B2 cannot fire G2.** B2 runs without extractors or supply markers (§10.5), so a line the model calls non-material is `NM_UNCONFIRMED` in B2, never `G2_SERVICE`. Changed: §10.5.
 10. **`calls.jsonl` holds transport ids.** `line_ids` in a call record are the batch's transport ids (`L<position>`), and cost attribution maps them back to lines. They are not part of the request hash. Changed: §9.6.
 
+### A59 · 2026-10-06 · G2 rules fixed before any G2 model call
+
+**Results existing at the time:** B0, B1 and B2 on dev (§17, `docs/gates/G1.md`). No B3 run has been made. None of the choices below uses a B3 result.
+
+1. **The evidence remedy (§10.9) widens the validator, not the prompt.** On the B2 dev runs, the 12-word evidence check rejected 17 answers, and 14 of them were correct (`docs/gates/G1.md` O10). §10.9's trigger is more than 3. The validator tolerance becomes 25 words (`EVIDENCE_MAX_WORDS`). The prompt instruction stays "at most 12 words", so request bytes and cache keys do not change, and the B2 dev runs are re-scored by replay at $0, which gives an exact before and after. D5a still requires the evidence to be a substring of the line, so a longer quote is still grounded. If the schema module is part of `prompt_version`, the version moves, and the prompt pins and the golden fixture are regenerated as a recorded change. The before/after is a ledger row. Changed: §9.4, §10.9.
+2. **Error causes are labelled by a panel.** Every dev error at the selected threshold gets its computed fields (family, kind, first wrong level) from `eval/errors_dev.py`. Two labeller agents then assign the §10.7 cause, each without seeing the other's labels, and a third agent adjudicates every disagreement with a written reason. Raw agreement and Cohen's κ are reported. The owner reviews every disagreement and every `gt_suspect` call. Provenance on each row: "builder labels (assistant panel)" and the date. Causes decide which arms trigger (§10.7) and are never used at inference. Changed: §10.7, §10.8.
+3. **Selection never calls a model.** `oris select` reads the B3 dev run folders and re-decides every line under each of the thresholds T1–T8 by replay (the policy is not part of the cache key, §11.5). It scores each language with `eval/score.py --side dev` and applies the §10.6 rule. `--target` only changes the bar for a sensitivity row; the shipped threshold always uses .95 and 40 matched in each language. The result is written to `eval/selection_v1.json`. Changed: §10.6.
+4. **G2 spend cap: $3**, with one pause for the owner after the first B3 live call. Changed: §14.
+
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
 **Rejected (not merged):**
