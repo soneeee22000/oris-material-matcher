@@ -4,7 +4,8 @@ One run goes gate -> plan batches -> k passes through the LLM wrapper -> validat
 ``RunResult``; reading the file is the caller's job, and so is writing the CSV and the run
 folder (``io/writer.py``, ``io/audit.py``). Profile B3 runs the full decision table at the
 resolved policy threshold (§10.6); profile B2 is the raw single-pass rung of the baseline
-ladder (§10.5). Inside a batch the model sees transport ids ``L<position>``, so the wrapper and
+ladder (§10.5); profile B0 is its rules-only floor, which plans no batch and so makes no call
+(§7.1, §10.5). Inside a batch the model sees transport ids ``L<position>``, so the wrapper and
 every call record carry those ids; the service maps them back to lines.
 """
 
@@ -29,11 +30,14 @@ from oris_matcher.domain.batching import Batch, plan_batches, transport_id
 from oris_matcher.domain.boq import BoqFile, BoqLine, LineKind, PathMode
 from oris_matcher.domain.decision import (
     ConfidenceBucket,
+    Decision,
     DecisionInput,
     LineDecision,
     LLMFailureKind,
     PassOutcome,
     ReasonCode,
+    Rule,
+    SignalName,
     Signals,
     Threshold,
     candidate_thresholds,
@@ -41,6 +45,7 @@ from oris_matcher.domain.decision import (
     decide_b2,
     is_service_unit,
     llm_failure_reason,
+    low_signal_reason,
     make_haystack,
     strictest_threshold,
 )
@@ -106,6 +111,12 @@ B2_POLICY_ID = "B2"
 B2_THRESHOLD = Threshold(
     B2_POLICY_ID, Signals(0, AttrResult.NO_EVIDENCE, ConfidenceBucket.BELOW_70)
 )
+B0_POLICY_ID = "B0"
+B0_THRESHOLD = Threshold(
+    B0_POLICY_ID, Signals(0, AttrResult.NO_EVIDENCE, ConfidenceBucket.BELOW_70)
+)
+B0_REVIEW_REASON = low_signal_reason(SignalName)
+STRUCTURAL_RULES = frozenset({Rule.D0, Rule.D0A, Rule.D0B})
 RUN_ID_TIME_FORMAT = "%Y%m%dT%H%M%SZ"
 RUN_ID_HASH_LENGTH = 8
 PROMPT_VERSION_SEPARATOR = ";"
@@ -131,8 +142,13 @@ JobKey = tuple[int, int]
 
 
 class RunProfile(StrEnum):
-    """Which rung a run is: the raw single-pass baseline B2, or the full system B3 (§10.5)."""
+    """Which rung a run is (§10.5).
 
+    ``b0``: rules only, no model call; ``b2``: the raw single-pass baseline; ``b3``: the full
+    system.
+    """
+
+    B0 = "b0"
     B2 = "b2"
     B3 = "b3"
 
@@ -145,6 +161,7 @@ class PolicyResolution(StrEnum):
     NO_PATH_STRICTEST = "no_path_strictest"
     OVERRIDE = "override"
     B2_MATCH_ALL = "b2_match_all"
+    B0_RULES_ONLY = "b0_rules_only"
 
 
 class RunMode(StrEnum):
@@ -152,13 +169,16 @@ class RunMode(StrEnum):
 
     ``live``: every response came from the adapter; ``cached``: at least one came from the
     response cache of an earlier live run; ``replay``: the run copies a recorded run; ``fake``:
-    the offline FakeLLM answered, so no number of the run is a measurement.
+    the offline FakeLLM answered, so no number of the run is a measurement; ``rules``: a B0
+    run, which sends nothing to any adapter, so its numbers are measurements whatever
+    ``--llm`` names.
     """
 
     LIVE = "live"
     CACHED = "cached"
     REPLAY = "replay"
     FAKE = "fake"
+    RULES = "rules"
 
 
 @dataclass(frozen=True)
@@ -569,6 +589,11 @@ class _RunPlan:
         return self.target.model
 
     @property
+    def is_rules_only(self) -> bool:
+        """Whether the run is B0, decided by the structural gates alone."""
+        return self.profile == RunProfile.B0
+
+    @property
     def is_full(self) -> bool:
         """Whether the run is the full B3 system, with extractors and vetoes."""
         return self.profile == RunProfile.B3
@@ -616,7 +641,7 @@ class _LineCalls:
         return next((failure for failure in failures if failure is not None), None)
 
     def raw_responses(self) -> tuple[str, ...]:
-        """Return the verbatim answer objects, one per pass that gave one."""
+        """Return the line's verbatim JSON object from each pass that returned one, valid or not."""
         raws = (outcome.raw_line_response for outcome in self.outcomes)
         return tuple(raw for raw in raws if raw)
 
@@ -813,7 +838,9 @@ class MatchService:
         return assembly.result(_RunInfo(identity, source, self._timer() - started))
 
     def _variants(self, profile: RunProfile) -> tuple[PromptVariant, ...]:
-        """Return one prompt variant per pass: B2 alone, or canonical then reverse."""
+        """Return one prompt variant per pass: none for B0, B2 alone, or canonical then reverse."""
+        if profile == RunProfile.B0:
+            return ()
         if profile == RunProfile.B2:
             return (B2,)
         passes = self.resources.settings.passes_k
@@ -829,8 +856,11 @@ class MatchService:
     ) -> ResolvedPolicy:
         """Resolve the threshold for the target's model; B2 always matches every valid answer.
 
-        An exact hit of a ``--policy`` file is recorded as an ``override`` (§10.6).
+        B0 never scores a line, so it records its own ``b0_rules_only`` resolution. An exact hit
+        of a ``--policy`` file is recorded as an ``override`` (§10.6).
         """
+        if profile == RunProfile.B0:
+            return ResolvedPolicy(B0_THRESHOLD, B0_POLICY_ID, PolicyResolution.B0_RULES_ONLY)
         if profile == RunProfile.B2:
             return ResolvedPolicy(B2_THRESHOLD, B2_POLICY_ID, PolicyResolution.B2_MATCH_ALL)
         query = PolicyQuery(
@@ -856,10 +886,16 @@ class MatchService:
             variants=self._variants(profile),
             policy=self._policy(boq, target, profile, options.threshold),
             lines=lines,
-            batches=tuple(plan_batches(lines, self.resources.settings.batch_size)),
+            batches=self._batches(profile, lines),
             target=target,
             select_count=None if options.select is None else len(lines),
         )
+
+    def _batches(self, profile: RunProfile, lines: Sequence[BoqLine]) -> tuple[Batch, ...]:
+        """Plan the routed batches; B0 routes nothing, so it makes no call."""
+        if profile == RunProfile.B0:
+            return ()
+        return tuple(plan_batches(lines, self.resources.settings.batch_size))
 
     def _run_seed(self, plan: _RunPlan) -> str:
         """Return the text a derived run id hashes: library, profile and output lines."""
@@ -976,7 +1012,7 @@ class _Assembly:
         self.outcomes = rescue.outcomes
         outcomes = rescue.outcomes
         self.calls = tuple(record for job in sorted(outcomes) for record in outcomes[job].records)
-        self.mode = run_mode(llm.adapter, self.calls)
+        self.mode = RunMode.RULES if plan.is_rules_only else run_mode(llm.adapter, self.calls)
         self.attribution: dict[str, LineAttribution] = attribute_costs(self.calls)
         self.batch_of = {
             transport: index
@@ -1033,6 +1069,8 @@ class _Assembly:
 
     def _decide(self, decision_input: DecisionInput) -> LineDecision:
         """Apply the profile's decision table."""
+        if self.plan.is_rules_only:
+            return decide_b0(decision_input, self.plan.library)
         if self.plan.is_full:
             return decide(decision_input, self.plan.library)
         return decide_b2(decision_input, self.plan.library)
@@ -1121,6 +1159,32 @@ class _Assembly:
             **_count_fields(plan, lines),
             "exit_code": exit_code,
         }
+
+
+def decide_b0(decision_input: DecisionInput, library: Library) -> LineDecision:
+    """Decide one line as rung B0 of the baseline ladder: rules only (§7.1, §10.5).
+
+    D0, D0a and D0b fire exactly as in B3, so G1 headers are ``not_a_material``; every other
+    line is D10 ``needs_review`` with ``LOW_SIGNAL:v+b+confidence``, because no signal exists
+    without a model (A58 item 1). There is no unit-only skip: D2 needs a model's ``kind``.
+
+    Args:
+        decision_input: The line's input; B0 gives it no pass outcome.
+        library: The loaded library.
+
+    Returns:
+        The line's decision.
+
+    """
+    gated = decide(decision_input, library)
+    if gated.rule in STRUCTURAL_RULES:
+        return gated
+    return LineDecision(
+        rule=Rule.D10,
+        decision=Decision.NEEDS_REVIEW,
+        reason=B0_REVIEW_REASON,
+        line_id=decision_input.line.line_id,
+    )
 
 
 def _exit_code(lines: Iterable[LineResult]) -> int:

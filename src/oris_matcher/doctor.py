@@ -27,6 +27,7 @@ import httpx2
 from anthropic.types import MessageParam
 
 from oris_matcher.domain.boq import BoqLine, LineKind
+from oris_matcher.domain.decision import LLM_FAILURE_PREFIX, ReasonCode
 from oris_matcher.io import audit
 from oris_matcher.io.audit import (
     CALLS_FILE,
@@ -718,9 +719,22 @@ def _probe_context(
     )
 
 
+NO_ANSWER_REASONS = frozenset({ReasonCode.LLM_UNAVAILABLE.value, ReasonCode.BUDGET_CAP.value})
+
+
+def _is_answer(reason: str) -> bool:
+    """Tell whether a line's reason means the model gave it a schema-valid answer."""
+    return not reason.startswith(LLM_FAILURE_PREFIX) and reason not in NO_ANSWER_REASONS
+
+
 def _answered(result: RunResult) -> bool:
-    """Tell whether every synthetic line got a schema-valid answer."""
-    return bool(result.lines) and all(item.raw_line_responses for item in result.lines)
+    """Tell whether every synthetic line got a schema-valid answer.
+
+    A raw response alone is not enough: since per-line validation (DESIGN.md §16 A58),
+    a line whose answer failed the schema keeps its raw JSON and is ``LLM_FAILURE:malformed``.
+    """
+    lines = result.lines
+    return bool(lines) and all(_is_answer(str(item.decision.reason)) for item in lines)
 
 
 def _call_check(name: str, probe: _Probe) -> Check:

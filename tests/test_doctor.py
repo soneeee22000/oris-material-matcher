@@ -281,6 +281,26 @@ def test_live_rate_limited_call_fails_the_call_check(tmp_path: Path) -> None:
     assert len([r for r in api.requests if r.url.path == "/v1/messages"]) == 1
 
 
+class OverCapApi(Api):
+    """Answers every line, but with evidence over the 12-word cap (G1 observation O5)."""
+
+    def _answer(self, payload: str) -> str:
+        ids = re.findall(r'"id": "(L\d+)"', payload)
+        long_evidence = " ".join(["word"] * 14)
+        lines = [{**default_answer(line_id), "evidence": long_evidence} for line_id in ids]
+        return json.dumps({"lines": lines})
+
+
+def test_live_schema_invalid_answers_fail_the_call_check(tmp_path: Path) -> None:
+    report = run_doctor(
+        make_settings(anthropic=True),
+        options(tmp_path, live=True),
+        runtime_for(tmp_path, OverCapApi()),
+    )
+    assert statuses(report)["primary_call"] == CheckStatus.FAIL
+    assert not report.passed
+
+
 @pytest.mark.parametrize(
     ("limit", "tier"),
     [("50", "1"), ("1000", "2"), ("2000", "3"), ("4000", "4"), ("9000", "custom (above tier 4)")],
