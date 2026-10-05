@@ -14,7 +14,8 @@ twins are one observation), the exact one-sided sign-test p over per-item net de
 keep verdict; without it those fields are null and kept is ``baseline``. A comparison made
 while the other language's compared row of the experiment is missing is ``pending``: the §7.2
 verdict needs both languages, so the second row decides it and names the first in
-``pooled_with``.
+``pooled_with``. ``--cause-targeted`` names the §10.7 cause an arm targets; the row records it
+as ``cause_targeted`` (null when absent), and any other cause is refused.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -39,7 +40,7 @@ Usage::
         --library data/oris_materials_global.csv --split eval/split_v1.json --side dev \
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
-        --change "..."
+        [--cause-targeted lexical_gap] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
 """
@@ -132,6 +133,15 @@ LOG_COMMIT_CELL = 1
 LOG_LANG_CELL = 3
 LOG_HEADER = "timestamp"
 DIGITS = 3
+CAUSES_SECTION_10_7 = (
+    "lexical_gap",
+    "usage_confuser",
+    "subtype_parse",
+    "header_context",
+    "not_in_library",
+    "llm_failure",
+    "gt_convention",
+)
 
 
 class ExperimentError(Exception):
@@ -906,6 +916,7 @@ def _run_fields(
         "id": args.id,
         "date": moment.astimezone(UTC).isoformat(),
         "hypothesis": args.hypothesis,
+        "cause_targeted": args.cause_targeted,
         "change": args.change,
         "run_id": outcome.result.run_id,
         "lang": args.lang,
@@ -1275,6 +1286,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--baseline-id")
     parser.add_argument("--id", required=True)
     parser.add_argument("--hypothesis", required=True)
+    parser.add_argument("--cause-targeted", choices=CAUSES_SECTION_10_7)
     parser.add_argument("--change", required=True)
     parser.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE)
     parser.add_argument("--classes", type=Path, default=DEFAULT_CLASSES)
