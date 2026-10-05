@@ -1,0 +1,46 @@
+# Prompt v1 glossary (DESIGN.md §6, §10.8). General domain facts only, never item text.
+# source is the provenance tag: standard | library | dev_obs | dev_error | lockbox_obs.
+# lockbox_obs entries are never rendered. ref names the public source (required for standard).
+# false_friend names the word, as a library may write it, that a false-friend entry tells apart.
+entries:
+  - term: GNT (grave non traitée)
+    meaning: unbound granular mixture for road layers
+    lang: fr
+    source: standard
+    ref: NF EN 13285, unbound mixtures
+  - term: BPE (béton prêt à l'emploi)
+    meaning: ready-mixed concrete delivered from a batching plant
+    lang: fr
+    source: standard
+    ref: NF EN 206, concrete
+  - term: GB (grave-bitume)
+    meaning: bituminous base course asphalt
+    lang: fr
+    source: standard
+    ref: NF EN 13108-1, asphalt concrete
+  - term: BBSG (béton bitumineux semi-grenu)
+    meaning: dense asphalt concrete for surface courses
+    lang: fr
+    source: standard
+    ref: NF EN 13108-1, asphalt concrete
+  - term: BBDr (béton bitumineux drainant)
+    meaning: porous asphalt for surface courses
+    lang: fr
+    source: standard
+    ref: NF EN 13108-7, porous asphalt
+  - term: EME (enrobé à module élevé)
+    meaning: high-modulus asphalt for base courses
+    lang: fr
+    source: standard
+    ref: NF EN 13108-1, asphalt concrete
+  - term: pile (of a bridge)
+    meaning: pier; a false friend, not a driven pile foundation (pieu)
+    lang: fr
+    source: standard
+    ref: TLFi (CNRTL, Trésor de la langue française informatisé), entry pile, bridge-support sense
+    false_friend: pile
+  - term: couche de fondation
+    meaning: sub-base layer of a pavement
+    lang: fr
+    source: standard
+    ref: SETRA-LCPC (1994), Conception et dimensionnement des structures de chaussées, guide technique
