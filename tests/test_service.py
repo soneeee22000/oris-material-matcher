@@ -1,6 +1,7 @@
 """MatchService end to end under FakeLLM and ReplayLLM (DESIGN.md §5.2, §9.5, §10.6, §11.3)."""
 
 import asyncio
+import csv
 import dataclasses
 import logging
 from collections import Counter
@@ -18,10 +19,13 @@ from oris_matcher.domain.decision import (
     NOT_A_MATERIAL_REASONS,
     Decision,
     ReasonCode,
+    Rule,
+    SignalName,
     Signals,
     Threshold,
     candidate_thresholds,
     is_service_unit,
+    low_signal_reason,
     strictest_threshold,
 )
 from oris_matcher.domain.library import Library, LibraryRow
@@ -569,3 +573,120 @@ async def test_a_one_line_run_fits_its_budget_floor(library_id: str) -> None:
     result = await run(boq, library_id, wrapper)
     assert result.lines[0].decision.reason != ReasonCode.BUDGET_CAP
     assert len(result.lines[0].raw_line_responses) == 2
+
+
+GROUND_TRUTH = ROOT / "data" / "boq_dataset_matched_GT.csv"
+SMALL_BOQ = ROOT / "tests" / "fixtures" / "cli" / "small_boq.csv"
+B0_REVIEW_REASON = "LOW_SIGNAL:v+b+confidence"
+EXERCISE_LINES = 319
+EXERCISE_HEADERS = 37
+STRUCTURAL_RULES = frozenset({Rule.D0, Rule.D0A, Rule.D0B})
+
+
+def labelled_item_numbers() -> list[tuple[str, bool]]:
+    """Return each reference row's item number and whether it carries a library label."""
+    with GROUND_TRUTH.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    return [(row["Item No."], bool(row["material_type"].strip())) for row in rows]
+
+
+def silent_fake() -> FakeLLM:
+    return FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour())
+
+
+def test_b0_reason_is_every_signal_failed() -> None:
+    assert low_signal_reason(SignalName) == B0_REVIEW_REASON
+
+
+@pytest.mark.parametrize(("source", "library_id"), [(EN_INPUT, "global"), (FR_INPUT, "fr")])
+async def test_b0_rules_only_on_the_exercise_inputs_makes_no_call(
+    source: Path, library_id: str
+) -> None:
+    boq = read_boq(source)
+    fake = silent_fake()
+    result = await run(boq, library_id, make_wrapper(fake), RunProfile.B0)
+
+    assert fake.calls == []
+    assert result.calls == ()
+    assert len(result.lines) == EXERCISE_LINES
+    outcomes = Counter((item.decision.decision, item.decision.reason) for item in result.lines)
+    assert outcomes == {
+        (Decision.NOT_A_MATERIAL, ReasonCode.HEADER.value): EXERCISE_HEADERS,
+        (Decision.NEEDS_REVIEW, B0_REVIEW_REASON): EXERCISE_LINES - EXERCISE_HEADERS,
+    }
+    reference = labelled_item_numbers()
+    assert [line.item_no for line in boq.lines] == [item_no for item_no, _ in reference]
+    for item, (_, labelled) in zip(result.lines, reference, strict=True):
+        if labelled:
+            assert item.decision.decision != Decision.NOT_A_MATERIAL
+        if item.decision.decision == Decision.NOT_A_MATERIAL:
+            assert not item.line.unit.strip()
+            assert not item.line.qty.strip()
+    assert result.exit_code == EXIT_OK
+
+
+async def test_b0_rows_are_rule_rows_with_no_cost_and_no_prompt() -> None:
+    boq = read_boq(EN_INPUT)
+    result = await run(boq, "global", make_wrapper(silent_fake()), RunProfile.B0)
+
+    for item in result.lines:
+        assert item.model == RULES_MODEL
+        assert item.cost_usd == 0.0
+        assert item.latency_ms == 0
+        assert item.call_ids == ()
+        assert item.prompt_version == ""
+        assert item.suggested is None
+        assert item.suggested2 is None
+        assert item.raw_line_responses == ()
+        assert item.context == "none"
+        assert item.flags == ()
+    rendered = render_csv(result).decode("utf-8").splitlines()
+    header = rendered[0].split(",")
+    rows = list(csv.reader(rendered[1:]))
+    cost, model = header.index("cost_usd"), header.index("model")
+    assert {row[cost] for row in rows} == {"0.000000"}
+    assert {row[model] for row in rows} == {RULES_MODEL}
+    assert result.prompt_versions == ()
+    assert result.system_prompts == {}
+
+
+async def test_b0_manifest_records_a_rules_only_run() -> None:
+    boq = read_boq(FR_INPUT)
+    result = await run(boq, "fr", make_wrapper(silent_fake()), RunProfile.B0)
+    manifest = result.manifest
+
+    assert manifest["profile"] == "b0"
+    assert manifest["mode"] == "rules"
+    assert manifest["policy_resolution"] == "b0_rules_only"
+    assert manifest["policy_id"] == "B0"
+    assert manifest["passes_k"] == 0
+    assert manifest["prompt_version"] == []
+    assert manifest["call_count"] == 0
+    assert manifest["n_routed"] == 0
+    assert manifest["spend_usd"] == 0
+    assert manifest["attributed_cost_usd"] == 0
+    assert manifest["served_models"] == []
+    assert manifest["fallback_engaged"] is False
+    assert manifest["exit_code"] == EXIT_OK
+    assert result.policy.resolution == PolicyResolution.B0_RULES_ONLY
+    assert run_mode(make_wrapper(silent_fake()).adapter, ()) == RunMode.FAKE
+
+
+async def test_b0_keeps_the_structural_gates_and_never_skips_on_the_unit() -> None:
+    extra = b"Note,Voir plans,,,\r\n"
+    boq = read_boq(SMALL_BOQ.read_bytes() + extra)
+    full = await run(boq, "fr", make_wrapper(fake_for(boq, "fr")))
+    rules = await run(boq, "fr", make_wrapper(silent_fake()), RunProfile.B0)
+
+    reasons = {item.decision.reason for item in rules.lines}
+    assert {"HEADER", "EMPTY_ROW", "HEADER_UNCONFIRMED", B0_REVIEW_REASON} <= reasons
+    for b3, b0 in zip(full.lines, rules.lines, strict=True):
+        if b3.decision.rule in STRUCTURAL_RULES:
+            assert b0.decision == b3.decision
+        else:
+            assert b0.decision.rule == Rule.D10
+            assert b0.decision.decision == Decision.NEEDS_REVIEW
+            assert b0.decision.reason == B0_REVIEW_REASON
+            assert b0.decision.signals is None
+    service_line = next(item for item in rules.lines if item.line.unit == "mois")
+    assert service_line.decision.decision == Decision.NEEDS_REVIEW

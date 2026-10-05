@@ -3,7 +3,9 @@
 ``oris --input X --library Y --output Z`` is the brief's literal form of ``oris match``. A run
 reads the BoQ, maps the library path to its ``Settings.libraries`` id (``custom`` otherwise),
 calls ``MatchService``, writes ``runs/<run_id>/`` and the output CSV, and prints the §11.6
-summary. Exit codes: 0 ok, 1 a ``replay --check`` mismatch or a failed doctor check, 2 a usage
+summary. ``--profile b0`` is the rules-only floor: it never builds a live adapter, needs no key
+and may run over a whole exercise input before the freeze, because it sends nothing to a model.
+Exit codes: 0 ok, 1 a ``replay --check`` mismatch or a failed doctor check, 2 a usage
 or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss (§11.3).
 """
 
@@ -70,6 +72,7 @@ from oris_matcher.io.audit import (
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.io.writer import render_csv
 from oris_matcher.llm.base import LLMPort, canonical_json
+from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.recording import CallRecord, ReasonForCall, read_calls_jsonl
 from oris_matcher.llm.replay_llm import ResponseCache
 from oris_matcher.service import (
@@ -371,11 +374,25 @@ def require_committable_inputs(job: MatchJob, root: Path) -> None:
     require_inside_root([path for path in paths if path is not None], root)
 
 
+def reaches_model(job: MatchJob, spec: LLMSpec) -> bool:
+    """Tell whether a run may send anything to a live model.
+
+    Args:
+        job: The run's inputs; a B0 run sends nothing, whatever ``--llm`` names.
+        spec: The effective ``--llm``.
+
+    Returns:
+        True for a live spec on any profile but B0.
+
+    """
+    return job.profile != RunProfile.B0 and spec.kind in LIVE_KINDS
+
+
 def check_exercise_input(job: MatchJob, spec: LLMSpec, input_sha256: str, runtime: Runtime) -> None:
     """Refuse a live run over a whole exercise input before the freeze (§10.3).
 
     The exercise inputs hold the lockbox items; before ``eval-freeze`` only the experiment
-    runner's dev selection may reach a live model. Offline and replayed runs are allowed.
+    runner's dev selection may reach a live model. Offline, replayed and B0 runs are allowed.
 
     Args:
         job: The run's inputs; a run with a line selector is the runner's dev selection.
@@ -387,7 +404,7 @@ def check_exercise_input(job: MatchJob, spec: LLMSpec, input_sha256: str, runtim
         WiringError: A live spec over a whole exercise input while the tag is not at HEAD.
 
     """
-    if spec.kind not in LIVE_KINDS or job.selector is not None:
+    if not reaches_model(job, spec) or job.selector is not None:
         return
     if input_sha256 not in EXERCISE_INPUTS_SHA256:
         return
@@ -432,6 +449,34 @@ def _replay_fallback(spec: LLMSpec, adapter: LLMPort) -> LLMPort | None:
     return adapter if read_manifest(spec.run_dir).get("fallback_engaged") else None
 
 
+def rules_only_adapter(model: str, allowlist: Sequence[str]) -> LLMPort:
+    """Return the adapter a B0 run's wrapper holds; the service plans no batch, so no call.
+
+    Args:
+        model: The requested model, recorded in the manifest only.
+        allowlist: Patterns from ``models.toml``.
+
+    Returns:
+        An offline FakeLLM, so no key is read and no live client is built.
+
+    """
+    return FakeLLM(model, allowlist)
+
+
+def _adapters(
+    job: MatchJob, spec: LLMSpec, model: str, settings: Settings, runtime: Runtime
+) -> tuple[LLMPort, LLMPort | None]:
+    """Build a run's adapter and its fallback; a B0 run gets the rules-only adapter alone."""
+    allowlist = load_models_config(settings.config_file(MODELS_FILE)).allowlist.patterns
+    if job.profile == RunProfile.B0:
+        return rules_only_adapter(model, allowlist), None
+    adapter = build_adapter(spec, model, settings, allowlist, runtime)
+    if spec.kind in LIVE_KINDS:
+        adapter = CapturingPort(adapter)
+    fallback = fallback_adapter(spec, settings, allowlist, runtime)
+    return adapter, fallback or _replay_fallback(spec, adapter)
+
+
 def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     """Read the input and build the settings, service and adapters of a run.
 
@@ -444,8 +489,8 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
         The prepared run.
 
     Raises:
-        WiringError: Bad ``--llm``, a missing key, a missing library file, or a live run over
-            an exercise input before the freeze.
+        WiringError: Bad ``--llm``, a missing key (never for B0), a missing library file, or a
+            live run over an exercise input before the freeze.
         ConfigError: A config file is invalid or a model is not allowed.
         BoqFormatError: The input cannot be read as a BoQ.
         OSError: The input cannot be read.
@@ -456,20 +501,15 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     data = job.input_path.read_bytes()
     boq = read_boq(data)
     settings, library_id = settings_for_library(base, job.library_path, runtime.root())
-    spec = effective_spec(job.llm, settings)
+    spec = job.llm if job.profile == RunProfile.B0 else effective_spec(job.llm, settings)
     digest = hashlib.sha256(data).hexdigest()
     check_exercise_input(job, spec, digest, runtime)
     models_config = load_models_config(settings.config_file(MODELS_FILE))
     pricing = load_pricing(settings.config_file(PRICING_FILE))
     model = resolve_spec_model(spec, settings, pricing, models_config)
     settings = settings.model_copy(update={"primary_model": model})
-    allowlist = models_config.allowlist.patterns
-    adapter = build_adapter(spec, model, settings, allowlist, runtime)
-    if spec.kind in LIVE_KINDS:
-        adapter = CapturingPort(adapter)
-    fallback = fallback_adapter(spec, settings, allowlist, runtime)
+    adapter, fallback = _adapters(job, spec, model, settings, runtime)
     service = _service(settings, job.policy_path)
-    fallback = fallback or _replay_fallback(spec, adapter)
     return PreparedRun(settings, library_id, pricing, service, adapter, boq, digest, spec, fallback)
 
 
@@ -550,11 +590,10 @@ def load_cache(runs_dir: Path, key: CacheKey) -> CacheIndex:
 
 
 def _cache_index(job: MatchJob, prepared: PreparedRun) -> CacheIndex:
-    """Return the run's cache: empty for ``--no-cache`` and for every fake or replayed run."""
-    kind = prepared.spec.kind
-    if not job.use_cache or kind not in LIVE_KINDS:
+    """Return the run's cache: empty for ``--no-cache`` and every fake, replayed or B0 run."""
+    if not job.use_cache or not reaches_model(job, prepared.spec):
         return CacheIndex()
-    key = CacheKey(kind.value, prepared.service.resources.requested_model)
+    key = CacheKey(prepared.spec.kind.value, prepared.service.resources.requested_model)
     return load_cache(job.runs_dir, key)
 
 
@@ -564,11 +603,19 @@ def _cap(job: MatchJob, settings: Settings, line_count: int) -> float:
     return cap if job.budget_usd is None else min(cap, job.budget_usd)
 
 
-def _source_run_id(spec: LLMSpec) -> str | None:
-    """Return the replayed run's id for a ``replay:`` spec."""
-    if spec.kind != LLMKind.REPLAY or spec.run_dir is None:
+def _replayed_dir(job: MatchJob, spec: LLMSpec) -> Path | None:
+    """Return the run folder a ``replay:`` spec reads; None for B0, which reads nothing (§9.6)."""
+    if job.profile == RunProfile.B0 or spec.kind != LLMKind.REPLAY:
         return None
-    return str(read_manifest(spec.run_dir).get("run_id") or "") or None
+    return spec.run_dir
+
+
+def _source_run_id(job: MatchJob, spec: LLMSpec) -> str | None:
+    """Return the replayed run's id for a ``replay:`` spec, never for a B0 run."""
+    replayed = _replayed_dir(job, spec)
+    if replayed is None:
+        return None
+    return str(read_manifest(replayed).get("run_id") or "") or None
 
 
 def run_match(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> tuple[RunResult, float]:
@@ -595,7 +642,7 @@ def run_match(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> tuple[R
     options = RunOptions(
         select=select,
         run_id=run_id,
-        source_run_id=_source_run_id(prepared.spec),
+        source_run_id=_source_run_id(job, prepared.spec),
         cache_sources=index.sources,
         fallback=prepared.fallback,
     )
@@ -625,7 +672,7 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
     """Return the environment fields of a run's manifest.
 
     A live run records the headers of its last successful call and the tier of the newest
-    doctor evidence (``unknown`` without one); a fake or replayed run records neither.
+    doctor evidence (``unknown`` without one); a fake, replayed or B0 run records neither.
     """
     root = runtime.root()
     context = ManifestContext(
@@ -637,7 +684,7 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
         excel_bom=job.excel_bom,
         input_path=job.input_path,
     )
-    if prepared.spec.kind not in LIVE_KINDS:
+    if not reaches_model(job, prepared.spec):
         return context
     headers = prepared.rate_limit_headers
     evidence = newest_tier_evidence(root / DEFAULT_EVIDENCE_DIR)
@@ -652,7 +699,7 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
 
 def _extra_fields(job: MatchJob, prepared: PreparedRun, cap: float, root: Path) -> dict[str, Any]:
     """Return the manifest fields only the CLI knows: adapter, cap, input and policy file."""
-    policy, replayed = job.policy_path, prepared.spec.run_dir
+    policy, replayed = job.policy_path, _replayed_dir(job, prepared.spec)
     return {
         "llm": llm_text(prepared.spec, root),
         "llm_run_dir": portable_path(replayed, root) if replayed else None,

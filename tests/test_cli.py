@@ -2,13 +2,17 @@
 
 import csv
 import hashlib
+import importlib.util
 import io
 import json
 import re
 import shutil
+import sys
+from collections import Counter
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import httpx2
@@ -755,3 +759,193 @@ def test_a_replay_spec_is_recorded_repo_relative(workdir: Path) -> None:
     replayed = [manifest_of(path) for path in (workdir / "runs").iterdir() if path != folder]
     assert replayed[0]["llm"] == f"replay:runs/{folder.name}"
     assert replayed[0]["mode"] == "replay"
+
+
+CHECK_REQUIREMENTS = ROOT / "eval" / "check_requirements.py"
+ORIS_IN_PROCESS = (sys.executable, "-c", "from oris_matcher.cli import app; app()")
+B0_REVIEW_REASON = "LOW_SIGNAL:v+b+confidence"
+EXERCISE_LINES = 319
+EXERCISE_HEADERS = 37
+
+
+def load_check_requirements() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("oris_eval_check_b0", CHECK_REQUIREMENTS)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+class RecordingFactory:
+    """Records every adapter the CLI asks for; a B0 run must ask for none."""
+
+    def __init__(self) -> None:
+        self.built: list[tuple[LLMSpec, str]] = []
+
+    def __call__(self, spec: LLMSpec, model: str) -> FakeLLM:
+        self.built.append((spec, model))
+        return FakeLLM(model, ALLOWLIST, FakeBehaviour())
+
+
+def output_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+@pytest.mark.parametrize("llm", [None, "anthropic", "openai:gpt-4o-mini", "fake"])
+def test_profile_b0_needs_no_key_and_builds_no_adapter(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch, llm: str | None
+) -> None:
+    factory = RecordingFactory()
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: workdir, adapter_factory=factory))
+    extra = ["--profile", "b0", *(["--llm", llm] if llm else [])]
+
+    result = invoke(match_args(workdir / "out.csv", *extra))
+
+    assert result.exit_code == 0, result.output
+    assert factory.built == []
+    folder = only_run(workdir)
+    manifest = manifest_of(folder)
+    assert manifest["profile"] == "b0"
+    assert manifest["mode"] == "rules"
+    assert manifest["policy_resolution"] == "b0_rules_only"
+    assert manifest["call_count"] == 0
+    assert manifest["fallback_configured"] is False
+    assert manifest["rate_limit_source"] == "none"
+    assert manifest["rate_limit_tier"] is None
+    assert manifest["rate_limit_tier_source"] is None
+    assert (folder / "calls.jsonl").read_bytes() == b""
+    rows = output_rows(workdir / "out.csv")
+    assert {row["model"] for row in rows} == {"rules"}
+    assert {row["cost_usd"] for row in rows} == {"0.000000"}
+    assert "mode rules" in result.stdout
+
+
+def test_b0_runs_the_literal_command_over_an_exercise_input_before_the_freeze(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", SECRET)
+    factory = RecordingFactory()
+    runtime = make_runtime(root=lambda: workdir, adapter_factory=factory)
+    monkeypatch.setattr(cli, "RUNTIME", runtime)
+    args = match_args(workdir / "out.csv", "--profile", "b0", library=GLOBAL_LIBRARY)
+    args[1] = str(EN_INPUT)
+
+    result = invoke(args)
+
+    assert result.exit_code == 0, result.output
+    assert factory.built == []
+    manifest = manifest_of(only_run(workdir))
+    assert (manifest["rate_limit_tier"], manifest["rate_limit_tier_source"]) == (None, None)
+    assert manifest["rate_limit_source"] == "none"
+    rows = output_rows(workdir / "out.csv")
+    assert len(rows) == EXERCISE_LINES
+    outcomes = Counter((row["decision"], row["reason"]) for row in rows)
+    assert outcomes == {
+        ("not_a_material", "HEADER"): EXERCISE_HEADERS,
+        ("needs_review", B0_REVIEW_REASON): EXERCISE_LINES - EXERCISE_HEADERS,
+    }
+
+
+def test_b0_keeps_the_typed_llm_and_never_swaps_to_the_fallback(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-test")
+    factory = RecordingFactory()
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: workdir, adapter_factory=factory))
+
+    result = invoke(match_args(workdir / "out.csv", "--profile", "b0", "--llm", "anthropic"))
+
+    assert result.exit_code == 0, result.output
+    assert factory.built == []
+    manifest = manifest_of(only_run(workdir))
+    assert (manifest["llm"], manifest["llm_kind"]) == ("anthropic", "anthropic")
+    assert "fallback adapter" not in result.stderr
+
+
+def test_b0_over_a_replay_spec_claims_no_source_run(workdir: Path) -> None:
+    assert invoke(match_args(workdir / "first.csv", "--llm", "fake")).exit_code == 0
+    recorded = only_run(workdir)
+
+    result = invoke(
+        match_args(workdir / "b0.csv", "--profile", "b0", "--llm", f"replay:{recorded}")
+    )
+
+    assert result.exit_code == 0, result.output
+    (b0_folder,) = [path for path in (workdir / "runs").iterdir() if path != recorded]
+    manifest = manifest_of(b0_folder)
+    assert manifest["mode"] == "rules"
+    assert manifest["source_run_id"] is None
+    assert manifest["llm_run_dir"] is None
+
+
+def test_b0_never_loads_the_live_cache(workdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    requests: list[httpx2.Request] = []
+    _live_runtime(workdir, monkeypatch, requests)
+    assert run_and_note("seed", match_args(workdir / "seed.csv", "--no-cache")).exit_code == 0
+    assert cli.load_cache(workdir / "runs", cli.CacheKey("anthropic", HAIKU)).cache is not None
+    seeded = len(requests)
+    loads: list[Path] = []
+    real_load = cli.load_cache
+
+    def spy(runs_dir: Path, key: cli.CacheKey) -> cli.CacheIndex:
+        loads.append(runs_dir)
+        return real_load(runs_dir, key)
+
+    monkeypatch.setattr(cli, "load_cache", spy)
+
+    assert run_and_note("b0", match_args(workdir / "b0.csv", "--profile", "b0")).exit_code == 0
+
+    assert loads == []
+    assert len(requests) == seeded
+    manifest = manifest_of(workdir / "runs" / RUN_OUTPUTS["b0"])
+    assert (manifest["call_count"], manifest["cache_hits"]) == (0, 0)
+    assert (manifest["mode"], manifest["source_run_id"]) == ("rules", None)
+
+
+def test_a_b0_run_replays_byte_identically(workdir: Path) -> None:
+    output = workdir / "out.csv"
+    assert invoke(match_args(output, "--profile", "b0")).exit_code == 0
+    replayed = invoke(["replay", str(only_run(workdir)), "--check", str(output)])
+    assert replayed.exit_code == 0, replayed.output
+    assert "byte-identical" in replayed.stdout
+
+
+@pytest.mark.parametrize(
+    ("source", "library"),
+    [
+        (Path("input") / "boq_dataset_input_en.csv", Path("data") / "oris_materials_global.csv"),
+        (Path("input") / "boq_dataset_input_fr.csv", Path("data") / "oris_materials_fr.csv"),
+    ],
+)
+def test_a_b0_run_folder_passes_check_requirements(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch, source: Path, library: Path
+) -> None:
+    monkeypatch.chdir(ROOT)
+    factory = RecordingFactory()
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: ROOT, adapter_factory=factory))
+    output, runs = workdir / "out.csv", workdir / "runs"
+    args = ["--input", str(source), "--library", str(library), "--output", str(output)]
+    result = invoke([*args, "--profile", "b0", "--run-dir", str(runs)])
+    assert result.exit_code == 0, result.output
+    assert factory.built == []
+    check = load_check_requirements()
+    inputs = check.Inputs(
+        output=output,
+        input=ROOT / source,
+        library=ROOT / library,
+        reference=ROOT / "data" / "boq_dataset_matched_GT.csv",
+        run=only_run(workdir),
+        config_dir=CONFIG,
+        oris=ORIS_IN_PROCESS,
+    )
+
+    results = check.run_checks(inputs)
+
+    failed = [(item.rq, item.detail) for item in results if item.status == check.FAIL]
+    assert failed == []
+    statuses = {item.rq: item.status for item in results}
+    assert statuses["RQ11"] == check.PASS
+    assert statuses["RQ9"] == check.PASS
