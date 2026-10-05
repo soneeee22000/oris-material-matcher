@@ -1351,7 +1351,7 @@ This records how the code resolves points that this document leaves open, so the
 3. **Hard attributes that cannot be compared never veto.** A line that states several values of one family ("DN 125 and DN 100", "CEM I or CEM III") or a decimal value is recorded as stating that family, so G2 still sees a hard attribute, but it has no comparable value, so it never vetoes. EWC codes after an exclusion phrase ("other than", "autres que") are dropped. Changed: §9.3.
 4. **Units are matched case-sensitively.** `Ft` (forfait, a lump sum) is a service unit; `ft` and `FT` (feet) are measured units and never reach G2. Changed: §9.5 D2.
 5. **Answers are validated line by line.** The response envelope is parsed once. Each line object is then validated on its own: valid lines are accepted, and an invalid one fails only its own line as `LLM_FAILURE:malformed`, with its raw JSON kept. §11.3 bisection still applies when the envelope is broken (truncation or invalid JSON). Before this, one over-long evidence quote failed all ten lines of its batch (`docs/gates/G1.md` O5). An invalid line is not re-asked, because the same prompt would produce the same violation. An invalid object with no usable id counts as missing and is re-asked within the line's budget. A valid and an invalid object for the same id count as a conflicting duplicate. A run recorded before this change that contains split calls caused by one invalid line would not replay byte for byte; no such run exists. The live doctor now passes its call check only on schema-valid answers. Changed: §11.3.
-6. **Run modes.** A run's manifest mode is `fake` (FakeLLM), `replay`, `cached` (at least one cache hit, with `source_run_id` set) or `live`. The response cache is seeded only from earlier `live` runs of the same provider and model. Changed: §9.6, §11.5.
+6. **Run modes.** A run's manifest mode is `fake` (FakeLLM), `replay`, `cached` (at least one cache hit, with `source_run_id` set), `live`, or `rules` (B0, no model call). The response cache is seeded only from earlier `live` runs of the same provider and model. Changed: §9.6, §11.5.
 7. **The fallback model decides at the strictest threshold.** When the breaker trips and the gpt-4o-mini fallback engages, the whole run resolves to the strictest threshold unless the fallback is certified, and the manifest records `fallback_engaged`. Changed: §10.6, §11.3.
 8. **Before the freeze, the CLI refuses a live run over a whole exercise input.** The only routes to the model before `eval-freeze` are `eval/run_experiment.py --side dev` and offline modes (`fake`, `replay`, B0). The runner also refuses to score a library that shares no row with the reference labels (`docs/gates/G1.md` O2). Changed: §10.3.
 9. **B2 cannot fire G2.** B2 runs without extractors or supply markers (§10.5), so a line the model calls non-material is `NM_UNCONFIRMED` in B2, never `G2_SERVICE`. Changed: §10.5.
@@ -1374,3 +1374,16 @@ This records how the code resolves points that this document leaves open, so the
 _Append-only, dated. Filled as each gate produces measured numbers. Nothing here is an estimate._
 
 _(none yet: no model call has been made at the time of pre-registration)_
+
+### 2026-10-05 · G1 (v0.1), dev only
+
+Dev only, before `eval-freeze`; 162 items per language, 139 labelled; FR input scored against the global library. Record: `docs/gates/G1.md` §5–§6.
+
+- **B0** (rules only, both full files, runs `20261005T151248Z-d669eb87` EN, `20261005T151251Z-74b773b1` FR): 37 `not_a_material` (HEADER), 282 `needs_review`, 0 calls, F_NM 0, dev C₂₅₂ 0.
+- **B1** (TF-IDF, threshold .1126, below the dev bar): EN P .413 (43/104), CP-LB .332, C₂₅₂ .309; FR P .429 (12/28), CP-LB .269, C₂₅₂ .086; F_NM 0.
+- **B1 label-free scorer check:** top-1 triple EN .405, FR .159 (type .722 / .560, type+usage .524 / .210), matching the brief.
+- **B2 slice** (40 items; `20261005T144408Z-72765ec5` EN, `20261005T144524Z-f2fd2efa` FR): EN P .788 (26/33), CP-LB .638; FR P .690 (20/29), CP-LB .521; both replay byte-identical at $0.
+- **B2 all dev** (`20261005T151020Z-33c38c05` EN, `20261005T151104Z-0c9b50d6` FR): EN P .780 (103/132), CP-LB .713, C₂₅₂ .741; FR P .803 (106/132), CP-LB .737, C₂₅₂ .763; F_NM 0 both.
+- **B2 per level over matched** (type / type+usage / triple): EN .939 / .818 / .780; FR .947 / .856 / .803.
+- **B2 cost and latency:** mean attributed cost per line EN $0.00095, FR $0.00092; wall clock 40.9 s EN and 40.4 s FR for 162 routed lines; 40 calls per run.
+- **Live spend at G1:** $0.6713 billed, of the $3 G1 cap (`docs/gates/G1.md` §5).
