@@ -84,6 +84,7 @@ FROZEN_FAILURE_KINDS = [
     "replay_miss",
 ]
 PINNED_REQUEST_SHA256 = "5388b37c73a6b43393020dfe2845ae73d21603dab94e1a16b97df570fb6294a6"
+SPEC_EVIDENCE_MAX_WORDS = 25
 PINNED_LINE_ID = "864a6a422cb90bcf"
 PINNED_LINE_ID_NON_ASCII = "e9d9c38ea3403fb2"
 PINNED_SCHEMA_SHA256 = "b14021c3c33b77b211d70433c3fa10888aa71eb1243817e5a463b9773b4949e6"
@@ -514,8 +515,8 @@ def test_line_answer_rejects_confidence_out_of_range(confidence: int) -> None:
 
 
 def test_line_answer_evidence_word_limit() -> None:
-    assert EVIDENCE_MAX_WORDS == 25
-    at_limit = " ".join(["word"] * 25)
+    assert EVIDENCE_MAX_WORDS == SPEC_EVIDENCE_MAX_WORDS
+    at_limit = " ".join(["word"] * EVIDENCE_MAX_WORDS)
     assert LineAnswer.model_validate(_answer(evidence=at_limit)).evidence == at_limit
     assert LineAnswer.model_validate(_answer(evidence="")).evidence == ""
     with pytest.raises(ValidationError, match="evidence"):
