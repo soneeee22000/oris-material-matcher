@@ -11,6 +11,7 @@ Usage::
         [--classes eval/annotations/blank_line_classes.csv] [--json report.json]
 
 Repeat the ``--output``/``--label`` pair to score several outputs (EN and FR) side by side.
+hit@2 reads the A56 ``suggested2_*`` columns when present and prints n/a otherwise.
 Exit code 0 on success and 2 on input that cannot be scored (or any ``--strict`` violation).
 """
 
@@ -40,6 +41,10 @@ DIGITS = 3
 COST_DIGITS = 6
 LATENCY_DIGITS = 1
 LIST_LIMIT = 10
+JSON_INDENT = 2
+JSON_ENCODING = "utf-8"
+JSON_NEWLINE = "\n"
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 MATCHED = "matched"
 NOT_A_MATERIAL = "not_a_material"
@@ -273,7 +278,7 @@ class Output:
         rows: Output rows in file order.
         has_key: Whether a key column was found.
         has_suggested: Whether the ``suggested_*`` columns exist.
-        has_suggested_2: Whether the ``suggested_2_*`` columns exist.
+        has_suggested_2: Whether the ``suggested2_*`` columns (A56) exist.
         has_cost: Whether ``cost_usd`` exists.
         has_latency: Whether ``latency_ms`` exists.
         nan_literals: Label and suggestion cells matching the ``nan``-like pattern, blanked.
@@ -309,7 +314,7 @@ class OutputColumns:
         decision: Decision column.
         labels: The three label columns.
         suggested: The three ``suggested_*`` columns.
-        suggested_2: The three ``suggested_2_*`` columns.
+        suggested_2: The three ``suggested2_*`` columns (A56).
         unit: Unit column.
         cost: ``cost_usd`` column.
         latency: ``latency_ms`` column.
@@ -1318,6 +1323,40 @@ def use_utf8_stdout() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
 
 
+def portable_path(text: str, root: Path = REPO_ROOT) -> str | dict[str, Any]:
+    """Return a reported path as repo-relative POSIX, or its file name flagged external.
+
+    Args:
+        text: A path as the report holds it.
+        root: The repository root.
+
+    Returns:
+        The relative POSIX path, or ``{"path": <file name>, "external": true}``.
+
+    """
+    path = Path(text)
+    resolved = (path if path.is_absolute() else root / path).resolve()
+    try:
+        return resolved.relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return {"external": True, "path": path.name}
+
+
+def write_json_report(path: Path, report: dict[str, Any]) -> None:
+    """Write the report as UTF-8 bytes, LF line ends, sorted keys and no host path.
+
+    Args:
+        path: The ``--json`` file.
+        report: The report from ``run``.
+
+    """
+    reference = {**report["reference"], "path": portable_path(report["reference"]["path"])}
+    outputs = [{**item, "path": portable_path(item["path"])} for item in report["outputs"]]
+    portable = {**report, "reference": reference, "outputs": outputs}
+    text = json.dumps(portable, sort_keys=True, indent=JSON_INDENT, ensure_ascii=False)
+    path.write_bytes((text + JSON_NEWLINE).encode(JSON_ENCODING))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the scorer; return the process exit code."""
     use_utf8_stdout()
@@ -1329,8 +1368,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_ERROR
     sys.stdout.write(render(report))
     if settings.json_path is not None:
-        text = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
-        settings.json_path.write_text(text, encoding="utf-8")
+        write_json_report(settings.json_path, report)
     return EXIT_OK
 
 

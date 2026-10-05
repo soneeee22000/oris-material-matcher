@@ -691,3 +691,100 @@ def test_nan_literals_in_an_output_read_as_blank(tmp_path: Path) -> None:
 def test_hit_at_2_says_why_it_is_unavailable(tmp_path: Path) -> None:
     _, report = _run(tmp_path, "--output", str(SAMPLE_OUTPUT), "--reference", str(GT_PATH))
     assert "hit@2 n/a (no second-suggestion columns in the §9.6 shape)" in score.render(report)
+
+
+# --- hit@2 from the A56 suggested2_* columns -----------------------------------------
+
+A56_HEADER = [
+    "Item No.",
+    "decision",
+    "material_type",
+    "material_usage",
+    "material_subtype",
+    "suggested_type",
+    "suggested_usage",
+    "suggested_subtype",
+    "suggested2_type",
+    "suggested2_usage",
+    "suggested2_subtype",
+]
+A56_CONCRETE = ["Concrete", "Ready-mix", "C30/37"]
+A56_STEEL = ["Steel", "Rebar", ""]
+A56_BLANK = ["", "", ""]
+
+
+def _write_rows(path: Path, rows: list[list[str]]) -> str:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        csv.writer(handle, lineterminator="\r\n").writerows(rows)
+    return str(path)
+
+
+def _hit_files(tmp_path: Path, header: list[str], rows: list[list[str]]) -> list[str]:
+    reference = [
+        ["Item No.", "material_type", "material_usage", "material_subtype"],
+        ["01.01.0010.", *A56_CONCRETE],
+        ["01.01.0020.", *A56_STEEL],
+        ["01.01.0030.", *A56_CONCRETE],
+    ]
+    output = [header, *[row[: len(header)] for row in rows]]
+    return [
+        "--output",
+        _write_rows(tmp_path / "a56_output.csv", output),
+        "--reference",
+        _write_rows(tmp_path / "a56_reference.csv", reference),
+    ]
+
+
+def _review(key: str, first: list[str], second: list[str]) -> list[str]:
+    return [key, "needs_review", *A56_BLANK, *first, *second]
+
+
+A56_ROWS = [
+    _review("01.01.0010.", A56_STEEL, A56_CONCRETE),
+    _review("01.01.0020.", A56_STEEL, A56_CONCRETE),
+    _review("01.01.0030.", A56_STEEL, A56_BLANK),
+]
+
+
+def test_hit_at_2_reads_the_a56_columns(tmp_path: Path) -> None:
+    code, report = _run(tmp_path, *_hit_files(tmp_path, A56_HEADER, A56_ROWS), "--strict")
+    assert code == 0
+    out = _only(report)
+    assert out["hit_at_1"] == {"hits": 1, "denominator": 3, "value": pytest.approx(1 / 3)}
+    assert out["hit_at_2"] == {"hits": 2, "denominator": 3, "value": pytest.approx(2 / 3)}
+    assert "note" not in out["hit_at_2"]
+    assert "hit@1 0.333, hit@2 0.667 over 3 needs_review" in score.render(report)
+
+
+def test_hit_at_2_is_na_without_the_a56_columns(tmp_path: Path) -> None:
+    code, report = _run(tmp_path, *_hit_files(tmp_path, A56_HEADER[:8], A56_ROWS))
+    assert code == 0
+    out = _only(report)
+    assert out["hit_at_1"]["hits"] == 1
+    assert out["hit_at_2"]["hits"] is None
+    assert out["hit_at_2"]["value"] is None
+    assert "hit@2 n/a (no second-suggestion columns" in score.render(report)
+
+
+def test_blank_second_suggestion_never_hits(tmp_path: Path) -> None:
+    rows = [_review(key, A56_BLANK, A56_BLANK) for key in ("01.01.0010.", "01.01.0020.")]
+    rows.append(_review("01.01.0030.", A56_BLANK, A56_BLANK))
+    _, report = _run(tmp_path, *_hit_files(tmp_path, A56_HEADER, rows))
+    assert _only(report)["hit_at_2"] == {"hits": 0, "denominator": 3, "value": 0.0}
+
+
+def test_json_report_is_byte_portable(tmp_path: Path) -> None:
+    report_path = tmp_path / "report.json"
+    outside = tmp_path / "outside.csv"
+    outside.write_bytes(Path(_fx("output.csv")).read_bytes())
+    argv = ["--output", str(outside), "--reference", _fx("reference.csv"), "--label", "x"]
+    assert score.main([*argv, "--json", str(report_path)]) == 0
+    raw = report_path.read_bytes()
+    assert b"\r" not in raw
+    payload = json.loads(raw)
+    expected = json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    assert raw.decode("utf-8") == expected
+    assert payload["outputs"][0]["path"] == {"external": True, "path": "outside.csv"}
+    assert isinstance(payload["reference"]["path"], str)
+    assert not Path(payload["reference"]["path"]).is_absolute()
+    assert str(tmp_path) not in raw.decode("utf-8")

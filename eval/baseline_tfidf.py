@@ -675,9 +675,9 @@ def run_b1(args: argparse.Namespace) -> int:
         for lang, run in runs.items()
     }
     payload = summary_payload(args, selection, written, runs)
-    text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+    text = json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
     if args.summary is not None:
-        args.summary.write_text(text, encoding=ENCODING)
+        args.summary.write_bytes(text.encode(ENCODING))
     sys.stdout.write(text)
     return EXIT_OK
 
