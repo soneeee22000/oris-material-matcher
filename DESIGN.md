@@ -1338,6 +1338,10 @@ The slice serves smoke runs and the A25 benchmark only. Selection (§10.6) alway
 
 §10.1 reports hit@2, but the §9.6 columns carry only the first suggestion, so the scorer could not compute it from the CSV. Three columns are **appended after `call_ids`**: `suggested2_type, suggested2_usage, suggested2_subtype`, holding top-2 when it is a valid library row, otherwise blank. The A36 column order is unchanged. The scorer reads them when present, and prints hit@2 as n/a when they are absent. Changed: §9.6, §10.1. Results existing at the time: none from any model.
 
+### A57 · 2026-10-05 · A per-run floor on the budget cap
+
+The §11.3 cap of $1.80 per 100 lines scales with the run. For a run of a few lines it is smaller than one call's reservation: the cached library prefix at the cache-write rate plus `max_tokens` of output. So a one-line API request could never dispatch and always returned `BUDGET_CAP`. The cap becomes `max($1.80 × n_lines / 100, $0.10)`, and the effective cap is recorded in the manifest as `budget_cap_usd`. The $2.00 per 100 lines target (§10.1) is unchanged and is still measured on cold live runs. Changed: §11.3. Results existing at the time: none from any model.
+
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
 **Rejected (not merged):**
