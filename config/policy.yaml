@@ -1,0 +1,4 @@
+# Policy resolution (DESIGN.md §10.6): model_id -> library_sha256 -> {policy_id, certified_by}.
+# certified_by is one of: dev_selection, smoke_A10. Any pair not listed resolves to the strictest
+# threshold (policy_resolution: fallback_strictest). Empty until a threshold is certified.
+policies: {}

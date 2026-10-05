@@ -1,0 +1,19 @@
+# Source: vendor pricing pages, https://www.anthropic.com/pricing (Claude API) and https://openai.com/api/pricing/, read on price_date.
+# USD per million tokens. Anthropic cache_write is the 5-minute write (1.25x input); cache_read is 0.1x input.
+# OpenAI has no cache-write surcharge (cache_write = input); cache_read is the cached-input price.
+
+price_date = "2026-10-05"
+currency = "USD"
+per_tokens = 1000000
+
+[anthropic."claude-haiku-4-5-20251001"]
+input = 1.00
+output = 5.00
+cache_write = 1.25
+cache_read = 0.10
+
+[openai."gpt-4o-mini-2024-07-18"]
+input = 0.15
+output = 0.60
+cache_write = 0.15
+cache_read = 0.075

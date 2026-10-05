@@ -1,0 +1,84 @@
+# Canonical unit -> aliases (DESIGN.md §6). Compared exactly, case is significant.
+# EN and FR forms of the same unit share one canonical (pcs <-> U, LS <-> Ft, month <-> mois,
+# day <-> j). No alias may appear under two canonicals or equal another canonical.
+# Every unit in service_units.yaml is LS, day, week, month or h, or an alias of one, and every
+# alias of those five is in service_units.yaml (tests/test_settings.py). "FT" is feet, never LS.
+aliases:
+  m:
+    - ml
+    - lm
+    - lin.m
+  m²:
+    - m2
+    - m^2
+    - sqm
+    - sq.m
+  m³:
+    - m3
+    - m^3
+    - cum
+    - cu.m
+  t:
+    - T
+    - tonne
+    - tonnes
+    - to
+  kg:
+    - KG
+    - Kg
+  l:
+    - L
+    - litre
+    - litres
+  pcs:
+    - pc
+    - nr
+    - Nr
+    - "no"
+    - "No"
+    - U
+    - u
+    - unité
+    - unités
+    - pce
+  LS:
+    - Ft
+    - Forfait
+    - forfait
+    - FF
+    - F
+    - ls
+    - lump sum
+    - Ens
+    - ens
+    - ensemble
+    - Ensemble
+    - L.S.
+    - sum
+    - PM
+  month:
+    - months
+    - Month
+    - mo
+    - mois
+    - Mois
+  day:
+    - days
+    - Day
+    - j
+    - J
+    - jour
+    - jours
+  week:
+    - weeks
+    - wk
+    - sem
+    - semaine
+    - semaines
+  h:
+    - hr
+    - hrs
+    - hour
+    - hours
+    - heure
+    - heures
