@@ -6,16 +6,20 @@ cap item_no, short and long descriptions at the reader's prompt caps (422); more
 lines is a 413. Section paths come from the request when given, else from header rows in the
 request through the reader's ``classify_rows`` and ``derive_section_paths``. Model failures
 never fail the request: it is always a 200 with every line present and a per-line reason.
-When ``ORIS_API_TOKEN`` is set, ``/v1/*`` needs that Bearer token; ``/health`` and ``/ready``
+Every match writes ``runs/<run_id>/`` (manifest, calls, audit, prompts) as the CLI does, so the
+returned run id and call ids name records that exist (§9.6, §11.2 RQ6). When
+``ORIS_API_TOKEN`` is set, ``/v1/*`` needs that Bearer token; ``/health`` and ``/ready``
 stay open. Every response carries ``X-Request-ID``, the run id for a match.
 """
 
+import hashlib
 import hmac
 import secrets
 from collections import Counter
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request, Response
@@ -24,12 +28,17 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from oris_matcher import __version__
 from oris_matcher.doctor import (
+    DEFAULT_EVIDENCE_DIR,
+    DEFAULT_RUNS_DIR,
+    CapturingPort,
     LLMKind,
     Runtime,
     WiringError,
     WrapperSetup,
     live_adapter,
+    live_context,
     make_wrapper,
+    with_measured_tokens,
 )
 from oris_matcher.domain.boq import (
     BoqFile,
@@ -42,6 +51,7 @@ from oris_matcher.domain.boq import (
 )
 from oris_matcher.domain.decision import LLM_FAILURE_PREFIX, Decision, ReasonCode
 from oris_matcher.domain.library import LibraryRow
+from oris_matcher.io.audit import ManifestContext, build_manifest, code_version, write_run
 from oris_matcher.io.boq_reader import (
     COLUMN_ALIASES,
     COMMA,
@@ -51,10 +61,13 @@ from oris_matcher.io.boq_reader import (
     classify_rows,
     derive_section_paths,
 )
-from oris_matcher.llm.base import LLMPort
+from oris_matcher.llm.base import HASH_ENCODING, LLMPort, canonical_json
+from oris_matcher.llm.fake_llm import FakeLLM
+from oris_matcher.llm.replay_llm import ReplayLLM
 from oris_matcher.service import (
     LineResult,
     MatchService,
+    RunMode,
     RunOptions,
     RunProfile,
     RunResult,
@@ -87,6 +100,8 @@ HTTP_UNAVAILABLE = 503
 HTTP_OK = 200
 INPUT_HEADER: tuple[str, ...] = tuple(COLUMN_ALIASES[column][0] for column in Column)
 FAILURE_REASONS = frozenset({ReasonCode.LLM_UNAVAILABLE.value, ReasonCode.BUDGET_CAP.value})
+MODEL_MODES = frozenset({RunMode.LIVE.value, RunMode.CACHED.value})
+ENTRYPOINT = "api"
 
 LLMFactory = Callable[[str], LLMPort]
 Clock = Callable[[], datetime]
@@ -279,15 +294,54 @@ def request_id(clock: Clock) -> str:
     return make_run_id(clock(), secrets.token_hex(REQUEST_NONCE_BYTES))
 
 
+@dataclass(frozen=True)
+class RunWiring:
+    """What one API run was wired with, for its manifest.
+
+    Attributes:
+        pricing: The dated price table.
+        cap_usd: The run's spend cap.
+        adapter: The primary adapter, wrapped in a ``CapturingPort`` when live.
+        fallback_configured: Whether a fallback adapter was built.
+        input_sha256: SHA-256 of the canonical JSON of the request body.
+
+    """
+
+    pricing: PricingTable
+    cap_usd: float
+    adapter: LLMPort
+    fallback_configured: bool
+    input_sha256: str
+
+
+def capturing(adapter: LLMPort) -> LLMPort:
+    """Wrap a live adapter so the run records its rate-limit headers; offline ones stay bare."""
+    return adapter if isinstance(adapter, FakeLLM | ReplayLLM) else CapturingPort(adapter)
+
+
+def body_sha256(body: MatchRequest) -> str:
+    """Return the SHA-256 of a request body's canonical JSON, the API run's input hash."""
+    text = canonical_json(body.model_dump(mode="json"))
+    return hashlib.sha256(text.encode(HASH_ENCODING)).hexdigest()
+
+
+def _captured_headers(adapter: LLMPort) -> dict[str, str]:
+    """Return the headers of a live adapter's last successful call, else {}."""
+    if isinstance(adapter, CapturingPort):
+        return adapter.rate_limit_headers(successful_only=True)
+    return {}
+
+
 @dataclass
 class ApiState:
-    """What the routes share: settings, the service, prices and the adapter factory."""
+    """What the routes share: settings, the service, the adapter factory and the runs folder."""
 
     settings: Settings
     service: MatchService
     factory: LLMFactory
     key_configured: Callable[[], bool]
     runtime: Runtime
+    runs_dir: Path = DEFAULT_RUNS_DIR
 
     def authorize(self, authorization: Annotated[str | None, Header()] = None) -> None:
         """Require the Bearer token on ``/v1/*`` when ``ORIS_API_TOKEN`` is set.
@@ -342,15 +396,64 @@ class ApiState:
         self._check_limits(body)
         boq = request_boq(body.lines)
         run_id = request_id(self.runtime.clock)
-        settings = self.settings
-        pricing = load_pricing(settings.config_file(PRICING_FILE))
-        setup = WrapperSetup(budget_cap_usd(settings, len(boq.lines)), run_id=run_id)
-        wrapper = make_wrapper(self._adapter(), pricing, settings, setup, self.runtime)
-        options = RunOptions(run_id=run_id, fallback=self._fallback(pricing))
+        pricing = load_pricing(self.settings.config_file(PRICING_FILE))
+        fallback = self._fallback(pricing)
+        cap = budget_cap_usd(self.settings, len(boq.lines))
+        wiring = RunWiring(
+            pricing, cap, capturing(self._adapter()), fallback is not None, body_sha256(body)
+        )
+        setup = WrapperSetup(cap, run_id=run_id)
+        wrapper = make_wrapper(wiring.adapter, pricing, self.settings, setup, self.runtime)
+        options = RunOptions(run_id=run_id, fallback=fallback)
         result = await self.service.match(
             boq, body.library, profile=RunProfile.B3, llm=wrapper, options=options
         )
+        self.persist(result, wiring)
         return JSONResponse(match_response(result), headers={REQUEST_ID_HEADER: run_id})
+
+    def persist(self, result: RunResult, wiring: RunWiring) -> Path:
+        """Write the run folder: manifest, calls, audit and prompts, as the CLI does (§9.6).
+
+        Args:
+            result: The run.
+            wiring: What the run was wired with.
+
+        Returns:
+            ``runs/<run_id>/``.
+
+        """
+        root = self.runtime.root()
+        context = ManifestContext(
+            root=root,
+            settings=self.settings,
+            pricing=wiring.pricing,
+            code=code_version(root, self.runtime.git),
+        )
+        reached = result.manifest["mode"] in MODEL_MODES
+        if reached:
+            context = live_context(context, _captured_headers(wiring.adapter))
+        manifest = {**build_manifest(result, context), **self._extra(result, wiring)}
+        if reached and manifest["llm_kind"] == LLMKind.ANTHROPIC.value:
+            manifest = with_measured_tokens(manifest, root / DEFAULT_EVIDENCE_DIR, root)
+        runs_dir = self.runs_dir if self.runs_dir.is_absolute() else root / self.runs_dir
+        return write_run(result, runs_dir, manifest)
+
+    def _extra(self, result: RunResult, wiring: RunWiring) -> dict[str, Any]:
+        """Return the manifest fields only the API knows, named as the CLI names them."""
+        model = str(result.manifest["requested_model"])
+        offline = result.manifest["mode"] == RunMode.FAKE.value
+        kind = LLMKind.FAKE.value if offline else provider_for(model, wiring.pricing)
+        return {
+            "entrypoint": ENTRYPOINT,
+            "llm": kind,
+            "llm_kind": kind,
+            "llm_run_dir": None,
+            "fallback_configured": wiring.fallback_configured,
+            "budget_cap_usd": wiring.cap_usd,
+            "input_sha256": wiring.input_sha256,
+            "policy_path": None,
+            "policy_sha256": None,
+        }
 
     def _fallback(self, pricing: PricingTable) -> LLMPort | None:
         """Build the fallback adapter when its provider's key is set, else None (§11.3, A33)."""
@@ -446,6 +549,7 @@ def create_app(
     llm_factory: LLMFactory | None = None,
     *,
     runtime: Runtime | None = None,
+    runs_dir: Path = DEFAULT_RUNS_DIR,
 ) -> FastAPI:
     """Build the API.
 
@@ -453,7 +557,9 @@ def create_app(
         settings: The effective settings; read from the environment when None.
         llm_factory: Builds the adapter for a model; tests inject FakeLLM. When None, the live
             adapter of the model's provider is built per request, and a missing key is a 503.
-        runtime: Clock and retry sleep; the defaults suit a live server.
+        runtime: Clock, retry sleep, git and the repository root; the defaults suit a live
+            server.
+        runs_dir: Where each match writes its run folder, relative to the runtime's root.
 
     Returns:
         The application.
@@ -469,7 +575,7 @@ def create_app(
         factory, key_configured = llm_factory, lambda: True
     service = MatchService.from_settings(effective)
     environment = runtime or Runtime()
-    state = ApiState(effective, service, factory, key_configured, environment)
+    state = ApiState(effective, service, factory, key_configured, environment, runs_dir)
     app = FastAPI(title="ORIS material matcher", version=__version__)
     app.middleware("http")(_request_id_middleware(environment.clock))
     _routes(app, state)

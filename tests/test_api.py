@@ -1,14 +1,17 @@
 """The /v1 API contract: limits, 422s, auth, X-Request-ID, partial failure, parity (§11.4)."""
 
-import asyncio
+import csv
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from typer.testing import CliRunner
 
+from oris_matcher import cli
 from oris_matcher.api.app import (
     HARD_LINE_LIMIT,
     REQUEST_ID_HEADER,
@@ -16,14 +19,15 @@ from oris_matcher.api.app import (
     create_app,
     request_boq,
 )
-from oris_matcher.doctor import Runtime
+from oris_matcher.doctor import LLMSpec, Runtime
 from oris_matcher.domain.boq import LineKind
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.llm.base import LLMRequest
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind
-from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps
-from oris_matcher.service import MatchService, RunOptions, RunProfile
-from oris_matcher.settings import Settings, load_models_config, load_pricing
+from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.service import MatchService
+from oris_matcher.settings import Settings, load_models_config
+from test_service import answers_for
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config"
@@ -32,9 +36,24 @@ LIBRARIES = {
     "fr": ROOT / "data" / "oris_materials_fr.csv",
 }
 SMALL_BOQ = ROOT / "tests" / "fixtures" / "cli" / "small_boq.csv"
+FR_INPUT = ROOT / "input" / "boq_dataset_input_fr.csv"
 ALLOWLIST = load_models_config(CONFIG / "models.toml").allowlist.patterns
-PRICING = load_pricing(CONFIG / "pricing.toml")
 TOKEN = "api-token-for-tests"
+ENV_NAMES = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "ORIS_API_TOKEN", "ORIS_PRIMARY_MODEL")
+MIN_MATCHED = 20
+LABELS = ("decision", "reason", "material_type", "material_usage", "material_subtype")
+
+
+@pytest.fixture(autouse=True)
+def in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Run every test from a temporary folder, so API run folders never land in the repo."""
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def fake_git(args: Sequence[str], root: Path) -> str:
+    del root
+    return "a" * 40 + "\n" if "rev-parse" in args else ""
 
 
 def make_settings(**overrides: Any) -> Settings:
@@ -78,7 +97,7 @@ async def no_sleep(seconds: float) -> None:
 
 
 def client_for(recorder: Recorder | None = None, **overrides: Any) -> TestClient:
-    runtime = Runtime(sleep=no_sleep)
+    runtime = Runtime(sleep=no_sleep, git=fake_git)
     return TestClient(
         create_app(make_settings(**overrides), recorder or Recorder(), runtime=runtime)
     )
@@ -271,29 +290,83 @@ def test_request_boq_classifies_rows_like_the_reader() -> None:
     assert LineKind.EMPTY_ROW in {line.kind for line in built.lines}
 
 
-def test_cli_and_api_give_the_same_decisions_and_request_hashes() -> None:
-    recorder = Recorder()
-    response = post(client_for(recorder), {"library": "fr", "lines": csv_lines()})
-    api_hashes = sorted(request.sha256() for request in recorder.calls)
-    api_decisions = [(d["decision"], d["reason"]) for d in response.json()["decisions"]]
-
+def _matching_answers() -> dict[str, dict[str, Any]]:
+    """Answers under which many FR input lines are matched against the FR library."""
     service = MatchService.from_settings(make_settings())
-    fake = FakeLLM("claude-haiku-4-5-20251001", ALLOWLIST)
-    wrapper = LLMWrapper(fake, PRICING, BudgetLedger(100.0), None, WrapperDeps())
-    result = asyncio.run(
-        service.match(
-            read_boq(SMALL_BOQ),
-            "fr",
-            profile=RunProfile.B3,
-            llm=wrapper,
-            options=RunOptions(run_id="cli"),
-        )
-    )
-    cli_hashes = sorted(request.sha256() for request in fake.calls)
-    cli_decisions = [(item.decision.decision.value, item.decision.reason) for item in result.lines]
+    return answers_for(read_boq(FR_INPUT), service.library("fr"))
 
-    assert api_hashes == cli_hashes
-    assert api_decisions == cli_decisions
+
+class CliFactory:
+    """The CLI's adapter factory: FakeLLMs with fixed answers, keeping every request."""
+
+    def __init__(self, answers: dict[str, dict[str, Any]]) -> None:
+        self.answers = answers
+        self.fakes: list[FakeLLM] = []
+
+    def __call__(self, spec: LLMSpec, model: str) -> FakeLLM:
+        del spec
+        fake = FakeLLM(model, ALLOWLIST, FakeBehaviour(answers=self.answers))
+        self.fakes.append(fake)
+        return fake
+
+
+def _cli_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, factory: CliFactory
+) -> list[tuple[str, ...]]:
+    """Run ``oris`` on the FR input and return each output row's decision and labels."""
+    for name in ENV_NAMES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
+    monkeypatch.setenv("ORIS_LIBRARIES", json.dumps({k: str(v) for k, v in LIBRARIES.items()}))
+    runtime = Runtime(root=lambda: tmp_path, sleep=no_sleep, git=fake_git, adapter_factory=factory)
+    monkeypatch.setattr(cli, "RUNTIME", runtime)
+    output = tmp_path / "cli.csv"
+    args = ["--input", str(FR_INPUT), "--library", str(LIBRARIES["fr"]), "--output", str(output)]
+    result = CliRunner().invoke(cli.app, [*args, "--llm", "fake", "--no-cache"])
+    assert result.exit_code == 0, result.output
+    with output.open(encoding="utf-8", newline="") as handle:
+        return [tuple(row[label] for label in LABELS) for row in csv.DictReader(handle)]
+
+
+def test_cli_and_api_give_the_same_decisions_and_request_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answers = _matching_answers()
+    recorder = Recorder(FakeBehaviour(answers=answers))
+    response = post(client_for(recorder), {"library": "fr", "lines": csv_lines(FR_INPUT)})
+    api_rows = [
+        tuple("" if d[label] is None else d[label] for label in LABELS)
+        for d in response.json()["decisions"]
+    ]
+    factory = CliFactory(answers)
+
+    cli_rows = _cli_run(tmp_path, monkeypatch, factory)
+
+    assert sum(row[0] == "matched" for row in api_rows) >= MIN_MATCHED
+    assert api_rows == cli_rows
+    cli_requests = [request for fake in factory.fakes for request in fake.calls]
+    assert sorted(r.sha256() for r in recorder.calls) == sorted(r.sha256() for r in cli_requests)
+
+
+def test_match_writes_its_run_folder(in_tmp: Path) -> None:
+    recorder = Recorder()
+    lines = csv_lines()
+
+    body = post(client_for(recorder), {"library": "fr", "lines": lines}).json()
+
+    folder = in_tmp / "runs" / body["run_id"]
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["run_id"] == body["run_id"]
+    assert manifest["mode"] == "fake"
+    assert manifest["code_sha"] == "a" * 40
+    assert manifest["library_id"] == "fr"
+    records = read_calls_jsonl(folder / "calls.jsonl")
+    assert len(records) == len(recorder.calls)
+    recorded = {record.call_id for record in records}
+    assert {call for d in body["decisions"] for call in d["call_ids"]} <= recorded
+    audit = (folder / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(audit) == len(lines)
+    assert list((folder / "prompts").iterdir())
 
 
 ONE_LINE = {
