@@ -1,0 +1,13 @@
+{
+  "input_path": "input/en.csv",
+  "library_sha256": "4149bb33f0b018229110c640f81e3ca8de717dcc32282479677fb85df82101f5",
+  "mode": "replay",
+  "passes_k": 2,
+  "policy_id": "T8",
+  "policy_resolution": "exact",
+  "profile": "b3",
+  "requested_model": "fake-model",
+  "run_id": "b3-en",
+  "source_run_id": "src-en",
+  "threshold_id": "T8"
+}
