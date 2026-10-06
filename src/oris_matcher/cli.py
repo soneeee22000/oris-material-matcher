@@ -546,8 +546,10 @@ def decision_settings(job: MatchJob, settings: Settings) -> Settings:
 def mixed_verifier_spec(job: MatchJob, settings: Settings) -> LLMSpec | None:
     """Return who answers the verifier requests when a run is a mixed E-08 run, else None.
 
-    A run is mixed when it replays a B3 run recorded without the verifier while the verifier is
-    adopted: its main passes come from that run, its verifier requests from this spec.
+    A run is mixed when it is a B3 run that replays a run recorded without the verifier while
+    the verifier is adopted: its main passes come from that run, its verifier requests from this
+    spec. B0 and B2 never run the verifier, so their replays stay plain replays whatever the
+    flag says.
 
     Args:
         job: The run's inputs.
@@ -561,13 +563,13 @@ def mixed_verifier_spec(job: MatchJob, settings: Settings) -> LLMSpec | None:
             replay.
 
     """
-    recorded = _replayed_profile(job)
+    recorded = _replayed_profile(job) if job.profile == RunProfile.B3 else None
     mixed = recorded is not None and settings.verifier_adopted and not recorded.verifier_adopted
     if not mixed:
         if job.llm_verifier is not None:
             raise WiringError(
-                "--llm-verifier applies only to --llm replay:<run> of a run recorded without "
-                "the E-08 verifier, with the verifier adopted"
+                "--llm-verifier applies only to a B3 --llm replay:<run> of a run recorded "
+                "without the E-08 verifier, with the verifier adopted"
             )
         return None
     spec = job.llm_verifier or LLMSpec(LLMKind.ANTHROPIC)

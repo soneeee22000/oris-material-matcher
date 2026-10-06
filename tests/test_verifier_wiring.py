@@ -436,3 +436,51 @@ def test_transport_ids_tie_verifier_calls_to_their_lines(isolated: Path) -> None
     }
     flagged = {by_line[record["line_id"]] for record in _audit(arm) if record["verifier_flagged"]}
     assert asked == flagged
+
+
+# A mixed run is a B3 run: B0 and B2 never run the verifier
+
+
+def _b2_source(tmp_path: Path) -> Path:
+    """Record a fake B2 run."""
+    fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=MAIN_ANSWERS))
+    return _run(tmp_path, "fake", "B2-src", "--profile", "b2", factory=Factory(fake))
+
+
+def test_a_b2_replay_with_the_verifier_adopted_stays_a_plain_replay(isolated: Path) -> None:
+    source = _b2_source(isolated)
+    again = _run(
+        isolated, f"replay:{source.as_posix()}", "B2-again", "--profile", "b2", "--verifier-adopted"
+    )
+    manifest = read_manifest(again)
+    assert manifest["mode"] == "replay"
+    assert "llm_verifier" not in manifest
+    assert not any(_is_verifier(record) for record in _calls(again))
+    assert (again / "output.csv").read_bytes() == (source / "output.csv").read_bytes()
+
+
+def test_a_b2_replay_job_with_the_verifier_adopted_builds_no_routing_port(isolated: Path) -> None:
+    source = _b2_source(isolated)
+    job = cli.MatchJob(
+        input_path=EN_INPUT,
+        library_path=GLOBAL_LIBRARY,
+        llm=LLMSpec(LLMKind.REPLAY, run_dir=source),
+        profile=cli.RunProfile.B2,
+        verifier_adopted=True,
+    )
+    prepared = cli.prepare_run(job, Settings(), make_runtime(isolated))
+    assert prepared.verifier_spec is None
+    assert not isinstance(prepared.adapter, RoutingLLM)
+
+
+def test_llm_verifier_on_a_b2_replay_is_refused_before_any_call(
+    isolated: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = _b2_source(isolated)
+    capsys.readouterr()
+    extra = ("--profile", "b2", "--verifier-adopted", "--llm-verifier", "fake")
+    code = runner.main(
+        argv(isolated, f"replay:{source.as_posix()}", "E-08", *extra), make_runtime(isolated)
+    )
+    assert code == 2
+    assert "--llm-verifier applies only" in capsys.readouterr().err
