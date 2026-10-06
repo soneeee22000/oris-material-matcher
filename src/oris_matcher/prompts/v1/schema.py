@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 CONFIDENCE_MIN = 0
 CONFIDENCE_MAX = 100
-EVIDENCE_MAX_WORDS = 12
+EVIDENCE_MAX_WORDS = 25
 SCHEMA_TITLE_KEY = "title"
 
 Kind = Literal["material", "non_material", "no_equivalent"]

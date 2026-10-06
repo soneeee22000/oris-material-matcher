@@ -40,7 +40,7 @@ from oris_matcher.llm.wrapper import (
     cost_of,
     reservation_usd,
 )
-from oris_matcher.prompts.v1.schema import LineAnswer, output_json_schema
+from oris_matcher.prompts.v1.schema import EVIDENCE_MAX_WORDS, LineAnswer, output_json_schema
 from oris_matcher.settings import PricingTable, load_models_config, load_pricing
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -852,7 +852,7 @@ async def test_empty_batch_makes_no_call() -> None:
 # ---------------------------------------------------------------- per-line validation (G1-T1a)
 
 TEN_IDS = tuple(f"L{number}" for number in range(1, 11))
-LONG_EVIDENCE = " ".join(["mot"] * 14)
+LONG_EVIDENCE = " ".join(["mot"] * (EVIDENCE_MAX_WORDS + 1))
 BROKEN_ENVELOPE = '{"lines": [{"id": "L1"'
 
 
