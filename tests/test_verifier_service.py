@@ -24,12 +24,14 @@ from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM
 from oris_matcher.llm.routing import RoutingLLM
 from oris_matcher.llm.wrapper import (
     BudgetLedger,
+    LineOutcome,
     LLMWrapper,
     WrapperDeps,
     estimate_tokens,
     reservation_usd,
 )
 from oris_matcher.prompts.v1.verifier import (
+    VerifierAnswer,
     build_verifier_request,
     is_verifier_request,
     payload_codes,
@@ -50,6 +52,7 @@ from oris_matcher.service import (
     run_mode,
 )
 from oris_matcher.settings import Settings
+from oris_matcher.verification import verifier_groups
 from test_service import (
     ALLOWLIST,
     CONFIG,
@@ -521,3 +524,46 @@ def test_a_breaker_tripped_by_the_verifier_fails_the_flagged_lines_closed() -> N
     assert unavailable in failures
     assert failures <= {"timeout", unavailable}
     assert result.exit_code == EXIT_LLM_UNAVAILABLE
+
+
+# Smaller guards of the stage
+
+
+def test_the_manifest_counts_only_validated_verifier_answers() -> None:
+    answers, kinds = _scenario()
+    result = _run(ON, _fake(answers))
+    validated = sum(kind in {"agree", "other", "none"} for kind in kinds.values())
+    assert 0 < validated < len(kinds)
+    assert result.manifest["verifier"]["answered_count"] == validated
+    assert result.manifest["verifier"]["flagged_count"] == len(kinds)
+
+
+def test_verifier_batches_need_a_positive_size() -> None:
+    by_transport = {transport_id(line): line for line in BOQ.lines}
+    flagged = [(by_transport[line_id], top1) for line_id, top1 in sorted(FLAGGED.items())]
+    for size in (0, -1):
+        with pytest.raises(ValueError, match="batch size must be >= 1"):
+            verifier_groups(flagged, GLOBAL, size)
+    assert verifier_groups(flagged, GLOBAL, 1)
+
+
+def test_a_verifier_verdict_is_not_a_pass_outcome() -> None:
+    verdict = VerifierAnswer(id="L3", evidence="x", code=VERIFIER_NONE)
+    with pytest.raises(ValueError, match="verdict is not a pass outcome"):
+        LineOutcome(line_id="L3", call_ids=("c1",), verdict=verdict).pass_outcome()
+
+
+def test_a_run_with_nothing_flagged_makes_no_verifier_call() -> None:
+    nothing = {
+        line_id: {**answer, "kind": "no_equivalent", "top1": "", "top2": ""}
+        for line_id, answer in MAIN_ANSWERS.items()
+    }
+    fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=nothing))
+    result = _run(ON, fake)
+    assert fake.calls
+    assert not _verifier_requests(fake)
+    assert not any(item.decision.rule == Rule.D9 for item in result.lines)
+    counts = result.manifest["verifier"]
+    assert (counts["flagged_count"], counts["answered_count"], counts["call_count"]) == (0, 0, 0)
+    assert all(record["verifier_flagged"] is False for record in result.audit)
+    assert result.exit_code == EXIT_OK
