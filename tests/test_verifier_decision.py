@@ -20,12 +20,14 @@ from oris_matcher.domain.decision import (
     ReasonCode,
     Rule,
     decide,
+    flagged_top1,
     is_flagged,
 )
 from test_decision_table import (
     BLANK,
     LIBRARY,
     LOOSEST,
+    MATCH_ALL,
     NEVER,
     OTHER_SPECIFIC,
     SPECIFIC,
@@ -166,10 +168,13 @@ def _all_flags(**overrides: Any) -> DecisionProfile:
 
 def test_flagging_reads_the_other_flags_of_the_profile() -> None:
     passes = (_ok("c1", top1=OTHER_SPECIFIC), _ok("c2"))
-    decision_input = _input(passes=passes, threshold=LOOSEST)
-    off_flagged = is_flagged(decision_input, LIBRARY, DecisionProfile(verifier_adopted=True))
-    drop_flagged = is_flagged(decision_input, LIBRARY, _all_flags())
-    assert off_flagged is False
-    assert drop_flagged is False
-    drop_off = decide(decision_input, LIBRARY, DecisionProfile(drop_conflicting_votes=True))
-    assert is_flagged(decision_input, LIBRARY, _all_flags()) is (drop_off.rule == Rule.D9)
+    decision_input = _input(passes=passes, threshold=MATCH_ALL)
+    kept = DecisionProfile(verifier_adopted=True)
+    assert decide(decision_input, LIBRARY, DecisionProfile()).rule == Rule.D7
+    assert decide(decision_input, LIBRARY, DecisionProfile(drop_conflicting_votes=True)).rule == (
+        Rule.D9
+    )
+    assert is_flagged(decision_input, LIBRARY, kept) is False
+    assert is_flagged(decision_input, LIBRARY, _all_flags()) is True
+    assert flagged_top1(decision_input, LIBRARY, kept) is None
+    assert flagged_top1(decision_input, LIBRARY, _all_flags()) == SPECIFIC
