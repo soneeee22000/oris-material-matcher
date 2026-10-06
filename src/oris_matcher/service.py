@@ -29,6 +29,7 @@ from oris_matcher.domain.attributes import Attributes, AttrResult, compare, extr
 from oris_matcher.domain.batching import Batch, plan_batches, transport_id
 from oris_matcher.domain.boq import BoqFile, BoqLine, LineKind, PathMode
 from oris_matcher.domain.decision import (
+    DEFAULT_PROFILE,
     ConfidenceBucket,
     Decision,
     DecisionInput,
@@ -1109,12 +1110,17 @@ class _Assembly:
             line_failure=calls.line_failure() if calls else None,
         )
 
+    @property
+    def decision_profile(self) -> DecisionProfile:
+        """The profile that decides the run: the settings' for B3; B0 and B2 have none (A64)."""
+        return self.resources.decision_profile if self.plan.is_full else DEFAULT_PROFILE
+
     def _decide(self, decision_input: DecisionInput) -> LineDecision:
         """Apply the profile's decision table."""
         if self.plan.is_rules_only:
             return decide_b0(decision_input, self.plan.library)
         if self.plan.is_full:
-            return decide(decision_input, self.plan.library, self.resources.decision_profile)
+            return decide(decision_input, self.plan.library, self.decision_profile)
         return decide_b2(decision_input, self.plan.library)
 
     def _line_result(self, line: BoqLine) -> LineResult:
@@ -1192,7 +1198,7 @@ class _Assembly:
             "enrichment_sha256": None,
             **_candidate_fields(plan),
             **_policy_fields(self.policy),
-            **decision_profile_fields(resources.decision_profile),
+            **decision_profile_fields(self.decision_profile),
             "path_mode": plan.boq.path_mode.value,
             "encoding": plan.boq.encoding,
             "delimiter": plan.boq.delimiter,
