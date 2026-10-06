@@ -1,0 +1,12 @@
+Item No.,decision,material_type,material_usage,material_subtype,reason
+01.,not_a_material,,,,HEADER
+01.01.,not_a_material,,,,HEADER
+01.01.0010.,needs_review,,,,LOW_SIGNAL
+01.01.0020.,needs_review,,,,LOW_SIGNAL
+01.01.0030.,matched,Steel,Rebar,B500B,SIGNAL
+01.01.0040.,needs_review,,,,LOW_SIGNAL
+01.01.0050.,needs_review,,,,LOW_SIGNAL
+01.01.0060.,needs_review,,,,LOW_SIGNAL
+01.01.0065.,needs_review,,,,LOW_SIGNAL
+01.01.0070.,needs_review,,,,LOW_SIGNAL
+01.01.0080.,needs_review,,,,LOW_SIGNAL

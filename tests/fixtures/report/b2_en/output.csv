@@ -1,0 +1,12 @@
+Item No.,decision,material_type,material_usage,material_subtype,reason
+01.,not_a_material,,,,HEADER
+01.01.,not_a_material,,,,HEADER
+01.01.0010.,matched,Concrete,Foundations,C30/37,SIGNAL
+01.01.0020.,matched,Concrete,Foundations,C30/37,SIGNAL
+01.01.0030.,matched,Steel,Rebar,B500B,SIGNAL
+01.01.0040.,matched,Asphalt,Base course,AC20,SIGNAL
+01.01.0050.,matched,Concrete,Foundations,C30/37,SIGNAL
+01.01.0060.,matched,Concrete,Foundations,C25/30,SIGNAL
+01.01.0065.,matched,Steel,Rebar,B500B,SIGNAL
+01.01.0070.,matched,Concrete,Foundations,C25/30,SIGNAL
+01.01.0080.,needs_review,,,,LOW_SIGNAL
