@@ -19,6 +19,10 @@ as ``cause_targeted`` (null when absent), and any other cause is refused.
 ``--drop-conflicting-votes`` turns on arm ``E-subtype-drop`` (A64) for the run; without it a
 ``replay:<run>`` re-decides with the replayed run's recorded value and any other run with the
 setting. The row records the profile used as ``decision_profile``, whatever ``--change`` says.
+``--verifier-adopted`` turns on the E-08 sibling verifier (A65.2) the same way. With
+``--llm replay:<run>`` of a run recorded without it, the run is mixed: the main passes are
+served from that run at $0 and only the verifier requests reach ``--llm-verifier`` (the live
+primary when absent; ``fake`` offline), so its ``spend_usd`` is the verifier's alone.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -43,7 +47,8 @@ Usage::
         --library data/oris_materials_global.csv --split eval/split_v1.json --side dev \
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
-        [--cause-targeted lexical_gap] [--drop-conflicting-votes] --change "..."
+        [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
+        [--verifier-adopted [--llm-verifier fake]] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
 """
@@ -74,6 +79,7 @@ from oris_matcher.doctor import LIVE_KINDS, Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
+from oris_matcher.llm.replay_llm import ReplayMissError
 from oris_matcher.service import DECISION_PROFILE_KEY, RunProfile
 from oris_matcher.settings import ConfigError, Settings
 
@@ -1123,6 +1129,8 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         split_sha256=file_sha256(args.split),
         budget_usd=_budget(args),
         drop_conflicting_votes=True if args.drop_conflicting_votes else None,
+        verifier_adopted=True if args.verifier_adopted else None,
+        llm_verifier=parse_llm_spec(args.llm_verifier) if args.llm_verifier else None,
     )
 
 
@@ -1300,6 +1308,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--drop-conflicting-votes", action="store_true")
+    parser.add_argument("--verifier-adopted", action="store_true")
+    parser.add_argument("--llm-verifier")
     parser.set_defaults(profile=RunProfile.B3.value)
     return parser
 
@@ -1324,7 +1334,15 @@ def main(argv: Sequence[str] | None = None, runtime: Runtime | None = None) -> i
     except RefusedError as error:
         print(f"refused: {error}", file=sys.stderr)
         return EXIT_REFUSED
-    except (ExperimentError, WiringError, ConfigError, OSError, ValueError, KeyError) as error:
+    except (
+        ExperimentError,
+        WiringError,
+        ConfigError,
+        OSError,
+        ValueError,
+        KeyError,
+        ReplayMissError,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         return EXIT_ERROR
 

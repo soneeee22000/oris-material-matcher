@@ -7,6 +7,14 @@ summary. ``--profile b0`` is the rules-only floor: it never builds a live adapte
 and may run over a whole exercise input before the freeze, because it sends nothing to a model.
 Exit codes: 0 ok, 1 a ``replay --check`` mismatch or a failed doctor check, 2 a usage
 or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss (§11.3).
+
+E-08 (A65.2) is measured as a mixed run: ``--llm replay:<run>`` with the verifier adopted, over a
+run recorded without it, serves the main passes from that run's ``calls.jsonl`` through the
+response cache ($0, a strict ReplayLLM behind it so nothing else is answered) and sends only the
+verifier requests to ``--llm-verifier`` (the live primary by default). A ``RoutingLLM`` picks
+the adapter by request kind. The run is ``cached`` (``fake`` with a fake verifier) and names the
+replayed run as its source; its ``calls.jsonl`` holds both kinds, so a plain replay of it is
+byte-identical.
 """
 
 import asyncio
@@ -46,6 +54,7 @@ from oris_matcher.doctor import (
     make_wrapper,
     parse_llm_spec,
     read_manifest,
+    recorded_declines,
     render_table,
     resolve_spec_model,
     run_doctor,
@@ -53,6 +62,7 @@ from oris_matcher.doctor import (
     with_measured_tokens,
 )
 from oris_matcher.domain.boq import BoqFile
+from oris_matcher.domain.decision import DecisionProfile
 from oris_matcher.io.audit import (
     AUDIT_FILE,
     CALLS_FILE,
@@ -73,8 +83,10 @@ from oris_matcher.io.writer import render_csv
 from oris_matcher.llm.base import LLMPort, canonical_json
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.recording import CallRecord, ReasonForCall, read_calls_jsonl
-from oris_matcher.llm.replay_llm import ResponseCache
+from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ReplayMissError, ResponseCache
+from oris_matcher.llm.routing import RoutingLLM
 from oris_matcher.llm.wrapper import PrefixKey
+from oris_matcher.prompts.v1.verifier import is_verifier_request
 from oris_matcher.service import (
     EXIT_OK,
     MatchService,
@@ -118,8 +130,9 @@ P50 = 50
 P95 = 95
 SHARE_DIGITS = 1
 COST_DIGITS = 6
-USAGE_ERRORS = (WiringError, ConfigError, OSError, ValueError, KeyError)
+USAGE_ERRORS = (WiringError, ConfigError, OSError, ValueError, KeyError, ReplayMissError)
 LIVE_MODE = "live"
+UNMEASURED_MODES = frozenset({"fake", "rules"})
 INPUT_ROLE = "input"
 POLICY_ROLE = "policy"
 LIBRARY_ROLE = "library"
@@ -217,6 +230,10 @@ class MatchJob:
         budget_usd: A hard cap below the §11.3 per-100-lines cap.
         drop_conflicting_votes: Forces arm ``E-subtype-drop`` (A64) on or off; None keeps the
             replayed run's recorded value for a replay, else the setting.
+        verifier_adopted: Forces the E-08 verifier on or off; None keeps the replayed run's
+            recorded value for a replay, else the setting.
+        llm_verifier: Who answers the verifier requests of a mixed E-08 run; None means the
+            live primary. Only a mixed run (see the module docstring) may name one.
 
     """
 
@@ -233,6 +250,8 @@ class MatchJob:
     split_sha256: str | None = None
     budget_usd: float | None = None
     drop_conflicting_votes: bool | None = None
+    verifier_adopted: bool | None = None
+    llm_verifier: LLMSpec | None = None
 
 
 @dataclass(frozen=True)
@@ -249,6 +268,8 @@ class PreparedRun:
         input_sha256: SHA-256 of the input bytes.
         spec: The effective ``--llm``, after a missing primary key moved it to the fallback.
         fallback: The adapter that takes over once the breaker trips, or None.
+        verifier_spec: Who answers the verifier requests of a mixed E-08 run; None for any
+            other run.
 
     """
 
@@ -261,13 +282,22 @@ class PreparedRun:
     input_sha256: str
     spec: LLMSpec
     fallback: LLMPort | None = None
+    verifier_spec: LLMSpec | None = None
 
     @property
     def rate_limit_headers(self) -> dict[str, str]:
         """The rate-limit headers of the live adapter's last successful call, else {}."""
-        if isinstance(self.adapter, CapturingPort):
-            return self.adapter.rate_limit_headers(successful_only=True)
+        adapter = self.adapter
+        if isinstance(adapter, RoutingLLM):
+            adapter = adapter.verifier
+        if isinstance(adapter, CapturingPort):
+            return adapter.rate_limit_headers(successful_only=True)
         return {}
+
+    @property
+    def live_verifier(self) -> bool:
+        """Whether a mixed E-08 run sends its verifier requests to a live model."""
+        return self.verifier_spec is not None and self.verifier_spec.kind in LIVE_KINDS
 
 
 @dataclass(frozen=True)
@@ -482,26 +512,116 @@ def _adapters(
     return adapter, fallback or _replay_fallback(spec, adapter)
 
 
+def _replayed_profile(job: MatchJob) -> DecisionProfile | None:
+    """Return the profile a replayed run recorded; None for other runs and for B0."""
+    replayed = job.llm.run_dir if job.llm.kind == LLMKind.REPLAY else None
+    if replayed is None or job.profile == RunProfile.B0:
+        return None
+    return recorded_decision_profile(read_manifest(replayed))
+
+
 def decision_settings(job: MatchJob, settings: Settings) -> Settings:
-    """Apply the run's decision profile: the job's value, else a replay's recorded one (A64).
+    """Apply the run's decision profile: the job's values, else a replay's recorded ones.
 
     Args:
         job: The run's inputs.
         settings: The effective settings.
 
     Returns:
-        The settings with ``drop_conflicting_votes`` forced by the job, or read back from the
-        replayed run's manifest (off for a run recorded before A64); otherwise unchanged. A B0
-        run reads no replayed folder.
+        The settings with ``drop_conflicting_votes`` (A64) and ``verifier_adopted`` (E-08)
+        forced by the job, or read back from the replayed run's manifest (off for a run
+        recorded before either); otherwise unchanged. A B0 run reads no replayed folder.
 
     """
-    value = job.drop_conflicting_votes
-    replayed = job.llm.run_dir if job.llm.kind == LLMKind.REPLAY else None
-    if value is None and replayed is not None and job.profile != RunProfile.B0:
-        value = recorded_decision_profile(read_manifest(replayed)).drop_conflicting_votes
-    if value is None:
-        return settings
-    return settings.model_copy(update={"drop_conflicting_votes": value})
+    recorded = _replayed_profile(job)
+    drop, verify = job.drop_conflicting_votes, job.verifier_adopted
+    if recorded is not None:
+        drop = recorded.drop_conflicting_votes if drop is None else drop
+        verify = recorded.verifier_adopted if verify is None else verify
+    values = {"drop_conflicting_votes": drop, "verifier_adopted": verify}
+    update = {name: value for name, value in values.items() if value is not None}
+    return settings.model_copy(update=update) if update else settings
+
+
+def mixed_verifier_spec(job: MatchJob, settings: Settings) -> LLMSpec | None:
+    """Return who answers the verifier requests when a run is a mixed E-08 run, else None.
+
+    A run is mixed when it replays a B3 run recorded without the verifier while the verifier is
+    adopted: its main passes come from that run, its verifier requests from this spec.
+
+    Args:
+        job: The run's inputs.
+        settings: The settings after ``decision_settings``.
+
+    Returns:
+        ``job.llm_verifier``, or the live primary (``anthropic``) when it names none.
+
+    Raises:
+        WiringError: ``--llm-verifier`` is named for a run that is not mixed, or names a
+            replay.
+
+    """
+    recorded = _replayed_profile(job)
+    mixed = recorded is not None and settings.verifier_adopted and not recorded.verifier_adopted
+    if not mixed:
+        if job.llm_verifier is not None:
+            raise WiringError(
+                "--llm-verifier applies only to --llm replay:<run> of a run recorded without "
+                "the E-08 verifier, with the verifier adopted"
+            )
+        return None
+    spec = job.llm_verifier or LLMSpec(LLMKind.ANTHROPIC)
+    if spec.kind == LLMKind.REPLAY:
+        raise WiringError("--llm-verifier names a live provider or fake, never a replay")
+    return spec
+
+
+def mixed_adapter(
+    job: MatchJob, verifier_spec: LLMSpec, model: str, settings: Settings, runtime: Runtime
+) -> RoutingLLM:
+    """Build a mixed E-08 run's port: replayed main passes, verifier requests to their spec.
+
+    The main route is a strict ReplayLLM over the replayed run: the run's cache serves every
+    recorded answer first, so this route only ever sees a request the replayed run never made,
+    and raises instead of calling anything.
+
+    Args:
+        job: The run's inputs; ``job.llm`` replays a run recorded without the verifier.
+        verifier_spec: Who answers the verifier requests.
+        model: The replayed run's requested model, which the verifier must use too.
+        settings: The effective settings.
+        runtime: Supplies the adapter factory and the HTTP client.
+
+    Returns:
+        The routing port.
+
+    Raises:
+        WiringError: No replayed folder, a live verifier over a run whose answers are not
+            measurements (fake or rules), or a verifier spec whose model is not the replayed
+            run's.
+
+    """
+    run_dir = job.llm.run_dir
+    if run_dir is None:
+        raise WiringError("a mixed E-08 run replays a run folder: --llm replay:<run_dir>")
+    manifest = read_manifest(run_dir)
+    if verifier_spec.kind in LIVE_KINDS and manifest.get("mode") in UNMEASURED_MODES:
+        raise WiringError(
+            f"{run_dir.as_posix()} is a {manifest.get('mode')} run: a live verifier over its "
+            "answers would measure nothing; use --llm-verifier fake"
+        )
+    models_config = load_models_config(settings.config_file(MODELS_FILE))
+    pricing = load_pricing(settings.config_file(PRICING_FILE))
+    if resolve_spec_model(verifier_spec, settings, pricing, models_config) != model:
+        raise WiringError(f"--llm-verifier must answer with the replayed run's model {model}")
+    allowlist = models_config.allowlist.patterns
+    recorded = RecordedRun.from_calls_jsonl(run_dir / CALLS_FILE)
+    declined = recorded_declines(run_dir)
+    main = ReplayLLM(recorded, model, allowlist, strict=True, declined=declined)
+    verifier = build_adapter(verifier_spec, model, settings, allowlist, runtime)
+    if verifier_spec.kind in LIVE_KINDS:
+        verifier = CapturingPort(verifier)
+    return RoutingLLM(main=main, verifier=verifier, is_verifier=is_verifier_request)
 
 
 def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
@@ -536,9 +656,16 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     pricing = load_pricing(settings.config_file(PRICING_FILE))
     model = resolve_spec_model(spec, settings, pricing, models_config)
     settings = settings.model_copy(update={"primary_model": model})
-    adapter, fallback = _adapters(job, spec, model, settings, runtime)
+    verifier_spec = mixed_verifier_spec(job, settings)
+    if verifier_spec is None:
+        adapter, fallback = _adapters(job, spec, model, settings, runtime)
+    else:
+        check_exercise_input(job, verifier_spec, digest, runtime)
+        adapter, fallback = mixed_adapter(job, verifier_spec, model, settings, runtime), None
     service = _service(settings, job.policy_path)
-    return PreparedRun(settings, library_id, pricing, service, adapter, boq, digest, spec, fallback)
+    return PreparedRun(
+        settings, library_id, pricing, service, adapter, boq, digest, spec, fallback, verifier_spec
+    )
 
 
 @dataclass(frozen=True)
@@ -617,8 +744,34 @@ def load_cache(runs_dir: Path, key: CacheKey) -> CacheIndex:
     return CacheIndex(ResponseCache.from_records(records), sources)
 
 
+def replayed_cache(run_dir: Path) -> CacheIndex:
+    """Seed a mixed E-08 run's cache with every answer the replayed run recorded.
+
+    The replayed run's records are its responses verbatim (a replay's are copies of a live
+    run's), so serving them as cache hits copies the main passes at $0, and each hit names the
+    replayed run as its source.
+
+    Args:
+        run_dir: The replayed run folder.
+
+    Returns:
+        The cache and, for each original call id, the replayed run's id.
+
+    """
+    records = read_calls_jsonl(run_dir / CALLS_FILE)
+    run_id = str(read_manifest(run_dir).get("run_id") or run_dir.name)
+    sources = {record.source_call_id or record.call_id: run_id for record in records}
+    return CacheIndex(ResponseCache.from_records(records), sources)
+
+
 def _cache_index(job: MatchJob, prepared: PreparedRun) -> CacheIndex:
-    """Return the run's cache: empty for ``--no-cache`` and every fake, replayed or B0 run."""
+    """Return the run's cache; a mixed E-08 run's holds the replayed run's answers.
+
+    Every other run gets earlier live runs' answers, none for ``--no-cache`` and none for a
+    fake, replayed or B0 run.
+    """
+    if prepared.verifier_spec is not None and job.llm.run_dir is not None:
+        return replayed_cache(job.llm.run_dir)
     if not job.use_cache or not reaches_model(job, prepared.spec):
         return CacheIndex()
     key = CacheKey(prepared.spec.kind.value, prepared.service.resources.requested_model)
@@ -730,7 +883,7 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
         excel_bom=job.excel_bom,
         input_path=job.input_path,
     )
-    if not reaches_model(job, prepared.spec):
+    if not reaches_model(job, prepared.spec) and not prepared.live_verifier:
         return context
     return live_context(context, prepared.rate_limit_headers)
 
@@ -738,7 +891,9 @@ def _context(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> Manifest
 def _extra_fields(job: MatchJob, prepared: PreparedRun, cap: float, root: Path) -> dict[str, Any]:
     """Return the manifest fields only the CLI knows: adapter, cap, input and policy file."""
     policy, replayed = job.policy_path, _replayed_dir(job, prepared.spec)
+    verifier = prepared.verifier_spec
     return {
+        **({"llm_verifier": verifier.text} if verifier is not None else {}),
         "llm": llm_text(prepared.spec, root),
         "llm_run_dir": portable_path(replayed, root) if replayed else None,
         "llm_kind": prepared.spec.kind.value,
@@ -986,7 +1141,7 @@ def settings_from_manifest(manifest: Mapping[str, Any]) -> Settings:
 
     Returns:
         The settings the run used, with its requested model as the primary and its recorded
-        decision profile (off for a run recorded before A64).
+        decision profile (each flag off for a run recorded without it).
 
     """
     recorded = manifest.get("settings_effective") or {}
@@ -997,7 +1152,9 @@ def settings_from_manifest(manifest: Mapping[str, Any]) -> Settings:
         if name in Settings.model_fields
     }
     known["primary_model"] = manifest["requested_model"]
-    known["drop_conflicting_votes"] = recorded_decision_profile(manifest).drop_conflicting_votes
+    profile = recorded_decision_profile(manifest)
+    known["drop_conflicting_votes"] = profile.drop_conflicting_votes
+    known["verifier_adopted"] = profile.verifier_adopted
     return Settings(**known)
 
 
