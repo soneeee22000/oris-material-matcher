@@ -2,6 +2,8 @@
 
 Each call takes the next entry of the script; once the script is spent, the rule decides. A
 ``None`` entry, or a rule returning None, means a normal answer for every requested line id.
+An E-08 verifier request, told apart by its schema, is answered with verifier objects: the
+canned ``verifier_answers``, else the first candidate code the request lists.
 """
 
 import json
@@ -10,6 +12,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from oris_matcher.domain.decision import VERIFIER_NONE
 from oris_matcher.llm.base import (
     LLMRequest,
     LLMResult,
@@ -17,6 +20,7 @@ from oris_matcher.llm.base import (
     Usage,
     require_allowed_model,
 )
+from oris_matcher.prompts.v1.verifier import is_verifier_request, payload_codes
 
 FAKE_LATENCY_MS = 100
 FAKE_TIMEOUT_LATENCY_MS = 30_000
@@ -86,6 +90,8 @@ class FakeBehaviour:
         script: One entry per call, in call order.
         rule: Fault chooser by 1-based call number, used once the script is spent.
         usage: Fixed usage to report; by default it is derived from text lengths.
+        verifier_answers: Canned verifier objects by line id, for verifier requests; other ids
+            get ``default_verifier_answer``.
 
     """
 
@@ -93,6 +99,7 @@ class FakeBehaviour:
     script: Sequence[Fault | None] = ()
     rule: FaultRule | None = None
     usage: Usage | None = None
+    verifier_answers: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
 
 def default_answer(line_id: str) -> dict[str, Any]:
@@ -117,6 +124,21 @@ def default_answer(line_id: str) -> dict[str, Any]:
         "confidence": DEFAULT_CONFIDENCE,
         "self_reported_candidate_gap": "clear",
     }
+
+
+def default_verifier_answer(line_id: str, req: LLMRequest) -> dict[str, Any]:
+    """Return a schema-valid verifier object: the first candidate code the request lists.
+
+    Args:
+        line_id: The line id.
+        req: The verifier request.
+
+    Returns:
+        ``{id, evidence, code}``, with ``NONE`` when the request lists no candidate.
+
+    """
+    codes = payload_codes(req.user_payload)
+    return {"id": line_id, "evidence": "", "code": codes[0] if codes else VERIFIER_NONE}
 
 
 class FakeLLM:
@@ -159,7 +181,7 @@ class FakeLLM:
         self.calls.append(req)
         fault = self._next_fault(len(self.calls), req)
         if fault is None:
-            return self._content(req, self._lines(req.line_ids), STOP_END_TURN)
+            return self._content(req, self._lines(req, req.line_ids), STOP_END_TURN)
         return self._apply(req, fault)
 
     def _next_fault(self, call_no: int, req: LLMRequest) -> Fault | None:
@@ -170,14 +192,17 @@ class FakeLLM:
         rule = self.behaviour.rule
         return rule(call_no, req) if rule is not None else None
 
-    def _answer(self, line_id: str) -> dict[str, Any]:
-        """Return the canned or default answer object for one line."""
+    def _answer(self, req: LLMRequest, line_id: str) -> dict[str, Any]:
+        """Return the canned or default answer object for one line, of the request's kind."""
+        if is_verifier_request(req):
+            verdict = self.behaviour.verifier_answers.get(line_id)
+            return dict(verdict) if verdict is not None else default_verifier_answer(line_id, req)
         canned = self.behaviour.answers.get(line_id)
         return dict(canned) if canned is not None else default_answer(line_id)
 
-    def _lines(self, line_ids: Iterable[str]) -> list[dict[str, Any]]:
+    def _lines(self, req: LLMRequest, line_ids: Iterable[str]) -> list[dict[str, Any]]:
         """Return the answer objects for the given ids, in order."""
-        return [self._answer(line_id) for line_id in line_ids]
+        return [self._answer(req, line_id) for line_id in line_ids]
 
     def _apply(self, req: LLMRequest, fault: Fault) -> LLMResult:
         """Build the faulty result for one call."""
@@ -187,7 +212,7 @@ class FakeLLM:
         if fault.kind == FaultKind.MALFORMED:
             return self._text(req, MALFORMED_TEXT, STOP_END_TURN, LLMStatus.MALFORMED)
         if fault.kind == FaultKind.TRUNCATED:
-            full = _batch_text(self._lines(req.line_ids))
+            full = _batch_text(self._lines(req, req.line_ids))
             cut = full[: len(full) // TRUNCATION_DIVISOR]
             return self._text(req, cut, STOP_MAX_TOKENS, LLMStatus.TRUNCATED)
         if fault.kind == FaultKind.REFUSAL:
@@ -226,15 +251,16 @@ class FakeLLM:
         """Build the answer objects for an id-level or schema fault."""
         ids = list(req.line_ids)
         if fault.kind == FaultKind.DROP_IDS:
-            return self._lines(i for i in ids if i not in fault.ids)
+            return self._lines(req, (i for i in ids if i not in fault.ids))
         if fault.kind == FaultKind.UNKNOWN_IDS:
-            return self._lines(ids) + self._lines(fault.ids)
+            return self._lines(req, ids) + self._lines(req, fault.ids)
         if fault.kind == FaultKind.SWAP_IDS:
-            return _swapped(self._lines(ids))
+            return _swapped(self._lines(req, ids))
         if fault.kind == FaultKind.INVALID_SCHEMA:
-            return [{**line, "confidence": str(line["confidence"])} for line in self._lines(ids)]
+            lines = self._lines(req, ids)
+            return [{**line, "confidence": str(line["confidence"])} for line in lines]
         conflicting = fault.kind == FaultKind.CONFLICTING_DUPLICATES
-        return _with_duplicates(self._lines(ids), fault.ids, conflicting=conflicting)
+        return _with_duplicates(self._lines(req, ids), fault.ids, conflicting=conflicting)
 
     def _content(self, req: LLMRequest, lines: list[dict[str, Any]], stop: str) -> LLMResult:
         """Build a delivered, parseable response."""
