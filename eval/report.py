@@ -46,7 +46,9 @@ import csv
 import hashlib
 import importlib.util
 import io
+import itertools
 import json
+import math
 import sys
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
@@ -149,7 +151,11 @@ BAR_WIDTH = 0.38
 BAR_FILL = 0.9
 BAR_CENTRE = 0.5
 BAR_TOP = 1.3
-LABEL_OFFSETS = ((4, 4), (4, -11))
+LABEL_GAP = 4
+LABEL_QUADRANTS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+LABEL_PROBE = (0.2, 0.1)
+LABEL_ALIGNMENT = {1: ("left", "bottom"), -1: ("right", "top")}
+SEGMENT_SAMPLES = 8
 SMALL_FONT = 8
 EXIT_OK = 0
 EXIT_ERROR = 2
@@ -157,6 +163,7 @@ EXIT_REFUSED = 4
 
 FloatArray = NDArray[np.float64]
 Rank = tuple[int, int, int]
+Point = tuple[float, float]
 Triple = tuple[str, str, str]
 
 matplotlib.use(BACKEND)
@@ -902,15 +909,89 @@ def plot_selected(axes: Axes, marks: Sequence[Mapping[str, Any]]) -> None:
             )
 
 
-def plot_thresholds(axes: Axes, marks: Sequence[Mapping[str, Any]]) -> None:
-    """Label T1-T8 on the curve and highlight the selected threshold."""
-    labels = grouped_threshold_labels(marks).items()
-    for index, ((x_value, y_value), text) in enumerate(labels):
+def to_inches(point: Point, spans: Point) -> Point:
+    """Return a data point in inches of the figure, so both axes are measured alike."""
+    return (point[0] / spans[0] * FIGURE_SIZE[0], point[1] / spans[1] * FIGURE_SIZE[1])
+
+
+def clearance(probe: Point, others: Sequence[Point]) -> float:
+    """Return the distance from ``probe`` to the nearest of ``others`` (inf when none)."""
+    return min((math.dist(probe, other) for other in others), default=math.inf)
+
+
+def label_quadrant(anchor: Point, obstacles: Sequence[Point], spans: Point) -> tuple[int, int]:
+    """Return the (x, y) signs of the label quadrant farthest from every obstacle.
+
+    Args:
+        anchor: The labelled point, in data units.
+        obstacles: Every other plotted point, in data units.
+        spans: The axes' data width and height.
+
+    Returns:
+        The quadrant whose label centre clears the nearest obstacle most; up-right on a tie.
+
+    """
+    origin = to_inches(anchor, spans)
+    others = [to_inches(point, spans) for point in obstacles]
+    probes = {
+        quadrant: (
+            origin[0] + quadrant[0] * LABEL_PROBE[0],
+            origin[1] + quadrant[1] * LABEL_PROBE[1],
+        )
+        for quadrant in LABEL_QUADRANTS
+    }
+    return max(LABEL_QUADRANTS, key=lambda quadrant: clearance(probes[quadrant], others))
+
+
+def segment_points(curve: Sequence[Point]) -> list[Point]:
+    """Return the curve's points and evenly spaced samples along each of its segments."""
+    samples = list(curve)
+    for (x_start, y_start), (x_end, y_end) in itertools.pairwise(curve):
+        for step in range(1, SEGMENT_SAMPLES):
+            fraction = step / SEGMENT_SAMPLES
+            samples.append(
+                (x_start + (x_end - x_start) * fraction, y_start + (y_end - y_start) * fraction)
+            )
+    return samples
+
+
+def positions(points: Iterable[Mapping[str, Any]]) -> list[Point]:
+    """Return the (C₂₅₂, P) position of every point that has a precision."""
+    return [
+        (point["coverage_labelled"], point["precision"])
+        for point in points
+        if point["precision"] is not None
+    ]
+
+
+def plotted_points(
+    curve: Sequence[Mapping[str, Any]], marks: Sequence[Mapping[str, Any]]
+) -> list[Point]:
+    """Return every drawn position a label must avoid: the curve, its segments and the marks."""
+    return [*segment_points(positions(curve)), *positions(marks)]
+
+
+def axes_spans(axes: Axes) -> Point:
+    """Return the axes' data width and height."""
+    (x_low, x_high), (y_low, y_high) = axes.get_xlim(), axes.get_ylim()
+    return (x_high - x_low, y_high - y_low)
+
+
+def plot_thresholds(
+    axes: Axes, curve: Sequence[Mapping[str, Any]], marks: Sequence[Mapping[str, Any]]
+) -> None:
+    """Label T1-T8 away from their neighbours and highlight the selected threshold."""
+    obstacles, spans = plotted_points(curve, marks), axes_spans(axes)
+    for anchor, text in grouped_threshold_labels(marks).items():
+        others = [point for point in obstacles if not np.allclose(point, anchor)]
+        x_sign, y_sign = label_quadrant(anchor, others, spans)
         axes.annotate(
             text,
-            (x_value, y_value),
-            xytext=LABEL_OFFSETS[index % len(LABEL_OFFSETS)],
+            anchor,
+            xytext=(x_sign * LABEL_GAP, y_sign * LABEL_GAP),
             textcoords="offset points",
+            horizontalalignment=LABEL_ALIGNMENT[x_sign][0],
+            verticalalignment=LABEL_ALIGNMENT[y_sign][1],
             fontsize=SMALL_FONT,
             color=TEXT_MUTED,
         )
@@ -943,8 +1024,8 @@ def risk_coverage_figure(sidecar: Mapping[str, Any]) -> Figure:
     lang, labelled = sidecar["lang"].upper(), sidecar["labelled"]
     style_axes(axes, f"Risk-coverage, {lang} dev, score s = (v, b, confidence)")
     plot_curve(axes, sidecar["curve"])
-    plot_thresholds(axes, sidecar["marks"])
     plot_references(axes, sidecar["marks"])
+    plot_thresholds(axes, sidecar["curve"], sidecar["marks"])
     axes.set_xlabel(f"task coverage $C_{{252}}$ (correct / {labelled} labelled dev lines)")
     axes.set_ylabel("matched precision P")
     axes.legend(fontsize=SMALL_FONT, frameon=False, loc="lower right")

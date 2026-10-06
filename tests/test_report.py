@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 import pytest
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "report"
@@ -21,6 +22,7 @@ EXIT_OK = 0
 EXIT_ERROR = 2
 EXIT_REFUSED = 4
 LOCKBOX_ITEM = "01.02.0010."
+POINTS_PER_INCH = 72
 
 # Hand-worked from the fixture lines (tests/fixtures/report, see each audit.jsonl):
 # (minimum score of the step, matched, correct) in descending score order.
@@ -401,3 +403,91 @@ def test_help_exits_zero() -> None:
         [sys.executable, str(SCRIPT), "--help"], capture_output=True, check=False, timeout=60
     )
     assert completed.returncode == EXIT_OK
+
+
+# (C252, P) of T1-T8 and B1, B2, match-all in the real G2 B3-dev-sel runs: T3 and T4 share a
+# point next to T5, and T7 sits next to T8.
+REAL_GEOMETRY = {
+    "en": {
+        "thresholds": [
+            (0.014, 1.0),
+            (0.18, 0.862),
+            (0.209, 0.806),
+            (0.209, 0.806),
+            (0.252, 0.814),
+            (0.46, 0.853),
+            (0.612, 0.885),
+            (0.647, 0.891),
+        ],
+        "references": [(0.309, 0.413), (0.791, 0.791), (0.755, 0.761)],
+    },
+    "fr": {
+        "thresholds": [
+            (0.022, 1.0),
+            (0.173, 0.8),
+            (0.223, 0.795),
+            (0.223, 0.795),
+            (0.245, 0.81),
+            (0.439, 0.884),
+            (0.604, 0.913),
+            (0.683, 0.913),
+        ],
+        "references": [(0.086, 0.429), (0.813, 0.813), (0.82, 0.844)],
+    },
+}
+
+
+def _mark(name: str, kind: str, position: tuple[float, float]) -> dict[str, Any]:
+    coverage, precision = position
+    return {
+        "name": name,
+        "kind": kind,
+        "coverage_labelled": coverage,
+        "precision": precision,
+        "selected": name == "T8",
+        "band": None,
+    }
+
+
+def _geometry_sidecar(lang: str) -> dict[str, Any]:
+    geometry = REAL_GEOMETRY[lang]
+    thresholds = [
+        _mark(f"T{index}", "threshold", position)
+        for index, position in enumerate(geometry["thresholds"], start=1)
+    ]
+    references = [
+        _mark(name, "reference", position)
+        for name, position in zip(("B1", "B2", "match-all"), geometry["references"], strict=True)
+    ]
+    curve = [
+        {"coverage_labelled": x, "precision": y, "band": None}
+        for x, y in dict.fromkeys(geometry["thresholds"])
+    ]
+    return {"lang": lang, "labelled": 252, "curve": curve, "marks": [*thresholds, *references]}
+
+
+@pytest.mark.parametrize("lang", ["en", "fr"])
+def test_threshold_labels_clear_every_other_point(lang: str) -> None:
+    sidecar = _geometry_sidecar(lang)
+    figure = report.risk_coverage_figure(sidecar)
+    canvas = FigureCanvasAgg(figure)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    axes = figure.axes[0]
+    marker = report.MARKER_SIZE * figure.dpi / POINTS_PER_INCH
+    for label in axes.texts:
+        box = label.get_window_extent(renderer).expanded(1.0, 1.0).padded(marker / 2)
+        own = axes.transData.transform(label.xy)
+        for mark in sidecar["marks"]:
+            point = axes.transData.transform((mark["coverage_labelled"], mark["precision"]))
+            if np.allclose(point, own):
+                continue
+            assert not box.contains(*point), f"{label.get_text()} covers {mark['name']}"
+
+
+def test_a_label_turns_away_from_its_nearest_neighbour() -> None:
+    spans = (1.0, 1.0)
+    assert report.label_quadrant((0.5, 0.5), [], spans) == (1, 1)
+    assert report.label_quadrant((0.5, 0.5), [(0.52, 0.51)], spans) == (-1, -1)
+    assert report.label_quadrant((0.5, 0.5), [(0.48, 0.49)], spans) == (1, 1)
+    assert report.label_quadrant((0.5, 0.5), [(0.53, 0.49)], spans) == (-1, 1)
