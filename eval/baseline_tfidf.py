@@ -43,11 +43,10 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from numpy.typing import NDArray
-from scipy.stats import beta  # type: ignore[import-untyped]
 from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore[import-untyped]
 from sklearn.metrics.pairwise import cosine_similarity  # type: ignore[import-untyped]
 
@@ -68,6 +67,8 @@ KIND_HEADER_UNCONFIRMED = "header_unconfirmed"
 SCORER_PATH = Path(__file__).resolve().parent / "score.py"
 SCORER_MODULE = "oris_eval_score"
 SCORER_SOURCE = "eval/score.py"
+RULE_PATH = Path(__file__).resolve().parent / "selection_rule.py"
+RULE_MODULE = "oris_eval_selection_rule"
 LIBRARY_FIELDS = ("material_type", "material_usage", "material_subtype")
 
 CHAR_NGRAMS = (3, 5)
@@ -75,13 +76,6 @@ B1_WORD_NGRAMS = (1, 2)
 LABEL_FREE_WORD_NGRAMS = (1, 1)
 STRIP_ACCENTS = "unicode"
 SCORE_DIGITS = 4
-
-DEV_BAR_PRECISION = 0.95
-DEV_BAR_MIN_MATCHED = 40
-TIE_WINDOW = 3
-CP_ALPHA = 0.05
-STATUS_MEETS_BAR = "meets the dev bar"
-STATUS_BELOW_BAR = "below the dev bar"
 
 LABEL_FREE_EXPECTED = {"en": 0.405, "fr": 0.159}
 LABEL_FREE_TOLERANCE = 0.01
@@ -365,49 +359,36 @@ def top1(model: TfidfModel, lines: Sequence[Line]) -> list[tuple[int, float]]:
 # --- threshold selection (§10.6) -------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class LanguageStats:
-    """Dev figures of one language at one threshold.
-
-    Attributes:
-        matched: Lines with score >= threshold.
-        correct: Matched lines whose triple equals the reference.
-        precision: correct / matched, or None when nothing is matched.
-        cp_lower_95: One-sided 95% Clopper-Pearson lower bound on precision (0 if none).
-
-    """
-
-    matched: int
-    correct: int
-    precision: float | None
-    cp_lower_95: float
+def load_sibling(name: str, path: Path) -> ModuleType:
+    """Load a standalone ``eval/`` script (not a package module) once, by file path."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise BaselineError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-@dataclass(frozen=True)
-class Selection:
-    """The selected threshold.
+if TYPE_CHECKING:
+    import selection_rule as rule
+else:
+    rule = load_sibling(RULE_MODULE, RULE_PATH)
 
-    Attributes:
-        threshold: Cosine threshold; a line matches when its score is >= it.
-        status: ``meets the dev bar`` or ``below the dev bar``.
-        loosest_qualifying: Loosest threshold meeting the bar, or None.
-        per_language: Dev figures at the selected threshold.
-        candidates: Number of candidate thresholds considered.
-
-    """
-
-    threshold: float
-    status: str
-    loosest_qualifying: float | None
-    per_language: dict[str, LanguageStats]
-    candidates: int
-
-
-def cp_lower(correct: int, total: int) -> float:
-    """One-sided 95% exact lower bound, Beta^-1(.05; k, n-k+1); 0 when k = 0."""
-    if correct == 0 or total == 0:
-        return 0.0
-    return float(beta.ppf(CP_ALPHA, correct, total - correct + 1))
+DEV_BAR_PRECISION = rule.DEV_BAR_PRECISION
+DEV_BAR_MIN_MATCHED = rule.DEV_BAR_MIN_MATCHED
+TIE_WINDOW = rule.TIE_WINDOW
+STATUS_MEETS_BAR = rule.STATUS_MEETS_BAR
+STATUS_BELOW_BAR = rule.STATUS_BELOW_BAR
+LanguageStats = rule.LanguageStats
+Selection = rule.Selection
+cp_lower = rule.cp_lower
+meets_bar = rule.meets_bar
+summed_correct = rule.summed_correct
+pick_qualifying = rule.pick_qualifying
+pick_fallback = rule.pick_fallback
 
 
 def stats_at(pool: Pool, threshold: float) -> LanguageStats:
@@ -419,36 +400,10 @@ def stats_at(pool: Pool, threshold: float) -> LanguageStats:
     return LanguageStats(matched, correct, precision, cp_lower(correct, matched))
 
 
-def meets_bar(stats: LanguageStats) -> bool:
-    """Dev bar: precision >= .95 with at least 40 matched lines."""
-    if stats.precision is None:
-        return False
-    return stats.matched >= DEV_BAR_MIN_MATCHED and stats.precision >= DEV_BAR_PRECISION
-
-
-def summed_correct(stats: dict[str, LanguageStats]) -> int:
-    """Correct matches summed over languages (the selection objective)."""
-    return sum(item.correct for item in stats.values())
-
-
 Row = tuple[float, dict[str, LanguageStats]]
 
 
-def pick_qualifying(qualifying: list[Row], total: int) -> Selection:
-    """Strictest qualifying threshold within 3 summed correct matches of the loosest one."""
-    loosest_threshold, loosest_stats = qualifying[-1]
-    floor = summed_correct(loosest_stats) - TIE_WINDOW
-    threshold, stats = next(row for row in qualifying if summed_correct(row[1]) >= floor)
-    return Selection(threshold, STATUS_MEETS_BAR, loosest_threshold, stats, total)
-
-
-def pick_fallback(table: list[Row]) -> Selection:
-    """Highest minimum-over-languages CP lower bound; ties go to the stricter threshold."""
-    threshold, stats = max(table, key=lambda row: min(item.cp_lower_95 for item in row[1].values()))
-    return Selection(threshold, STATUS_BELOW_BAR, None, stats, len(table))
-
-
-def select_threshold(pools: dict[str, Pool]) -> Selection:
+def select_threshold(pools: dict[str, Pool]) -> Selection[float]:
     """Apply the §10.6 rule to per-language (score, correct) pools; one threshold for all."""
     candidates = sorted({score for pool in pools.values() for score, _ in pool}, reverse=True)
     if not candidates:
@@ -629,7 +584,7 @@ def line_scores(run: LanguageRun) -> list[list[Any]]:
 
 def summary_payload(
     args: argparse.Namespace,
-    selection: Selection,
+    selection: Selection[float],
     rows_written: dict[str, int],
     runs: dict[str, LanguageRun],
 ) -> dict[str, Any]:

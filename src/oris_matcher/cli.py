@@ -1,4 +1,4 @@
-"""Command-line entry point: ``match`` (the default), ``score``, ``replay`` and ``doctor``.
+"""Command-line entry point: ``match`` (the default), ``score``, ``select``, ``replay``, ``doctor``.
 
 ``oris --input X --library Y --output Z`` is the brief's literal form of ``oris match``. A run
 reads the BoQ, maps the library path to its ``Settings.libraries`` id (``custom`` otherwise),
@@ -107,6 +107,7 @@ TEXT_ENCODING = "utf-8"
 CUSTOM_LIBRARY_ID = "custom"
 OUTPUT_FILE = "output.csv"
 SCORER_PATH = Path("eval") / "score.py"
+SELECTOR_PATH = Path("eval") / "select_threshold.py"
 RUN_NONCE_BYTES = 8
 LINES_PER_COST_UNIT = 100
 PERCENT = 100.0
@@ -1079,6 +1080,28 @@ def score_command(ctx: typer.Context) -> None:
     script = _runtime().root() / SCORER_PATH
     if not script.is_file():
         _fail(WiringError(f"scorer not found at {script}; run oris from the repository root"))
+    completed = subprocess.run(
+        [sys.executable, str(script), *ctx.args],
+        capture_output=True,
+        text=True,
+        encoding=TEXT_ENCODING,
+        check=False,
+    )
+    typer.echo(completed.stdout, nl=False)
+    typer.echo(completed.stderr, nl=False, err=True)
+    raise typer.Exit(completed.returncode)
+
+
+@app.command(
+    "select",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+    add_help_option=False,
+)
+def select_command(ctx: typer.Context) -> None:
+    """Select the threshold from replayed dev votes: a passthrough to eval/select_threshold.py."""
+    script = _runtime().root() / SELECTOR_PATH
+    if not script.is_file():
+        _fail(WiringError(f"selector not found at {script}; run oris from the repository root"))
     completed = subprocess.run(
         [sys.executable, str(script), *ctx.args],
         capture_output=True,
