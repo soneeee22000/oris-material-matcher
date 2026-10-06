@@ -10,7 +10,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
@@ -413,6 +413,7 @@ def _tampered(world: World, tmp_path: Path, field: str, value: Any) -> dict[str,
         ("requested_model", "gpt-4o-mini-2024-07-18"),
         ("library_sha256", "0" * 64),
         ("prompt_version", ["v1+00000000", "v1+11111111"]),
+        ("passes_k", 3),
     ],
 )
 def test_refuses_mismatched_or_fallback_runs(
@@ -424,6 +425,79 @@ def test_refuses_mismatched_or_fallback_runs(
 
 def test_refuses_a_run_that_is_not_b3(env: World, tmp_path: Path) -> None:
     assert run_select(env, tmp_path, runs=env.b2_runs) == selector.EXIT_REFUSED
+
+
+def _stub_result(
+    mode: str = "replay",
+    resolution: str = "OVERRIDE",
+    policy_id: str = "T3",
+    reason: str = "",
+) -> SimpleNamespace:
+    policy = SimpleNamespace(
+        resolution=selector.PolicyResolution[resolution],
+        policy_id=policy_id,
+    )
+    line = SimpleNamespace(decision=SimpleNamespace(reason=reason))
+    return SimpleNamespace(manifest={"mode": mode}, policy=policy, lines=[line], run_id="stub")
+
+
+def test_check_redecided_accepts_an_exact_override_replay() -> None:
+    selector.check_redecided(_stub_result(), "T3")
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"mode": "live"},
+        {"resolution": "EXACT"},
+        {"policy_id": "T4"},
+        {"reason": selector.REPLAY_MISS},
+    ],
+)
+def test_check_redecided_aborts_an_inexact_replay(overrides: dict[str, str]) -> None:
+    with pytest.raises(selector.SelectionError):
+        selector.check_redecided(_stub_result(**overrides), "T3")
+
+
+def test_a_replay_miss_aborts_without_writing(
+    env: World, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    copy = tmp_path / "missing" / env.runs["fr"].name
+    shutil.copytree(env.runs["fr"], copy)
+    calls = (copy / "calls.jsonl").read_text(encoding="utf-8").splitlines(keepends=True)
+    (copy / "calls.jsonl").write_text("".join(calls[1:]), encoding="utf-8")
+    runs = {"en": env.runs["en"], "fr": copy}
+
+    assert run_select(env, tmp_path / "out", runs=runs) == selector.EXIT_ERROR
+    assert "replay miss" in capsys.readouterr().err
+    assert not (tmp_path / "out" / "selection.json").exists()
+
+
+def _oris(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-c", "from oris_matcher.cli import app; app()", *args],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+
+def test_select_passes_the_child_exit_code_through() -> None:
+    direct = subprocess.run(
+        [sys.executable, str(ROOT / "eval" / "select_threshold.py")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    completed = _oris("select")
+
+    assert direct.returncode == selector.EXIT_ERROR
+    assert completed.returncode == direct.returncode
+    assert "--run-en" in completed.stderr
 
 
 def test_select_is_a_passthrough_to_eval_select_threshold() -> None:

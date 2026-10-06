@@ -10,8 +10,9 @@ output is scored in process with ``eval/score.py --side dev --strict`` and the c
 the §10.6 rule (``eval/selection_rule.py``) picks one threshold for both languages.
 
 Refused (exit 4) before any replay: a run that is not B3, a run where the fallback engaged, EN
-and FR runs that differ in model, library or prompt version, and a run that routed an item
-outside the split's dev side.
+and FR runs that differ in model, library, prompt version or ``passes_k`` (one threshold for
+both languages needs the same T-definitions), and a run that routed an item outside the
+split's dev side.
 
 Writes ``eval/selection_v1.json`` (sorted keys, LF, portable paths) and the trade-off table
 ``eval/selection_v1.md``. Reference rows, never candidates: match-all (every valid in-library
@@ -83,12 +84,16 @@ REPLAY_MODE = "replay"
 CERTIFIED_BY = "dev_selection"
 REPLAY_MISS = llm_failure_reason(LLMFailureKind.REPLAY_MISS)
 STRUCTURAL_RULES = frozenset({Rule.D0.value, Rule.D0A.value, Rule.D0B.value})
-SHARED_FIELDS = ("requested_model", "library_sha256", "prompt_version")
+SHARED_FIELDS = ("requested_model", "library_sha256", "prompt_version", "passes_k")
 DECISION_COLUMN = "decision"
 LABEL_COLUMNS = ("material_type", "material_usage", "material_subtype")
 H265_CLASSES = ("L", "E")
 LINES_PER_UNIT = 100
 DIGITS = 3
+REVIEW_DIGITS = 1
+REFUSAL_SAMPLE = 3
+TARGET_MIN = 0.0
+TARGET_MAX = 1.0
 COST_DIGITS = 6
 NOT_AVAILABLE = "n/a"
 COST_NOTE = "identical across thresholds (same calls)"
@@ -161,13 +166,14 @@ def check_run(lang: str, run_dir: Path, manifest: Mapping[str, Any], dev: frozen
         raise RefusedError(f"{lang} run {run_dir.name} engaged the fallback model")
     outside = sorted({item for item in routed_items(run_dir) if item not in dev})
     if outside:
-        raise RefusedError(f"{lang} run {run_dir.name} routed non-dev items: {outside[:3]}")
+        sample = outside[:REFUSAL_SAMPLE]
+        raise RefusedError(f"{lang} run {run_dir.name} routed non-dev items: {sample}")
 
 
 def check_runs(
     run_dirs: Mapping[str, Path], manifests: Mapping[str, Mapping[str, Any]], split: Path
 ) -> None:
-    """Refuse runs that are not B3 dev votes of one model, library and prompt version.
+    """Refuse runs that are not B3 dev votes of one model, library, prompt version and k.
 
     Args:
         run_dirs: Language -> run folder.
@@ -598,6 +604,16 @@ def selection_blocks(outcome: rule.RuleOutcome[str]) -> dict[str, Any]:
     }
 
 
+def rule_block(args: argparse.Namespace) -> dict[str, Any]:
+    """Return the payload's ``rule``: the §10.6 constants and the sensitivity target."""
+    return {
+        "precision_bar": rule.DEV_BAR_PRECISION,
+        "min_matched": rule.DEV_BAR_MIN_MATCHED,
+        "tie_window": rule.TIE_WINDOW,
+        "target": args.target,
+    }
+
+
 def build_payload(
     context: Context, results: Mapping[str, LanguageResults], b2: dict[str, Any] | None
 ) -> dict[str, Any]:
@@ -615,12 +631,7 @@ def build_payload(
     outcome = rule.run_rule(rule_table(results), context.args.target)
     return {
         "inputs": inputs_block(context),
-        "rule": {
-            "precision_bar": rule.DEV_BAR_PRECISION,
-            "min_matched": rule.DEV_BAR_MIN_MATCHED,
-            "tie_window": rule.TIE_WINDOW,
-            "target": context.args.target,
-        },
+        "rule": rule_block(context.args),
         "thresholds": thresholds_block(results),
         "reference_rows": {
             "match_all": {
@@ -657,7 +668,7 @@ def table_row(name: str, figures: Mapping[str, Any]) -> str:
         fmt(figures["cp_lower_95"]),
         fmt(figures["coverage_labelled"]["value"]),
         fmt(h265_block["value"] if h265_block else None),
-        fmt(figures["review_load_per_100"], 1),
+        fmt(figures["review_load_per_100"], REVIEW_DIGITS),
         str(figures["not_a_material"]),
         str(figures["false_not_a_material"]),
         fmt(figures["mean_cost_usd"], COST_DIGITS),
@@ -809,7 +820,7 @@ def main(argv: Sequence[str] | None = None, runtime: Runtime | None = None) -> i
 
     """
     args = build_parser().parse_args(argv)
-    if args.target is not None and not 0 < args.target <= 1:
+    if args.target is not None and not TARGET_MIN < args.target <= TARGET_MAX:
         print("error: --target must be in (0, 1]", file=sys.stderr)
         return EXIT_ERROR
     try:
