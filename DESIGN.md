@@ -1477,6 +1477,27 @@ Owner decision (O13, option A).
 
 Owner decision (O13 follow-up, option A). Changed: §9.4, §11.3.
 
+### A64 · 2026-10-06 · G2-T8 arm `E-subtype-drop`: a pass whose top1 conflicts with a stated hard attribute casts no vote
+
+**Results existing at the time:** the G2 selection (`T8`, below the dev bar), the `B3-dev-sel` runs and the accepted cause panel (`docs/gates/G2.md` O18). This arm is a §10.7 response that is not a pre-specified E-arm, so it is written here before its first run (A60.13).
+
+**Why.** `subtype_parse` triggered in EN (7 rows; FR 1). In all 8 rows the extractor read the attribute correctly: C35/45, CEM V/A, RA 20 %. One pass picked a sibling row of the same type and usage whose attribute contradicts the line.
+- In 4 rows that pass carried the plurality, and D7 sent the line to review (`ATTR_CONFLICT`).
+- In 4 rows the other pass was right, and the split vote left v = 1 (`LOW_SIGNAL:v`).
+
+The pre-mapped response (fix or add an extractor) has nothing to fix.
+
+**The arm (owner decision, option C).**
+- With the setting `drop_conflicting_votes` on, a `material` answer whose library top1 conflicts with the line's extracted hard attributes (`compare(...) == CONFLICT`, the D7 test) is removed from the vote before the plurality is taken.
+- If no answer remains, the line is decided by D7 exactly as today.
+- Otherwise the vote, the supporters and the signals are computed over the remaining answers. With k = 2, one dropped pass leaves v ≤ 1, so the line cannot match at `T8`. The arm can move lines between review reasons and improve the suggested row, but it is not expected to add matches.
+- Defaults are unchanged: off.
+- The run's manifest records the setting, and replay reads it back, so a replay re-decides exactly as the run did.
+- D-08 still holds: an extractor only removes a vote, it never chooses a row.
+- The alternative "repair the conflicting pass to the agreeing sibling" (owner option A) was not adopted.
+
+**Measured** by a $0 replay of the `B3-dev-sel` votes, ledger id `E-subtype-drop`, `--baseline-id B3-dev-sel`, `--cause-targeted subtype_parse`. It is kept only under §7.2. Changed: §9.5 (D7 note).
+
 ---
 
 ## 17. Results
