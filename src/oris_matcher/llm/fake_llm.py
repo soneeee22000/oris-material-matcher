@@ -3,7 +3,8 @@
 Each call takes the next entry of the script; once the script is spent, the rule decides. A
 ``None`` entry, or a rule returning None, means a normal answer for every requested line id.
 An E-08 verifier request, told apart by its schema, is answered with verifier objects: the
-canned ``verifier_answers``, else the first candidate code the request lists.
+canned ``verifier_answers``, else the first candidate code the request lists. The id-level and
+schema faults act on either kind of answer object.
 """
 
 import json
@@ -32,6 +33,11 @@ HTTP_SERVER_ERROR = 500
 DEFAULT_TOP1 = "T01.U01.S01"
 DEFAULT_CONFIDENCE = 90
 CONFLICT_CONFIDENCE_DELTA = 1
+CONFLICT_EVIDENCE_SUFFIX = " (again)"
+INVALID_VERIFIER_CODE = 0
+CONFIDENCE_KEY = "confidence"
+EVIDENCE_KEY = "evidence"
+CODE_KEY = "code"
 STOP_END_TURN = "end_turn"
 STOP_MAX_TOKENS = "max_tokens"
 STOP_REFUSAL = "refusal"
@@ -257,8 +263,7 @@ class FakeLLM:
         if fault.kind == FaultKind.SWAP_IDS:
             return _swapped(self._lines(req, ids))
         if fault.kind == FaultKind.INVALID_SCHEMA:
-            lines = self._lines(req, ids)
-            return [{**line, "confidence": str(line["confidence"])} for line in lines]
+            return [_schema_broken(line) for line in self._lines(req, ids)]
         conflicting = fault.kind == FaultKind.CONFLICTING_DUPLICATES
         return _with_duplicates(self._lines(req, ids), fault.ids, conflicting=conflicting)
 
@@ -304,15 +309,32 @@ def _swapped(lines: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [{**line, "id": new_id} for line, new_id in zip(lines, rotated, strict=True)]
 
 
+def _conflicting(line: dict[str, Any]) -> dict[str, Any]:
+    """Return another answer object for the same id.
+
+    A main answer gets a lower confidence; a verifier answer, which has no confidence, gets a
+    longer evidence span.
+    """
+    if CONFIDENCE_KEY in line:
+        return {**line, CONFIDENCE_KEY: line[CONFIDENCE_KEY] - CONFLICT_CONFIDENCE_DELTA}
+    return {**line, EVIDENCE_KEY: line[EVIDENCE_KEY] + CONFLICT_EVIDENCE_SUFFIX}
+
+
+def _schema_broken(line: dict[str, Any]) -> dict[str, Any]:
+    """Break a field the answer's schema has: confidence as text, or a verifier code as a number."""
+    if CONFIDENCE_KEY in line:
+        return {**line, CONFIDENCE_KEY: str(line[CONFIDENCE_KEY])}
+    return {**line, CODE_KEY: INVALID_VERIFIER_CODE}
+
+
 def _with_duplicates(
     lines: list[dict[str, Any]], ids: tuple[str, ...], *, conflicting: bool
 ) -> list[dict[str, Any]]:
-    """Repeat the answers of the given ids, identical or with a changed confidence."""
+    """Repeat the answers of the given ids, identical or conflicting (``_conflicting``)."""
     result: list[dict[str, Any]] = []
     for line in lines:
         result.append(line)
         if line["id"] not in ids:
             continue
-        delta = CONFLICT_CONFIDENCE_DELTA if conflicting else 0
-        result.append({**line, "confidence": line["confidence"] - delta})
+        result.append(_conflicting(line) if conflicting else dict(line))
     return result

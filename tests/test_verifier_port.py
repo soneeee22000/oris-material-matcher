@@ -13,7 +13,7 @@ from oris_matcher.domain.boq import BoqLine, LineKind, SectionHeader, make_line_
 from oris_matcher.domain.decision import LLMFailureKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.llm.base import LLMRequest
-from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, default_answer
+from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind, default_answer
 from oris_matcher.llm.recording import MemoryCallSink, ReasonForCall
 from oris_matcher.llm.routing import RoutingLLM
 from oris_matcher.llm.wrapper import (
@@ -223,3 +223,55 @@ def test_a_verdict_and_an_answer_never_share_an_outcome(schema: Any) -> None:
     outcome = asyncio.run(_wrapper(FakeLLM(HAIKU, ALLOWLIST)).run_batch(("L3",), build, schema))
     line = outcome.lines["L3"]
     assert (line.answer is None) != (line.verdict is None)
+
+
+# The fake's id-level and schema faults work on verifier answers too
+
+
+def _faulty(*script: Fault | None) -> FakeLLM:
+    return FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(script=script))
+
+
+def test_an_identical_duplicate_verifier_line_is_settled_once() -> None:
+    fake = _faulty(Fault(FaultKind.DUPLICATE_IDS, ids=("L3",)))
+    outcome = asyncio.run(_wrapper(fake).run_batch(("L3", "L4"), verifier_build, VERIFIER_ANSWERS))
+    first = payload_codes(verifier_build(("L3", "L4")).user_payload)[0]
+    for line_id in ("L3", "L4"):
+        line = outcome.lines[line_id]
+        assert line.verdict is not None
+        assert line.verdict.code == first
+        assert json.loads(line.raw_line_response) == _verdict(line_id, first, "")
+    assert len(outcome.records) == 1
+
+
+def test_a_conflicting_duplicate_verifier_line_is_re_asked_once() -> None:
+    fake = _faulty(Fault(FaultKind.CONFLICTING_DUPLICATES, ids=("L3",)))
+    outcome = asyncio.run(_wrapper(fake).run_batch(("L3", "L4"), verifier_build, VERIFIER_ANSWERS))
+    assert outcome.lines["L3"].verdict is not None
+    assert outcome.lines["L4"].verdict is not None
+    reasons = [record.reason_for_call for record in outcome.records]
+    assert reasons == [ReasonForCall.FIRST, ReasonForCall.REASK_CONFLICT]
+    assert fake.calls[1].line_ids == ("L3",)
+
+
+def test_a_second_conflicting_duplicate_fails_only_its_verifier_line() -> None:
+    conflict = Fault(FaultKind.CONFLICTING_DUPLICATES, ids=("L3",))
+    outcome = asyncio.run(
+        _wrapper(_faulty(conflict, conflict)).run_batch(
+            ("L3", "L4"), verifier_build, VERIFIER_ANSWERS
+        )
+    )
+    assert outcome.lines["L3"].failure == LLMFailureKind.DUPLICATE_CONFLICT
+    assert outcome.lines["L3"].verdict is None
+    assert outcome.lines["L4"].verdict is not None
+
+
+def test_an_invalid_schema_verifier_answer_fails_each_line_and_keeps_its_raw_text() -> None:
+    fake = _faulty(Fault(FaultKind.INVALID_SCHEMA))
+    outcome = asyncio.run(_wrapper(fake).run_batch(("L3", "L4"), verifier_build, VERIFIER_ANSWERS))
+    for line_id in ("L3", "L4"):
+        line = outcome.lines[line_id]
+        assert line.failure == LLMFailureKind.MALFORMED
+        raw = json.loads(line.raw_line_response)
+        assert raw["id"] == line_id
+        assert not isinstance(raw["code"], str)
