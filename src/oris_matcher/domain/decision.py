@@ -930,6 +930,28 @@ def decide(
     return _verified(context, tally, decision)
 
 
+def flagged_top1(
+    decision_input: DecisionInput, library: Library, profile: DecisionProfile = DEFAULT_PROFILE
+) -> str | None:
+    """Return the top1 E-08 must verify, or None when the line is not flagged (A65.2).
+
+    A flagged line is one the table matches with the verifier off: its plurality top1 passes
+    D0-D8 and meets the threshold.
+
+    Args:
+        decision_input: Everything the table reads for the line; ``verifier_top1`` is ignored.
+        library: The loaded library.
+        profile: The run's flags; the verifier flag is turned off for the test.
+
+    Returns:
+        The matched top1 of ``decide`` with the verifier off when it fires D9, else None.
+
+    """
+    unverified = dataclasses.replace(profile, verifier_adopted=False)
+    decision = decide(decision_input, library, unverified)
+    return decision.top1 if decision.rule == Rule.D9 else None
+
+
 def is_flagged(
     decision_input: DecisionInput, library: Library, profile: DecisionProfile = DEFAULT_PROFILE
 ) -> bool:
@@ -944,8 +966,7 @@ def is_flagged(
         True exactly when ``decide`` with the verifier off fires D9.
 
     """
-    unverified = dataclasses.replace(profile, verifier_adopted=False)
-    return decide(decision_input, library, unverified).rule == Rule.D9
+    return flagged_top1(decision_input, library, profile) is not None
 
 
 def decide_b2(decision_input: DecisionInput, library: Library) -> LineDecision:

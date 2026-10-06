@@ -11,7 +11,6 @@ from oris_matcher.domain.batching import transport_id
 from oris_matcher.domain.boq import LineKind
 from oris_matcher.domain.decision import (
     VERIFIER_NONE,
-    Decision,
     DecisionProfile,
     ReasonCode,
     Rule,
@@ -480,7 +479,8 @@ def test_verifier_calls_that_fit_spend_wait_for_each_other_and_are_all_made() ->
     for item in result.lines:
         assert item.verifier is not None
         assert item.verifier.failure is None
-        assert item.decision.decision == Decision.MATCHED
+        assert item.verifier.top1 is not None
+        assert item.decision.rule in {Rule.D9, Rule.D8A}
 
 
 def test_a_verifier_reservation_has_no_cached_prefix() -> None:
