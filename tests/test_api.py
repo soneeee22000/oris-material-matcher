@@ -414,6 +414,7 @@ def test_breaker_trip_hands_the_request_to_the_fallback() -> None:
 
 OVERSIZED_PREFIX_TOKENS = 1_000_000
 HAIKU = "claude-haiku-4-5-20251001"
+GPT_4O_MINI = "gpt-4o-mini-2024-07-18"
 
 
 class LiveLike:
@@ -440,12 +441,12 @@ class LiveRecorder:
         return port
 
 
-def _oversized_prefix_evidence(folder: Path) -> None:
+def _oversized_prefix_evidence(folder: Path, model: str = HAIKU) -> None:
     """Record a doctor measurement whose prefix alone costs more than a small run's cap."""
     versions = {prompt_version(v): OVERSIZED_PREFIX_TOKENS for v in (CANONICAL_V1, REVERSE_V1, B2)}
     data = {
         "library_sha256": hashlib.sha256(LIBRARIES["fr"].read_bytes()).hexdigest(),
-        "model": HAIKU,
+        "model": model,
         "by_prompt_version": versions,
     }
     check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
@@ -470,3 +471,25 @@ def test_a_live_api_run_reserves_its_prefix_from_the_doctor_measurement(in_tmp: 
 
     assert second["decisions"][0]["reason"] == "BUDGET_CAP"
     assert sum(len(port.calls) for port in measured.ports) == 0
+
+
+def test_a_fake_api_run_reserves_from_the_estimate_despite_a_measurement(in_tmp: Path) -> None:
+    """A63: a FakeLLM run never reaches the measured model, so it keeps characters / 4."""
+    _oversized_prefix_evidence(in_tmp)
+    recorder = Recorder()
+    response = post(client_for(recorder), {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert response["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert recorder.calls
+
+
+def test_a_live_non_anthropic_api_run_ignores_a_measurement_for_its_model(in_tmp: Path) -> None:
+    """A63: the doctor measures Anthropic only, so another provider's run keeps characters / 4."""
+    _oversized_prefix_evidence(in_tmp, model=GPT_4O_MINI)
+    ports = LiveRecorder()
+    settings = make_settings(primary_model=GPT_4O_MINI)
+    client = TestClient(create_app(settings, ports, runtime=Runtime(sleep=no_sleep, git=fake_git)))
+    response = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert response["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert sum(len(port.calls) for port in ports.ports) > 0
