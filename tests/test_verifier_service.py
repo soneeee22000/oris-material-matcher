@@ -18,7 +18,7 @@ from oris_matcher.domain.decision import (
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.io.writer import render_csv
 from oris_matcher.llm.base import LLMRequest, Usage
-from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM
+from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind
 from oris_matcher.llm.recording import MemoryCallSink
 from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM
 from oris_matcher.llm.routing import RoutingLLM
@@ -492,3 +492,32 @@ def test_a_verifier_reservation_has_no_cached_prefix() -> None:
     uncached += estimate_tokens(request.user_payload)
     expected = (uncached * price.input + 4096 * price.output) / PRICING.per_tokens
     assert reservation_for(request) == pytest.approx(expected)
+
+
+# The verifier stage under a tripped breaker
+
+
+def _timing_out(call_no: int, request: LLMRequest) -> Fault:
+    del call_no, request
+    return Fault(FaultKind.TIMEOUT)
+
+
+def test_a_breaker_tripped_by_the_verifier_fails_the_flagged_lines_closed() -> None:
+    main = _fake()
+    verifier = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(rule=_timing_out))
+    router = RoutingLLM(main=main, verifier=verifier, is_verifier=is_verifier_request)
+    result = _run(ON, router)
+    assert verifier.calls
+    failures: set[str | None] = set()
+    for on, off in zip(result.lines, OFF_RESULT.lines, strict=True):
+        if transport_id(on.line) not in FLAGGED:
+            assert on.decision == off.decision
+            continue
+        assert (on.decision.rule, on.decision.reason) == (Rule.D1B, PARTIAL)
+        assert on.verifier is not None
+        assert on.verifier.top1 is None
+        failures.add(on.verifier.failure)
+    unavailable = ReasonCode.LLM_UNAVAILABLE.value
+    assert unavailable in failures
+    assert failures <= {"timeout", unavailable}
+    assert result.exit_code == EXIT_LLM_UNAVAILABLE

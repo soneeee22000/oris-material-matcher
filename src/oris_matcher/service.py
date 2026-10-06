@@ -1069,6 +1069,12 @@ class MatchService:
         The flagged lines are those the table matches with the verifier off (A65.2). Their
         requests go through the run's wrapper, so retries, the budget and its waits (A61), the
         breaker, recording, the cache and replay apply as to any call.
+
+        The stage always uses the primary wrapper, never the A33 fallback: E-08 is measured on
+        the primary model. After the fallback rescued the main passes the primary breaker is
+        open, so every flagged line fails closed as D1b ``partial_signal`` with
+        ``LLM_UNAVAILABLE`` and the run exits 3; the same holds when the verifier calls trip
+        the breaker themselves.
         """
         profile = self.resources.decision_profile
         if not plan.is_full or not profile.verifier_adopted:
