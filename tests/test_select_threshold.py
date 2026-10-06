@@ -257,6 +257,7 @@ def _environment(patch: pytest.MonkeyPatch, root: Path) -> None:
     patch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     patch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
+    patch.setenv("ORIS_VERIFIER_ADOPTED", "false")
     patch.chdir(root)
 
 
@@ -337,6 +338,17 @@ def test_replay_over_t1_to_t8_moves_only_scored_lines(env: World, tmp_path: Path
         for before, after in zip(first, _audit(entry.result), strict=True):
             if (before["decision"], before["reason"]) != (after["decision"], after["reason"]):
                 assert {before["rule"], after["rule"]} <= SCORE_RULES
+
+
+def test_a_verifier_off_selection_measures_every_threshold(env: World, tmp_path: Path) -> None:
+    """Runs without the E-08 verifier replay exactly at every threshold (A67)."""
+    assert run_select(env, tmp_path) == 0
+    payload = json.loads((tmp_path / "selection.json").read_text(encoding="utf-8"))
+    assert "unmeasured" not in payload
+    assert "further_runs" not in payload["inputs"]
+    assert all(entry["measured"] for entry in payload["thresholds"])
+    runs = {lang: env.runs[lang].name for lang in ("en", "fr")}
+    assert all(entry["source_runs"] == runs for entry in payload["thresholds"])
 
 
 def test_selection_output_carries_every_field(env: World, tmp_path: Path) -> None:
