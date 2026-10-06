@@ -61,12 +61,19 @@ def _cases() -> dict[str, DecisionInput]:
         "d5_invalid": _input(passes=(_ok("c1", top1="T99.U01.S01"), _ok("c2", top1="T99.U01.S01"))),
         "d5a_evidence": _input(passes=(_ok("c1", evidence="granite"), _ok("c2"))),
         "d6_never": _input(passes=(_ok("c1", top1=NEVER), _ok("c2", top1=NEVER))),
-        "d7_conflict": _input(passes=(_ok("c1", top1=OTHER_SPECIFIC), _ok("c2", top1=OTHER_SPECIFIC))),
-        "d8_generic": _input(passes=(_ok("c1", top1=BLANK), _ok("c2", top1=BLANK)), threshold=LOOSEST),
+        "d7_conflict": _input(
+            passes=(_ok("c1", top1=OTHER_SPECIFIC), _ok("c2", top1=OTHER_SPECIFIC))
+        ),
+        "d8_generic": _input(
+            passes=(_ok("c1", top1=BLANK), _ok("c2", top1=BLANK)), threshold=LOOSEST
+        ),
         "d9_steel": _input(
             line=_line(short="Rebar"),
             attributes=Attributes(),
-            passes=(_ok("c1", top1=STEEL, evidence="Rebar"), _ok("c2", top1=STEEL, evidence="Rebar")),
+            passes=(
+                _ok("c1", top1=STEEL, evidence="Rebar"),
+                _ok("c2", top1=STEEL, evidence="Rebar"),
+            ),
             threshold=LOOSEST,
         ),
     }

@@ -6,6 +6,7 @@ thresholds on it follow §10.6. ``decide`` is the B3 table, first rule wins; ``d
 the B2 rung of the baseline ladder (§10.5).
 """
 
+import dataclasses
 import re
 from collections import Counter
 from collections.abc import Collection, Iterable, Mapping
@@ -31,6 +32,7 @@ BUCKET_FLOOR_90 = 90
 BUCKET_FLOOR_80 = 80
 BUCKET_FLOOR_70 = 70
 THRESHOLD_ID_PREFIX = "T"
+VERIFIER_NONE = "NONE"
 PATH_SEPARATOR = " > "
 HEADER_PART_SEPARATOR = " "
 
@@ -418,7 +420,9 @@ class DecisionInput:
         passes: One outcome per pass, in pass order; empty for rule-decided lines.
         threshold: The frozen threshold that policy resolution selected.
         line_failure: ``LLM_UNAVAILABLE`` or ``BUDGET_CAP`` when the line was never answered.
-        verifier_top1: The sibling verifier's top-1 code; read by D8a only when E-08 is adopted.
+        verifier_top1: The sibling verifier's validated answer, a library code or
+            ``VERIFIER_NONE``; None when it is missing or invalid. Read only when E-08 is
+            adopted, and only for a line the table would otherwise match (A65.2).
 
     """
 
@@ -515,8 +519,9 @@ class DecisionProfile:
     """Flags for the gated rows of the table, all off until an experiment is adopted.
 
     Attributes:
-        verifier_adopted: E-08 is adopted, so D8a runs and a missing verifier is a D1b
-            ``partial_signal`` (A20).
+        verifier_adopted: E-08 is adopted (A20, A65.2): a line that would match needs the
+            sibling verifier's answer; a missing one is a D1b ``partial_signal`` and one other
+            than top1 is D8a.
         drop_conflicting_votes: Arm ``E-subtype-drop`` (A64): a ``material`` answer whose
             library top1 conflicts with the line's hard attributes casts no vote.
 
@@ -690,9 +695,7 @@ def _structural_gate(line: BoqLine) -> LineDecision | None:
     return _rule_decided(line, Rule.D0B, ReasonCode.HEADER_UNCONFIRMED)
 
 
-def _failure_gate(
-    context: _Context, profile: DecisionProfile, required_passes: int
-) -> LineDecision | _Tally:
+def _failure_gate(context: _Context, required_passes: int) -> LineDecision | _Tally:
     """Apply D1 and D1b; return the vote tally when the line has every answer it needs.
 
     Fewer pass outcomes than ``required_passes`` means a pass the threshold needs is missing,
@@ -710,9 +713,8 @@ def _failure_gate(
     if tally is None:
         reason = llm_failure_reason(failures[0]) if failures else ReasonCode.INTERNAL_INVARIANT
         return context.decided(Rule.D1, reason)
-    verifier_missing = profile.verifier_adopted and decision_input.verifier_top1 is None
     pass_missing = len(decision_input.passes) < required_passes
-    if failures or verifier_missing or pass_missing:
+    if failures or pass_missing:
         partial = llm_failure_reason(LLMFailureKind.PARTIAL_SIGNAL)
         return context.decided(Rule.D1B, partial, tally)
     return tally
@@ -793,22 +795,20 @@ def _code_veto(context: _Context, tally: _Tally) -> Rule | None:
     return None
 
 
-def _attribute_veto(context: _Context, tally: _Tally, profile: DecisionProfile) -> Rule | None:
-    """Return the first of D7, D8 and D8a that vetoes a valid top1, or None."""
+def _attribute_veto(context: _Context, tally: _Tally) -> Rule | None:
+    """Return the first of D7 and D8 that vetoes a valid top1, or None."""
     decision_input, library = context.decision_input, context.library
     code = tally.leader.top1
     if compare(decision_input.attributes, library.by_code[code].attributes) == AttrResult.CONFLICT:
         return Rule.D7
     if _is_generic_parent(code, decision_input.attributes, library):
         return Rule.D8
-    if profile.verifier_adopted and decision_input.verifier_top1 != code:
-        return Rule.D8A
     return None
 
 
-def _row_veto(context: _Context, tally: _Tally, profile: DecisionProfile) -> Rule | None:
-    """Return the first of D5 to D8a that vetoes the plurality top1, or None."""
-    return _code_veto(context, tally) or _attribute_veto(context, tally, profile)
+def _row_veto(context: _Context, tally: _Tally) -> Rule | None:
+    """Return the first of D5 to D8 that vetoes the plurality top1, or None."""
+    return _code_veto(context, tally) or _attribute_veto(context, tally)
 
 
 VETO_REASONS: Mapping[Rule, ReasonCode] = MappingProxyType(
@@ -862,6 +862,39 @@ def _context(decision_input: DecisionInput, library: Library) -> _Context:
     return _Context(decision_input, library, tuple(dict.fromkeys(call_ids)))
 
 
+def _verified(context: _Context, tally: _Tally, matched: LineDecision) -> LineDecision:
+    """Apply E-08 to a line the table would match: D1b without an answer, D8a on disagreement.
+
+    The verifier is a voter that only a would-be match needs, so its absence is a D1b
+    ``partial_signal`` (A20, A65.2); ``VERIFIER_NONE`` or any code other than top1, compared
+    case-sensitively, is D8a.
+    """
+    verifier_top1 = context.decision_input.verifier_top1
+    if verifier_top1 is None:
+        return context.decided(Rule.D1B, llm_failure_reason(LLMFailureKind.PARTIAL_SIGNAL), tally)
+    if verifier_top1 != tally.leader.top1:
+        return context.decided(Rule.D8A, VETO_REASONS[Rule.D8A], tally)
+    return matched
+
+
+def _decide_scored(
+    context: _Context, profile: DecisionProfile
+) -> tuple[LineDecision, _Tally | None]:
+    """Run D1 to D10 with the verifier off; return the decision and the tally it read."""
+    tally = _failure_gate(context, context.decision_input.threshold.minimum.votes)
+    if isinstance(tally, LineDecision):
+        return tally, None
+    by_kind = _kind_gate(context, tally)
+    if by_kind is not None:
+        return by_kind, None
+    if profile.drop_conflicting_votes:
+        tally = _without_conflicting_votes(context, tally)
+    veto = _row_veto(context, tally)
+    if veto is not None:
+        return context.decided(veto, VETO_REASONS[veto], tally), None
+    return _score(context, tally), tally
+
+
 def decide(
     decision_input: DecisionInput, library: Library, profile: DecisionProfile = DEFAULT_PROFILE
 ) -> LineDecision:
@@ -873,7 +906,10 @@ def decide(
     D2 emit ``not_a_material``; D0 and D0a need empty Unit and Qty, and D2 a service unit, so a
     measured unit never reaches it. ``ENSEMBLE_DEGRADED`` forms are not emitted, because
     E-02(d) is not adopted. With ``profile.drop_conflicting_votes`` (A64), after D4 the answers
-    whose top1 conflicts are removed and the vote is re-tallied over the rest before D5.
+    whose top1 conflicts are removed and the vote is re-tallied over the rest before D5. With
+    ``profile.verifier_adopted`` (E-08), only a line that would reach D9 needs the verifier:
+    without its answer the line is D1b, and with an answer other than top1 it is D8a (A65.2);
+    every other line is decided as with the verifier off.
 
     Args:
         decision_input: Everything the table reads for the line.
@@ -888,18 +924,28 @@ def decide(
     if gated is not None:
         return gated
     context = _context(decision_input, library)
-    tally = _failure_gate(context, profile, decision_input.threshold.minimum.votes)
-    if isinstance(tally, LineDecision):
-        return tally
-    by_kind = _kind_gate(context, tally)
-    if by_kind is not None:
-        return by_kind
-    if profile.drop_conflicting_votes:
-        tally = _without_conflicting_votes(context, tally)
-    veto = _row_veto(context, tally, profile)
-    if veto is not None:
-        return context.decided(veto, VETO_REASONS[veto], tally)
-    return _score(context, tally)
+    decision, tally = _decide_scored(context, profile)
+    if tally is None or decision.rule != Rule.D9 or not profile.verifier_adopted:
+        return decision
+    return _verified(context, tally, decision)
+
+
+def is_flagged(
+    decision_input: DecisionInput, library: Library, profile: DecisionProfile = DEFAULT_PROFILE
+) -> bool:
+    """Tell whether E-08 must verify a line: the table matches it with the verifier off (A65.2).
+
+    Args:
+        decision_input: Everything the table reads for the line; ``verifier_top1`` is ignored.
+        library: The loaded library.
+        profile: The run's flags; the verifier flag is turned off for the test.
+
+    Returns:
+        True exactly when ``decide`` with the verifier off fires D9.
+
+    """
+    unverified = dataclasses.replace(profile, verifier_adopted=False)
+    return decide(decision_input, library, unverified).rule == Rule.D9
 
 
 def decide_b2(decision_input: DecisionInput, library: Library) -> LineDecision:
@@ -929,7 +975,7 @@ def decide_b2(decision_input: DecisionInput, library: Library) -> LineDecision:
     context = _context(decision_input, library)
     if len(decision_input.passes) > B2_PASSES:
         return context.decided(Rule.D1, ReasonCode.INTERNAL_INVARIANT)
-    tally = _failure_gate(context, DEFAULT_PROFILE, B2_PASSES)
+    tally = _failure_gate(context, B2_PASSES)
     if isinstance(tally, LineDecision):
         return tally
     if is_valid_code(tally.leader.top1, library):
