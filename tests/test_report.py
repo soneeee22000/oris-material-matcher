@@ -11,7 +11,6 @@ from typing import Any
 
 import numpy as np
 import pytest
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "report"
@@ -470,13 +469,11 @@ def _geometry_sidecar(lang: str) -> dict[str, Any]:
 def test_threshold_labels_clear_every_other_point(lang: str) -> None:
     sidecar = _geometry_sidecar(lang)
     figure = report.risk_coverage_figure(sidecar)
-    canvas = FigureCanvasAgg(figure)
-    canvas.draw()
-    renderer = canvas.get_renderer()
+    figure.draw_without_rendering()
     axes = figure.axes[0]
     marker = report.MARKER_SIZE * figure.dpi / POINTS_PER_INCH
     for label in axes.texts:
-        box = label.get_window_extent(renderer).expanded(1.0, 1.0).padded(marker / 2)
+        box = label.get_window_extent().expanded(1.0, 1.0).padded(marker / 2)
         own = axes.transData.transform(label.xy)
         for mark in sidecar["marks"]:
             point = axes.transData.transform((mark["coverage_labelled"], mark["precision"]))
