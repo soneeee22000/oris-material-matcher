@@ -1,0 +1,389 @@
+{
+  "bootstrap": {
+    "draw_sha256": "31c446fc3b7079e614f9cac774461c1fb277483a7310601913ba80f24c19ba2d",
+    "n_items": 162,
+    "note": "Item No. resamples, one draw for EN, FR and every point; pointwise percentiles; a resample with nothing matched (or no labelled line) at a point is dropped there",
+    "percentiles": [
+      2.5,
+      97.5
+    ],
+    "resamples": 1000,
+    "seed": 20261006,
+    "unit": "Item No. (dev)"
+  },
+  "curve": [
+    {
+      "band": {
+        "coverage_labelled": [
+          0.006993006993006993,
+          0.050134892086330936
+        ],
+        "dropped": 54,
+        "precision": [
+          1.0,
+          1.0
+        ]
+      },
+      "correct": 3,
+      "coverage_labelled": 0.02158273381294964,
+      "matched": 3,
+      "precision": 1.0,
+      "risk": 0.0,
+      "score": {
+        "b": "agree",
+        "confidence_bucket": ">=90",
+        "v": 2
+      },
+      "selective_coverage": 0.01935483870967742
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.10948905109489052,
+          0.23572420634920632
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6362878787878787,
+          0.9354838709677419
+        ]
+      },
+      "correct": 24,
+      "coverage_labelled": 0.17266187050359713,
+      "matched": 30,
+      "precision": 0.8,
+      "risk": 0.19999999999999996,
+      "score": {
+        "b": "agree",
+        "confidence_bucket": "80-89",
+        "v": 2
+      },
+      "selective_coverage": 0.1935483870967742
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.14924579231502064,
+          0.2958270902007791
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6551724137931034,
+          0.9142857142857143
+        ]
+      },
+      "correct": 31,
+      "coverage_labelled": 0.22302158273381295,
+      "matched": 39,
+      "precision": 0.7948717948717948,
+      "risk": 0.20512820512820518,
+      "score": {
+        "b": "agree",
+        "confidence_bucket": "70-79",
+        "v": 2
+      },
+      "selective_coverage": 0.25161290322580643
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.16911505799502902,
+          0.31917802526595745
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6856445993031359,
+          0.9210526315789473
+        ]
+      },
+      "correct": 34,
+      "coverage_labelled": 0.2446043165467626,
+      "matched": 42,
+      "precision": 0.8095238095238095,
+      "risk": 0.19047619047619047,
+      "score": {
+        "b": "no_evidence",
+        "confidence_bucket": ">=90",
+        "v": 2
+      },
+      "selective_coverage": 0.2709677419354839
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.3503558394160584,
+          0.5255936906309369
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8035579004329004,
+          0.9538461538461539
+        ]
+      },
+      "correct": 61,
+      "coverage_labelled": 0.43884892086330934,
+      "matched": 69,
+      "precision": 0.8840579710144928,
+      "risk": 0.1159420289855072,
+      "score": {
+        "b": "no_evidence",
+        "confidence_bucket": "80-89",
+        "v": 2
+      },
+      "selective_coverage": 0.44516129032258067
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.5214285714285715,
+          0.6811594202898551
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8522727272727273,
+          0.9662921348314607
+        ]
+      },
+      "correct": 84,
+      "coverage_labelled": 0.60431654676259,
+      "matched": 92,
+      "precision": 0.9130434782608695,
+      "risk": 0.08695652173913049,
+      "score": {
+        "b": "no_evidence",
+        "confidence_bucket": "70-79",
+        "v": 2
+      },
+      "selective_coverage": 0.5935483870967742
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.6,
+          0.7534246575342466
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8557386363636363,
+          0.9629879879879879
+        ]
+      },
+      "correct": 95,
+      "coverage_labelled": 0.6834532374100719,
+      "matched": 104,
+      "precision": 0.9134615384615384,
+      "risk": 0.08653846153846156,
+      "score": {
+        "b": "no_evidence",
+        "confidence_bucket": "<70",
+        "v": 2
+      },
+      "selective_coverage": 0.6709677419354839
+    }
+  ],
+  "figure": "risk_coverage_fr",
+  "labelled": 139,
+  "lang": "fr",
+  "marks": [
+    {
+      "band": {
+        "coverage_labelled": [
+          0.006993006993006993,
+          0.050134892086330936
+        ],
+        "dropped": 54,
+        "precision": [
+          1.0,
+          1.0
+        ]
+      },
+      "correct": 3,
+      "coverage_labelled": 0.02158273381294964,
+      "kind": "threshold",
+      "matched": 3,
+      "name": "T1",
+      "precision": 1.0,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.10948905109489052,
+          0.23572420634920632
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6362878787878787,
+          0.9354838709677419
+        ]
+      },
+      "correct": 24,
+      "coverage_labelled": 0.17266187050359713,
+      "kind": "threshold",
+      "matched": 30,
+      "name": "T2",
+      "precision": 0.8,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.14924579231502064,
+          0.2958270902007791
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6551724137931034,
+          0.9142857142857143
+        ]
+      },
+      "correct": 31,
+      "coverage_labelled": 0.22302158273381295,
+      "kind": "threshold",
+      "matched": 39,
+      "name": "T3",
+      "precision": 0.7948717948717948,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.14924579231502064,
+          0.2958270902007791
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6551724137931034,
+          0.9142857142857143
+        ]
+      },
+      "correct": 31,
+      "coverage_labelled": 0.22302158273381295,
+      "kind": "threshold",
+      "matched": 39,
+      "name": "T4",
+      "precision": 0.7948717948717948,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.16911505799502902,
+          0.31917802526595745
+        ],
+        "dropped": 0,
+        "precision": [
+          0.6856445993031359,
+          0.9210526315789473
+        ]
+      },
+      "correct": 34,
+      "coverage_labelled": 0.2446043165467626,
+      "kind": "threshold",
+      "matched": 42,
+      "name": "T5",
+      "precision": 0.8095238095238095,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.3503558394160584,
+          0.5255936906309369
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8035579004329004,
+          0.9538461538461539
+        ]
+      },
+      "correct": 61,
+      "coverage_labelled": 0.43884892086330934,
+      "kind": "threshold",
+      "matched": 69,
+      "name": "T6",
+      "precision": 0.8840579710144928,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.5214285714285715,
+          0.6811594202898551
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8522727272727273,
+          0.9662921348314607
+        ]
+      },
+      "correct": 84,
+      "coverage_labelled": 0.60431654676259,
+      "kind": "threshold",
+      "matched": 92,
+      "name": "T7",
+      "precision": 0.9130434782608695,
+      "selected": false
+    },
+    {
+      "band": {
+        "coverage_labelled": [
+          0.6,
+          0.7534246575342466
+        ],
+        "dropped": 0,
+        "precision": [
+          0.8557386363636363,
+          0.9629879879879879
+        ]
+      },
+      "correct": 95,
+      "coverage_labelled": 0.6834532374100719,
+      "kind": "threshold",
+      "matched": 104,
+      "name": "T8",
+      "precision": 0.9134615384615384,
+      "selected": true
+    },
+    {
+      "band": null,
+      "correct": 12,
+      "coverage_labelled": 0.08633093525179857,
+      "kind": "reference",
+      "matched": 28,
+      "name": "B1",
+      "precision": 0.42857142857142855,
+      "selected": false
+    },
+    {
+      "band": null,
+      "correct": 113,
+      "coverage_labelled": 0.8129496402877698,
+      "kind": "reference",
+      "matched": 139,
+      "name": "B2",
+      "precision": 0.8129496402877698,
+      "selected": false
+    },
+    {
+      "band": null,
+      "correct": 114,
+      "coverage_labelled": 0.8201438848920863,
+      "kind": "reference",
+      "matched": 135,
+      "name": "match-all",
+      "precision": 0.8444444444444444,
+      "selected": false
+    }
+  ],
+  "population": {
+    "by_rule": {
+      "D10": 28,
+      "D3": 16,
+      "D4": 6,
+      "D5": 1,
+      "D9": 104
+    },
+    "lines": 155
+  }
+}

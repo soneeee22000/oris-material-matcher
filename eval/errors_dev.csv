@@ -1,0 +1,94 @@
+item_id,lang,split,family,kind,level_first_wrong,usage_split,gt_suspect,gt_suspect_reason,cause,cause_2,evidence,top1,reason,v,labeller_a,labeller_b,adjudication_reason,provenance,date,rule,signal_b,confidence_bucket,gt_suspect_candidate
+01.02.0010.,en,dev,Construction and demolition material,false_match,type,,,,,,,Excavations and Rock Cutting | For use as aggregates | Concrete arisings,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,no_evidence,80-89,1
+01.02.0140.,en,dev,Construction and demolition material,wrong_proposal_reviewed,type,,,,,,,,NO_LIBRARY_EQUIVALENT,2,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.02.0150.,en,dev,Construction and demolition material,missed,decision,,,,,,,"Construction and demolition material | 17 02 - Wood, glass and plastic | 17 02 02 - Glass",NO_LIBRARY_EQUIVALENT,1,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.02.0160.,en,dev,Construction and demolition material,missed,decision,,,,,,,"Construction and demolition material | 17 02 - Wood, glass and plastic | 17 02 03 - Plastic",NO_LIBRARY_EQUIVALENT,1,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.02.0170.,en,dev,Construction and demolition material,missed,decision,,,,,,,Construction and demolition material | 17 06 - Insulation materials and asbestos-containing construction materials | 17 06 05 - Construction materials containing asbestos,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,>=90,0
+01.04.0070.,en,dev,Quicklime,wrong_proposal_reviewed,type,,,,,,,Hydrated lime | For use in hydraulically bound mixtures | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,<70,0
+02.01.0030.,en,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,,NO_LIBRARY_EQUIVALENT,2,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+02.02.0010.,en,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,Concrete | General Ready mixed concrete | C12/15,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+02.02.0020.,en,dev,Aggregates,wrong_proposal_reviewed,usage,,,,,,,Aggregates | Sand for concrete mixtures | Virgin Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+02.02.0030.,en,dev,Aggregates,wrong_proposal_reviewed,usage,,,,,,,Aggregates | Sand for concrete mixtures | Recycled Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,<70,0
+03.02.0050.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Lean concrete | C16/20,ATTR_CONFLICT,1,,,,builder labels (assistant panel),2026-10-06,D7,,,0
+03.02.0060.,en,dev,Concrete,missed,decision,,,,,,,Concrete | concrete mixture for base course | C12/15,EVIDENCE_NOT_IN_LINE,2,,,,builder labels (assistant panel),2026-10-06,D5a,,,0
+03.02.0120.,en,dev,Cement,wrong_proposal_reviewed,subtype,,,,,,,Cement | cement for hydraulically bound mixtures | CEM V/B,ATTR_CONFLICT,1,,,,builder labels (assistant panel),2026-10-06,D7,,,0
+03.02.0150.,en,dev,Hydrated lime,wrong_proposal_reviewed,type,,,,,,,Quicklime | For use in hydraulically bound mixtures | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,80-89,0
+03.02.0160.,en,dev,Aggregates,missed,decision,,,,,,,Aggregates | Gravel for hydraulically bound mixtures | Virgin Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+03.02.0170.,en,dev,Aggregates,missed,decision,,,,,,,Aggregates | Sand for hydraulically bound mixtures | Recycled Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+03.03.0050.,en,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for base course | Asphalt Concrete (AC) - WMA 50% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.03.0110.,en,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for binder course | Asphalt Concrete (AC) - WMA 30% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.03.0150.,en,dev,Asphalt,wrong_proposal_reviewed,usage,,,,,,,Asphalt | asphalt mixture for surface course | Stone Mastic Asphalt (SMA) - WMA,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.03.0210.,en,dev,Asphalt,wrong_proposal_reviewed,subtype,,,,,,,Asphalt | asphalt mixture for surface course | Stone Mastic Asphalt (SMA) - WMA 10% RAP,ATTR_CONFLICT,1,,,,builder labels (assistant panel),2026-10-06,D7,,,0
+03.03.0230.,en,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for surface course | Porous Asphalt (PA) - WMA 10% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.04.0010.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C12/15,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,70-79,1
+03.04.0020.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C20/25,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+03.04.0030.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C25/30,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,70-79,1
+03.04.0040.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C30/37,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+03.04.0050.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C35/45,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+03.04.0060.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C40/50,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,70-79,1
+03.05.0010.,en,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,Concrete | concrete mixture for base course | C12/15,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.05.0020.,en,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,Concrete | General Ready mixed concrete | C12/15,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+03.05.0040.,en,dev,Building Components,false_match,usage,,,,,,,Building Components | Tile (clay) | ,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,no_evidence,80-89,1
+04.01.0060.,en,dev,Concrete,missed,decision,,,,,,,Concrete | Concrete for footings | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.01.0080.,en,dev,Concrete,wrong_proposal_reviewed,subtype,,,,,,,Concrete | Concrete for footings | C30/37,ATTR_CONFLICT,1,,,,builder labels (assistant panel),2026-10-06,D7,,,0
+04.01.0100.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for footings | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.01.0110.,en,dev,Concrete,wrong_proposal_reviewed,subtype,,,,,,,Concrete | Concrete for excavation beam | C30/37,ATTR_CONFLICT,1,,,,builder labels (assistant panel),2026-10-06,D7,,,0
+04.01.0120.,en,dev,Concrete,missed,decision,,,,,,,Concrete | Concrete for excavation beam | C35/45,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0020.,en,dev,Concrete,missed,decision,,,,,,,Concrete | Concrete for bridge deck | C45/55,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0050.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for bridge deck | C25/30,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0070.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for bridge deck | C35/45,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0080.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for bridge deck | C25/30,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0090.,en,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for bridge deck | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0100.,en,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C35/45,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+05.01.0010.,en,dev,Excavations and Rock Cutting,false_match,subtype,,,,,,,Excavations and Rock Cutting | For use as aggregates | High quality rock from rock cutting,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,no_evidence,80-89,1
+05.01.0020.,en,dev,Excavations and Rock Cutting,missed,decision,,,,,,,Excavations and Rock Cutting | For use as aggregates | Average quality rock from tunnel blasting,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,80-89,0
+05.01.0030.,en,dev,Excavations and Rock Cutting,wrong_proposal_reviewed,usage,,,,,,,Excavations and Rock Cutting | For landfill | Soil Excavation,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+05.01.0040.,en,dev,Excavations and Rock Cutting,wrong_proposal_reviewed,subtype,,,,,,,Excavations and Rock Cutting | For landfill | Waste,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+05.01.0070.,en,dev,Steel,false_match,usage,,,,,,,Steel | Structural steel (generic construction steel) | ,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,no_evidence,>=90,1
+07.01.0060.,en,dev,Prefab,wrong_proposal_reviewed,usage,,,,,,,"Prefab | Other prefabricated concrete elements (i.e., curbs, edges, trenches) | ",NO_LIBRARY_EQUIVALENT,2,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+08.04.0040.,en,dev,Additives,missed,decision,,,,,,,Additives | Additives for asphalt | For chemical process technologies (WMA),LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+08.04.0130.,en,dev,Limestone,missed,decision,,,,,,,Limestone | for all usage | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,80-89,0
+01.02.0110.,fr,dev,Construction and demolition material,wrong_proposal_reviewed,type,,,,,,,,INVALID_ROW_ID,1,,,,builder labels (assistant panel),2026-10-06,D5,,,0
+01.02.0140.,fr,dev,Construction and demolition material,wrong_proposal_reviewed,usage,,,,,,,Construction and demolition material | 17 09 - Other construction and demolition wastes | 17 09 03 - Other construction and demolition wastes (including mixed wastes) containing hazardous substances,NO_LIBRARY_EQUIVALENT,1,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.02.0150.,fr,dev,Construction and demolition material,missed,decision,,,,,,,"Construction and demolition material | 17 02 - Wood, glass and plastic | 17 02 02 - Glass",NO_LIBRARY_EQUIVALENT,1,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.02.0160.,fr,dev,Construction and demolition material,missed,decision,,,,,,,"Construction and demolition material | 17 02 - Wood, glass and plastic | 17 02 03 - Plastic",NO_LIBRARY_EQUIVALENT,2,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+01.04.0070.,fr,dev,Quicklime,wrong_proposal_reviewed,type,,,,,,,Hydrated lime | For use in hydraulically bound mixtures | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,80-89,0
+02.01.0030.,fr,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,,NO_LIBRARY_EQUIVALENT,2,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+02.02.0030.,fr,dev,Aggregates,missed,decision,,,,,,,Aggregates | Filtration layer of sand | Recycled Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+03.02.0050.,fr,dev,Concrete,missed,decision,,,,,,,Concrete | concrete mixture for base course | C8/10,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.02.0060.,fr,dev,Concrete,missed,decision,,,,,,,Concrete | concrete mixture for base course | C12/15,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.02.0070.,fr,dev,Concrete,missed,decision,,,,,,,Concrete | concrete mixture for base course | C20/25,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.02.0080.,fr,dev,Concrete,missed,decision,,,,,,,Concrete | concrete mixture for base course | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.02.0110.,fr,dev,Cement,missed,decision,,,,,,,Cement | cement for hydraulically bound mixtures | CEM I,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.02.0120.,fr,dev,Cement,missed,decision,,,,,,,Cement | cement for hydraulically bound mixtures | CEM V/A,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.02.0160.,fr,dev,Aggregates,missed,decision,,,,,,,Aggregates | Gravel for hydraulically bound mixtures | Virgin Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+03.02.0170.,fr,dev,Aggregates,missed,decision,,,,,,,Aggregates | Sand for hydraulically bound mixtures | Recycled Aggregates,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,<70,0
+03.03.0030.,fr,dev,Asphalt,wrong_proposal_reviewed,subtype,,,,,,,Asphalt | asphalt mixture for base course | High Modulus Asphalt (EME2) - HMA 50% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.03.0110.,fr,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for binder course | Asphalt Concrete (AC) - WMA 30% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+03.03.0150.,fr,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for binder course | Stone Mastic Asphalt (SMA) - WMA,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.03.0190.,fr,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for surface course | Asphalt Concrete (AC) - WMA 10% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.03.0230.,fr,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for surface course | Porous Asphalt (PA) - WMA 10% RAP,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.03.0250.,fr,dev,Asphalt,missed,decision,,,,,,,Asphalt | asphalt mixture for surface course | Mastic Asphalt (MA) - WMA,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+03.05.0040.,fr,dev,Building Components,false_match,usage,,,,,,,Building Components | Tile (clay) | ,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,no_evidence,<70,1
+04.01.0080.,fr,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | General Ready mixed concrete | C35/45,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.01.0100.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C30/37,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.01.0110.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C25/30,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,70-79,1
+04.01.0120.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | General Ready mixed concrete | C35/45,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,70-79,1
+04.03.0050.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C25/30,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.03.0060.,fr,dev,Concrete,missed,decision,,,,,,,Concrete | Concrete for beam in prestressed concrete | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,80-89,0
+04.03.0070.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C35/45,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.03.0080.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C25/30,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.03.0090.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C30/37,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.03.0100.,fr,dev,Concrete,false_match,usage,,,,,,,Concrete | Concrete for bridge deck | C35/45,SIGNAL:T8,2,,,,builder labels (assistant panel),2026-10-06,D9,agree,80-89,1
+04.03.0110.,fr,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for beam in prestressed concrete | C25/30,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+04.03.0120.,fr,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for beam in prestressed concrete | C30/37,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+04.03.0130.,fr,dev,Concrete,wrong_proposal_reviewed,usage,,,,,,,Concrete | Concrete for beam in prestressed concrete | C35/45,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+05.01.0010.,fr,dev,Excavations and Rock Cutting,wrong_proposal_reviewed,subtype,,,,,,,Excavations and Rock Cutting | For use as aggregates | High quality rock from rock cutting,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,80-89,0
+05.01.0030.,fr,dev,Excavations and Rock Cutting,wrong_proposal_reviewed,usage,,,,,,,Excavations and Rock Cutting | For landfill | Soil Excavation,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,70-79,0
+05.01.0040.,fr,dev,Excavations and Rock Cutting,wrong_proposal_reviewed,subtype,,,,,,,Excavations and Rock Cutting | For landfill | Waste,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,<70,0
+05.01.0070.,fr,dev,Steel,wrong_proposal_reviewed,usage,,,,,,,Steel | Structural steel (generic construction steel) | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,>=90,0
+07.01.0010.,fr,dev,Steel,wrong_proposal_reviewed,type,,,,,,,,NM_UNCONFIRMED,1,,,,builder labels (assistant panel),2026-10-06,D3,,,0
+07.01.0020.,fr,dev,Wood,wrong_proposal_reviewed,type,,,,,,,,NM_UNCONFIRMED,1,,,,builder labels (assistant panel),2026-10-06,D3,,,0
+07.01.0060.,fr,dev,Prefab,wrong_proposal_reviewed,type,,,,,,,,NO_LIBRARY_EQUIVALENT,1,,,,builder labels (assistant panel),2026-10-06,D4,,,0
+08.04.0040.,fr,dev,Additives,missed,decision,,,,,,,Additives | Additives for asphalt | For chemical process technologies (WMA),LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,agree,70-79,0
+08.04.0130.,fr,dev,Limestone,missed,decision,,,,,,,Limestone | for all usage | ,LOW_SIGNAL:v,1,,,,builder labels (assistant panel),2026-10-06,D10,no_evidence,>=90,0
