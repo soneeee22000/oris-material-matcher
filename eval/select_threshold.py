@@ -16,7 +16,9 @@ split's dev side.
 
 Writes ``eval/selection_v1.json`` (sorted keys, LF, portable paths) and the trade-off table
 ``eval/selection_v1.md``. Reference rows, never candidates: match-all (every valid in-library
-plurality top-1 matched) and B2 (the ``R-10.9-evidence`` ledger rows, when present).
+plurality top-1 matched) and B2 (the ``R-10.9-evidence`` ledger rows, when present). The D5a
+false rejects (A60.12) are counted on the replay at the selected threshold; D5a does not
+depend on the threshold.
 
 Usage::
 
@@ -47,6 +49,7 @@ from oris_matcher.doctor import Runtime, WiringError, read_manifest
 from oris_matcher.domain.decision import (
     Decision,
     LLMFailureKind,
+    ReasonCode,
     Rule,
     Threshold,
     candidate_thresholds,
@@ -100,6 +103,14 @@ COST_NOTE = "identical across thresholds (same calls)"
 REVIEW_NOTE = "needs_review per 100 output lines, N basis (evaluation-protocol.md:87)"
 H265_NOTE = "diagnostic, never used for selection"
 MATCH_ALL_NOTE = "every valid in-library plurality top1 matched; a reference row, never a candidate"
+D5A_REASON = ReasonCode.EVIDENCE_NOT_IN_LINE.value
+D5A_RETRIGGER_ABOVE = 3
+D5A_DEFINITION = (
+    "A60.12 (D5a rule A62): dev lines with reason EVIDENCE_NOT_IN_LINE whose suggested "
+    "(plurality top1) triple equals the non-blank reference triple, on the replay at the "
+    "selected threshold; evidence is each pass's quote"
+)
+EVIDENCE_FIELD = "evidence"
 EXIT_OK = 0
 EXIT_ERROR = 2
 EXIT_REFUSED = 4
@@ -400,12 +411,14 @@ class LanguageResults:
         thresholds: The candidate thresholds, strictest first.
         figures: Threshold id -> figures.
         match_all: Figures of the match-all reference row.
+        redecided: Threshold id -> the replayed run.
 
     """
 
     thresholds: tuple[Threshold, ...]
     figures: dict[str, dict[str, Any]]
     match_all: dict[str, Any]
+    redecided: dict[str, Redecided]
 
 
 def evaluate_run(
@@ -426,16 +439,102 @@ def evaluate_run(
     """
     thresholds = candidate_thresholds(int(read_manifest(run_dir)["passes_k"]))
     figures: dict[str, dict[str, Any]] = {}
-    redecided: Redecided | None = None
+    replays: dict[str, Redecided] = {}
     for threshold in thresholds:
         redecided = redecide(run_dir, threshold.threshold_id, runtime, scratch)
+        replays[threshold.threshold_id] = redecided
         target = scratch / f"{lang}_{threshold.threshold_id}.csv"
         figures[threshold.threshold_id] = figures_of_bytes(redecided.csv, target, lang, inputs)
-    if redecided is None:
+    if not replays:
         raise SelectionError(f"{run_dir.name}: no candidate thresholds")
-    match_all = match_all_csv(redecided)
+    match_all = match_all_csv(replays[thresholds[-1].threshold_id])
     all_figures = figures_of_bytes(match_all, scratch / f"{lang}_match_all.csv", lang, inputs)
-    return LanguageResults(thresholds, figures, all_figures)
+    return LanguageResults(thresholds, figures, all_figures, replays)
+
+
+# --- D5a false rejects (A60.12) ---------------------------------------------------------
+
+
+def pass_evidence(raw: str) -> str:
+    """Return the ``evidence`` quote of one pass's raw line response (blank if unreadable)."""
+    try:
+        answer = json.loads(raw)
+    except ValueError:
+        return ""
+    return str(answer.get(EVIDENCE_FIELD, "")) if isinstance(answer, dict) else ""
+
+
+def dev_pairs(redecided: Redecided, inputs: ScoreInputs) -> tuple[list[Any], list[Any]]:
+    """Return the replay's parsed output rows and its dev-side (reference, output) pairs."""
+    scorer = load_scorer()
+    rows = list(csv.reader(io.StringIO(redecided.csv.decode(READ_ENCODING), newline="")))
+    table = scorer.Table(path=Path(OUTPUT_FILE), header=rows[0], rows=rows[1:])
+    try:
+        reference = scorer.parse_reference(scorer.read_table(inputs.reference), None, True)
+        parsed = scorer.parse_output(table, None, True)
+        side = scorer.load_side_ids(inputs.split, SIDE_DEV)
+    except scorer.ScoreError as error:
+        run_id = redecided.result.run_id
+        raise SelectionError(f"cannot read the replay of {run_id}: {error}") from error
+    scope = scorer.build_scope(scorer.join_by_key(reference, parsed).pairs, side, {})
+    return list(parsed.rows), list(scope.pairs)
+
+
+def is_false_reject(pair: Any, record: Mapping[str, Any]) -> bool:
+    """Whether a D5a reject's suggested triple equals the pair's non-blank reference triple."""
+    if record["reason"] != D5A_REASON or not any(pair.ref.labels):
+        return False
+    return bool(pair.out.suggested == pair.ref.labels)
+
+
+def d5a_false_rejects(redecided: Redecided, inputs: ScoreInputs) -> dict[str, Any]:
+    """Return one replay's D5a rejects that carried the reference triple, with each quote.
+
+    Args:
+        redecided: The replay at the selected threshold.
+        inputs: Reference and split.
+
+    Returns:
+        ``count`` and ``lines`` (Item No. and every pass's evidence), in reference order.
+
+    """
+    out_rows, pairs = dev_pairs(redecided, inputs)
+    audit = redecided.result.audit
+    record_of = {id(row): record for row, record in zip(out_rows, audit, strict=True)}
+    lines = [
+        {
+            "item_no": str(pair.key),
+            "evidence": [pass_evidence(raw) for raw in record["raw_line_response"]],
+        }
+        for pair in pairs
+        if pair.out is not None
+        for record in (record_of[id(pair.out)],)
+        if is_false_reject(pair, record)
+    ]
+    return {"count": len(lines), "lines": lines}
+
+
+def d5a_summary(per_language: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Return the ``d5a_false_rejects`` block: definition, per language, total and trigger."""
+    total = sum(int(block["count"]) for block in per_language.values())
+    return {
+        "definition": D5A_DEFINITION,
+        **per_language,
+        "total": total,
+        "retriggers_10_9": total > D5A_RETRIGGER_ABOVE,
+    }
+
+
+def d5a_block(
+    results: Mapping[str, LanguageResults], threshold_id: str, inputs: ScoreInputs
+) -> dict[str, Any]:
+    """Return the D5a false rejects of every language on its replay at ``threshold_id``."""
+    return d5a_summary(
+        {
+            lang: d5a_false_rejects(result.redecided[threshold_id], inputs)
+            for lang, result in results.items()
+        }
+    )
 
 
 # --- reference rows from the ledger -----------------------------------------------------
@@ -628,7 +727,9 @@ def build_payload(
         The payload.
 
     """
-    outcome = rule.run_rule(rule_table(results), context.args.target)
+    args = context.args
+    outcome = rule.run_rule(rule_table(results), args.target)
+    inputs = ScoreInputs(args.reference, args.split, args.classes)
     return {
         "inputs": inputs_block(context),
         "rule": rule_block(context.args),
@@ -641,6 +742,7 @@ def build_payload(
             "b2": b2,
         },
         **selection_blocks(outcome),
+        "d5a_false_rejects": d5a_block(results, outcome.selected.threshold, inputs),
         "notes": {
             "mean_cost_usd": COST_NOTE,
             "review_load_per_100": REVIEW_NOTE,
@@ -729,6 +831,19 @@ def summary_lines(payload: Mapping[str, Any]) -> list[str]:
     return [*lines, ""]
 
 
+def d5a_line(block: Mapping[str, Any]) -> str:
+    """Render the one-line D5a false-reject summary."""
+    parts = [
+        f"{lang.upper()} {block[lang]['count']} "
+        f"({', '.join(line['item_no'] for line in block[lang]['lines']) or 'none'})"
+        for lang in LANGUAGES
+    ]
+    trigger = "re-triggered" if block["retriggers_10_9"] else "not re-triggered"
+    return (
+        f"D5a false rejects (A60.12): {', '.join(parts)}; total {block['total']}, §10.9 {trigger}."
+    )
+
+
 def render_markdown(payload: Mapping[str, Any]) -> str:
     """Render ``selection_v1.md`` from the payload."""
     notes = payload["notes"]
@@ -739,6 +854,8 @@ def render_markdown(payload: Mapping[str, Any]) -> str:
         f"Review load: {notes['review_load_per_100']}. H₂₆₅: {notes['h265']}.",
         "",
         *summary_lines(payload),
+        d5a_line(payload["d5a_false_rejects"]),
+        "",
     ]
     for lang in LANGUAGES:
         lines += language_table(lang, payload)

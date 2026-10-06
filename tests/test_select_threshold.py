@@ -39,6 +39,9 @@ FIXED_NOW = datetime(2026, 10, 6, 10, 0, tzinfo=UTC)
 ITEMS = 8
 CONFIDENCES = (95, 85, 75, 60)
 WRONG_EVERY = 4
+UNQUOTED_AT = (2, 3)
+UNQUOTED_EVIDENCE = "zqxjunquotedword"
+D5A_REASON = "EVIDENCE_NOT_IN_LINE"
 THRESHOLD_IDS = [f"T{index}" for index in range(1, 9)]
 SCORE_RULES = {"D9", "D10"}
 B3_ID = "B3-fake"
@@ -105,16 +108,27 @@ def _code(library: Library, position: int, wanted: tuple[str, str, str]) -> str:
     return library.rows[position % len(library.rows)].code
 
 
+def _evidence(line_short: str, position: int) -> str:
+    """Quote the line's first word, except at ``UNQUOTED_AT``: a word the line does not hold."""
+    words = line_short.split()
+    if position in UNQUOTED_AT:
+        return UNQUOTED_EVIDENCE
+    return words[0] if words else ""
+
+
 def answers_for(boq: BoqFile, library: Library, items: frozenset[str]) -> dict[str, Any]:
-    """Return the same answer for both passes: mostly the GT row, confidence by position."""
+    """Return the same answer for both passes: mostly the GT row, confidence by position.
+
+    At ``UNQUOTED_AT`` the quote is not in the line, so D5a rejects: position 2 carries the GT
+    row (a false reject), position 3 a wrong row (a true reject).
+    """
     reference = _reference()
     answers: dict[str, Any] = {}
     chosen = [line for line in boq.lines if line.kind == LineKind.ITEM and line.item_no in items]
     for index, line in enumerate(chosen):
-        words = line.short.split()
         answers[transport_id(line)] = {
             **default_answer(transport_id(line)),
-            "evidence": words[0] if words else "",
+            "evidence": _evidence(line.short, index),
             "top1": _code(library, index, reference.get(line.item_no, ("", "", ""))),
             "confidence": CONFIDENCES[index % len(CONFIDENCES)],
         }
@@ -146,10 +160,17 @@ def write_split(path: Path, dev: Sequence[str]) -> Path:
 
 
 def first_dev_items(count: int) -> list[str]:
+    """Return the first dev items whose GT triple is a library row, so a GT answer exists."""
     dev = set(json.loads(SPLIT.read_text(encoding="utf-8"))["item_ids_dev"])
+    library = load_library(GLOBAL_LIBRARY.read_bytes())
+    in_library = {
+        (row.material_type, row.material_usage, row.material_subtype) for row in library.rows
+    }
+    reference = _reference()
     boq = read_boq(INPUTS["en"])
     items = [line.item_no for line in boq.lines if line.kind == LineKind.ITEM]
-    return [item for item in items if item in dev][:count]
+    labelled = [item for item in items if reference.get(item) in in_library]
+    return [item for item in labelled if item in dev][:count]
 
 
 @dataclass(frozen=True)
@@ -342,6 +363,47 @@ def test_match_all_reference_row_matches_every_valid_plurality_top1(
     match_all = payload["reference_rows"]["match_all"]["per_language"]["en"]["matched"]
     assert match_all >= loosest
     assert match_all == ITEMS
+
+
+def _audit_reasons(run_dir: Path) -> dict[str, str]:
+    text = (run_dir / "audit.jsonl").read_text(encoding="utf-8")
+    records = [json.loads(line) for line in text.splitlines() if line.strip()]
+    return {str(record["item_no"]): str(record["reason"]) for record in records}
+
+
+def test_d5a_false_rejects_lists_gt_carrying_unquoted_lines(env: World, tmp_path: Path) -> None:
+    assert run_select(env, tmp_path) == 0
+    payload = json.loads((tmp_path / "selection.json").read_text(encoding="utf-8"))
+
+    block = payload["d5a_false_rejects"]
+    assert set(block) == {"definition", "en", "fr", "total", "retriggers_10_9"}
+    assert block["definition"].startswith("A60.12")
+    false_reject, true_reject = env.items[UNQUOTED_AT[0]], env.items[UNQUOTED_AT[1]]
+    for lang in ("en", "fr"):
+        reasons = _audit_reasons(env.runs[lang])
+        assert reasons[false_reject] == D5A_REASON
+        assert reasons[true_reject] == D5A_REASON
+        assert block[lang] == {
+            "count": 1,
+            "lines": [
+                {"item_no": false_reject, "evidence": [UNQUOTED_EVIDENCE, UNQUOTED_EVIDENCE]}
+            ],
+        }
+    assert block["total"] == 2
+    assert block["retriggers_10_9"] is False
+    markdown = (tmp_path / "selection.md").read_text(encoding="utf-8")
+    assert f"D5a false rejects (A60.12): EN 1 ({false_reject}), FR 1 ({false_reject})" in markdown
+    assert "total 2, §10.9 not re-triggered" in markdown
+
+
+def test_d5a_summary_flags_a_retrigger_above_three() -> None:
+    lines = [{"item_no": f"01.01.000{index}.", "evidence": ["x"]} for index in range(2)]
+    per_language = {"en": {"count": 2, "lines": lines}, "fr": {"count": 2, "lines": lines}}
+    block = selector.d5a_summary(per_language)
+
+    assert block["total"] == 4
+    assert block["retriggers_10_9"] is True
+    assert "§10.9 re-triggered" in selector.d5a_line(block)
 
 
 def test_target_adds_only_a_sensitivity_row(env: World, tmp_path: Path) -> None:
