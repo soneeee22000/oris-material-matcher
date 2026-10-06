@@ -51,6 +51,8 @@ Usage::
         [--verifier-adopted [--llm-verifier fake]] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
+A mixed E-08 run whose source lacks a main-pass record exits 2 with no ledger row: the
+strict replay behind its cache raises ``ReplayMissError`` before anything is written.
 """
 
 from __future__ import annotations
@@ -1268,6 +1270,10 @@ def run(args: argparse.Namespace, runtime: Runtime) -> int:
 
     Returns:
         The run's exit code: 0, or 3 when a line was ``LLM_UNAVAILABLE`` or a replay miss.
+
+    Raises:
+        ReplayMissError: A mixed E-08 run's source lacks a main-pass record; ``main`` exits 2
+            and no ledger row is written.
 
     """
     check_lockbox_gate(args, runtime)

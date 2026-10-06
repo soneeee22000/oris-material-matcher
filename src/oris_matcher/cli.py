@@ -6,7 +6,9 @@ calls ``MatchService``, writes ``runs/<run_id>/`` and the output CSV, and prints
 summary. ``--profile b0`` is the rules-only floor: it never builds a live adapter, needs no key
 and may run over a whole exercise input before the freeze, because it sends nothing to a model.
 Exit codes: 0 ok, 1 a ``replay --check`` mismatch or a failed doctor check, 2 a usage
-or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss (§11.3).
+or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss (§11.3). In a mixed
+E-08 run a main pass the replayed run never recorded is not a line failure: it raises
+``ReplayMissError``, nothing is written and the exit code is 2 (A65 note).
 
 E-08 (A65.2) is measured as a mixed run: ``--llm replay:<run>`` with the verifier adopted, over a
 run recorded without it, serves the main passes from that run's ``calls.jsonl`` through the
@@ -14,7 +16,8 @@ response cache ($0, a strict ReplayLLM behind it so nothing else is answered) an
 verifier requests to ``--llm-verifier`` (the live primary by default). A ``RoutingLLM`` picks
 the adapter by request kind. The run is ``cached`` (``fake`` with a fake verifier) and names the
 replayed run as its source; its ``calls.jsonl`` holds both kinds, so a plain replay of it is
-byte-identical.
+byte-identical. Only a B3 run is mixed, only over a source the cache serves exactly as a replay
+would, and a live verifier only over answers first recorded live (A65 note, 2026-10-07).
 """
 
 import asyncio
