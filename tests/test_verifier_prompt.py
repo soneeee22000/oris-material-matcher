@@ -178,7 +178,9 @@ def test_the_request_is_a_temperature_zero_structured_call() -> None:
 
 def test_the_schema_is_closed_with_evidence_before_the_code() -> None:
     schema = verifier_output_schema()
-    line = schema["properties"]["lines"]["items"]
+    reference = schema["properties"]["lines"]["items"]["$ref"]
+    assert reference == "#/$defs/VerifierAnswer"
+    line = schema["$defs"]["VerifierAnswer"]
     assert list(line["properties"]) == ["id", "evidence", "code"]
     assert line["required"] == ["id", "evidence", "code"]
     assert line["additionalProperties"] is False
