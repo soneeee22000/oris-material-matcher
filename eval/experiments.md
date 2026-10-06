@@ -21,3 +21,4 @@ This ledger is append-only, and every attempt gets one row, whether it was kept 
 | B3-slice40 | 2026-10-06 00:38 UTC | B3 k=2 on the 40-item dev slice | — | first B3 slice run (A61) | — | P EN 1.000 · C 0.007 · F_NM 0 · $0.318/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
 | B3-slice40 | 2026-10-06 00:39 UTC | B3 k=2 on the 40-item dev slice | — | first B3 slice run (A61) | — | P FR n/a · C 0.000 · F_NM 0 · $0.326/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
 | B3-dev | 2026-10-06 00:41 UTC | B3 k=2 on all dev items | — | first full-dev B3 run (A60, A61) | — | P EN 1.000 · C 0.014 · F_NM 0 · $0.175/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
+| B3-dev | 2026-10-06 00:42 UTC | B3 k=2 on all dev items | — | first full-dev B3 run (A60, A61) | — | P FR 1.000 · C 0.014 · F_NM 0 · $0.182/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
