@@ -1498,6 +1498,31 @@ The pre-mapped response (fix or add an extractor) has nothing to fix.
 
 **Measured** by a $0 replay of the `B3-dev-sel` votes, ledger id `E-subtype-drop`, `--baseline-id B3-dev-sel`, `--cause-targeted subtype_parse`. It is kept only under §7.2. Changed: §9.5 (D7 note).
 
+### A65 · 2026-10-06 · G2-T8 E-08: the flagged lines, and how a precision arm is kept
+
+**Results existing at the time:** the G2 selection (`T8`, below the dev bar: EN P .891, FR .913), `B3-dev-sel`, the accepted cause panel (`usage_confuser` EN 23, FR 22; `docs/gates/G2.md` O18), and the build of `E-subtype-drop` (A64, not yet measured). No E-08 output exists. Both rules below are fixed before E-08 is built or measured.
+
+**1. A precision arm is kept only if it reaches the dev bar.** The §7.2 keep rule needs summed correct matches to rise by ≥ max(6, 2√d). A veto (E-08 as D8a, A20) can never raise correct matches, so under §7.2 alone it could never be kept, even if it fixes exactly the precision shortfall that put G2 below the dev bar.
+
+For an arm whose only possible effect on matched lines is to remove matches (a *precision arm*):
+- It is **kept** if and only if the $0 re-selection (`oris select`) on the arm's runs finds a threshold that meets the dev bar of §10.6 (P ≥ .95 and ≥ 40 matched, in each language), where `B3-dev-sel`'s selection found none.
+- F_NM stays 0, and cost and latency stay in budget (§7.2 clause 4).
+- Otherwise it is **reverted**, and its effect is logged.
+- If kept, the re-selected threshold and its policy entry replace `T8`, with a new ledger row.
+- Coverage arms keep the §7.2 rule unchanged (owner decision D2 = A still applies).
+
+Owner decision, Tue 6 Oct, option A.
+
+**2. E-08's flagged lines.** §7.2 says "+ calls on flagged lines" without defining them.
+- **Flagged lines** are the lines whose plurality top1 passes D0–D8 and meets the selected threshold: every line that would be matched at `T8` without the verifier (about 101 EN and 104 FR on dev).
+- **What the verifier sees:** the line, its section path, and only the sibling usages of the agreed type (§7.2).
+- **What it returns:** one of those sibling codes or `NONE`, plus an evidence span. The code is validated in code, case-sensitively.
+- **What decides:** D8a sends the line to `needs_review` as `VERIFIER_DISAGREES` when the returned code is not top1, including `NONE`. A missing or invalid verifier answer is D1b `partial_signal`.
+- **How it is measured:** the main passes are replayed from the T5 runs at $0; only the verifier calls are live. They are recorded in `calls.jsonl` so the arm replays exactly. The ledger id is `E-08`, with `--baseline-id B3-dev-sel` and `--cause-targeted usage_confuser`.
+- Correct-to-wrong and wrong-to-correct flips are reported per family (§7.2).
+
+Owner decision, Tue 6 Oct, option A. Changed: §7.2 (keep rule for precision arms; E-08 flagged lines).
+
 ---
 
 ## 17. Results
