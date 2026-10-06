@@ -1,4 +1,10 @@
 # Policy resolution (DESIGN.md §10.6): model_id -> library_sha256 -> {policy_id, certified_by}.
 # certified_by is one of: dev_selection, smoke_A10. Any pair not listed resolves to the strictest
-# threshold (policy_resolution: fallback_strictest). Empty until a threshold is certified.
-policies: {}
+# threshold (policy_resolution: fallback_strictest).
+# Haiku on the global library: T8 by the §10.6 rule on the G2 dev runs, below the dev bar
+# (eval/selection_v1.json, docs/gates/G2.md §5).
+policies:
+  claude-haiku-4-5-20251001:
+    '96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1':
+      policy_id: T8
+      certified_by: dev_selection

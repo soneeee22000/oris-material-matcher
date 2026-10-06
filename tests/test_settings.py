@@ -1,4 +1,6 @@
 import csv
+import hashlib
+import json
 import os
 from datetime import date
 from pathlib import Path
@@ -202,9 +204,18 @@ def test_pricing_lookup_unknown_model_fails() -> None:
         pricing.lookup("anthropic", "claude-opus-4")
 
 
-def test_load_policy_is_empty() -> None:
+def test_shipped_policy_has_the_dev_selection_entry() -> None:
+    """config/policy.yaml holds the G2 dev selection for Haiku on the global library only."""
     policy = load_policy(CONFIG_DIR / POLICY_FILE)
-    assert policy.policies == {}
+    library = CONFIG_DIR.parent / "data" / "oris_materials_global.csv"
+    sha = hashlib.sha256(library.read_bytes()).hexdigest()
+    selection = json.loads(
+        (CONFIG_DIR.parent / "eval" / "selection_v1.json").read_text(encoding="utf-8")
+    )
+    entry = policy.lookup("claude-haiku-4-5-20251001", sha)
+    assert entry is not None
+    assert entry.policy_id == selection["selected"]["threshold_id"]
+    assert entry.certified_by == "dev_selection"
     assert policy.lookup("claude-haiku-4-5-20251001", "0" * 64) is None
 
 
