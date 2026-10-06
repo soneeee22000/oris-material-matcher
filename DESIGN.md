@@ -1465,7 +1465,7 @@ The rule is not adopted, for four reasons:
 - `max_tokens` is part of the request hash. Changing it would stop every recorded run from replaying: the golden fixture, the selection evidence and `runs/submission/`. It would force about $0.58–0.90 of re-runs and re-derive the selection on new votes before the freeze.
 - A39's reason, output-token rate limits, does not bind at the recorded tier: 1,000,000 output tokens per minute, against about 16k in flight.
 - Since A61, the slack costs only waiting time on small runs.
-- The slack keeps every reservation a true worst case (item 2).
+- The slack keeps every reservation above the realistic cost of its call (item 2). It is not a strict bound: a cold call whose output reached 4,096 tokens could cost about $0.0006 more than its reservation (`docs/gates/G2.md` O13).
 
 Owner decision (O13, option A).
 
