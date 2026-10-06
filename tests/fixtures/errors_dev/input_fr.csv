@@ -1,0 +1,13 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty
+0,Terrassements et ouvrages,,,
+01.,Ouvrages,,,
+01.01.,Bétons et liants,,,
+01.01.0010.,Béton de propreté C12/15,"Sous semelles, 50 mm",m3,1
+01.01.0020.,Béton maigre C16/20,"Sous pavés, 150 mm",m3,1
+01.01.0030.,Béton structurel C30/37 voiles,Murs de soutènement,m3,1
+01.01.0040.,Liant modifié polymère,Pour la couche de roulement,t,1
+01.01.0050.,Armatures,"Barres HA, façonnées",t,1
+01.01.0060.,Signalisation de chantier,"Panneaux et cônes, phase 1",LS,1
+01.01.0070.,Repli des installations,"Enlèvement, remise en état",LS,1
+01.01.0080.,Traverses bois créosotées,Évacuées comme déchet dangereux,t,1
+01.01.0090.,Couche d'accrochage émulsion,"Répandue à 0,3 kg/m2",t,1

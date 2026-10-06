@@ -1,0 +1,7 @@
+material_type,material_usage,material_subtype
+Concrete,Lean concrete,C12/15
+Concrete,Lean concrete,C16/20
+Concrete,Structural concrete,C30/37
+Bitumen,bitumen for asphalt mixtures,Normal Bitumen
+Bitumen,bitumen for asphalt mixtures,Polymer Bitumen
+Steel,Reinforcement,B500B
