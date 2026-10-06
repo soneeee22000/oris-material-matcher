@@ -7,6 +7,10 @@ inside the cached library block. The prompt helper source is every domain functi
 calls to write a line (its section path and its transport id), with the values of the module
 constants those functions read. Each component is hashed on its own first, so no two different
 component lists can concatenate to the same bytes.
+
+The E-08 verifier (§7.2, A65.2) has its own ``verifier_prompt_version`` over its templates, its
+schema, its renderer and the same renderer, library coding and helper sources, so adding or
+changing it never moves a main pass's version.
 """
 
 import hashlib
@@ -19,7 +23,7 @@ from typing import Any
 from oris_matcher.domain import library, normalize
 from oris_matcher.domain.batching import transport_id
 from oris_matcher.domain.decision import section_path_text
-from oris_matcher.prompts.v1 import render
+from oris_matcher.prompts.v1 import render, verifier
 from oris_matcher.prompts.v1.render import PromptVariant
 
 PROMPT_VERSION_PREFIX = "v1+"
@@ -95,6 +99,14 @@ def version_components(variant: PromptVariant) -> tuple[str, ...]:
     )
 
 
+def _hashed_version(components: tuple[str, ...]) -> str:
+    """Hash each component, then the list of hashes, into a ``v1+`` prompt version."""
+    digest = hashlib.sha256()
+    for component in components:
+        digest.update(hashlib.sha256(component.encode(HASH_ENCODING)).hexdigest().encode())
+    return f"{PROMPT_VERSION_PREFIX}{digest.hexdigest()[:PROMPT_VERSION_HASH_LENGTH]}"
+
+
 def prompt_version(variant: PromptVariant) -> str:
     """Return the prompt version of one pass variant.
 
@@ -105,7 +117,35 @@ def prompt_version(variant: PromptVariant) -> str:
         ``v1+`` and the first ``PROMPT_VERSION_HASH_LENGTH`` hex characters of the hash.
 
     """
-    digest = hashlib.sha256()
-    for component in version_components(variant):
-        digest.update(hashlib.sha256(component.encode(HASH_ENCODING)).hexdigest().encode())
-    return f"{PROMPT_VERSION_PREFIX}{digest.hexdigest()[:PROMPT_VERSION_HASH_LENGTH]}"
+    return _hashed_version(version_components(variant))
+
+
+def verifier_version_components() -> tuple[str, ...]:
+    """Return the texts the E-08 verifier's prompt version hashes, in order.
+
+    Returns:
+        The verifier templates, its schema JSON, its renderer source, the main renderer source
+        (it renders each line as the main prompt does), the library coding source, the prompt
+        helper source and the verifier variant name.
+
+    """
+    templates = tuple(verifier.verifier_template(name) for name in verifier.VERIFIER_TEMPLATES)
+    return (
+        *templates,
+        verifier.verifier_schema_json(),
+        _module_source(verifier),
+        renderer_source(),
+        library_coding_source(),
+        prompt_helper_source(),
+        verifier.VERIFIER_VARIANT_NAME,
+    )
+
+
+def verifier_prompt_version() -> str:
+    """Return the prompt version of the E-08 sibling verifier.
+
+    Returns:
+        ``v1+`` and the first ``PROMPT_VERSION_HASH_LENGTH`` hex characters of the hash.
+
+    """
+    return _hashed_version(verifier_version_components())

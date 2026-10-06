@@ -6,7 +6,9 @@ folder (``io/writer.py``, ``io/audit.py``). Profile B3 runs the full decision ta
 resolved policy threshold (§10.6); profile B2 is the raw single-pass rung of the baseline
 ladder (§10.5); profile B0 is its rules-only floor, which plans no batch and so makes no call
 (§7.1, §10.5). Inside a batch the model sees transport ids ``L<position>``, so the wrapper and
-every call record carry those ids; the service maps them back to lines.
+every call record carry those ids; the service maps them back to lines. With the E-08 verifier
+adopted, a B3 run then asks the sibling verifier about every line the table would match
+(``verification.py``) and decides with its answers (A65.2).
 """
 
 import asyncio
@@ -45,6 +47,7 @@ from oris_matcher.domain.decision import (
     candidate_thresholds,
     decide,
     decide_b2,
+    flagged_top1,
     is_service_unit,
     llm_failure_reason,
     low_signal_reason,
@@ -65,7 +68,9 @@ from oris_matcher.llm.recording import (
     system_blocks_sha256,
 )
 from oris_matcher.llm.replay_llm import ReplayLLM
+from oris_matcher.llm.routing import RoutingLLM
 from oris_matcher.llm.wrapper import (
+    VERIFIER_ANSWERS,
     BatchOutcome,
     LineOutcome,
     LLMWrapper,
@@ -80,7 +85,8 @@ from oris_matcher.prompts.v1.render import (
     build_request,
     render_system_blocks,
 )
-from oris_matcher.prompts.v1.version import prompt_version
+from oris_matcher.prompts.v1.verifier import build_verifier_request, render_verifier_system
+from oris_matcher.prompts.v1.version import prompt_version, verifier_prompt_version
 from oris_matcher.settings import (
     MODELS_FILE,
     NEVER_MATCH_FILE,
@@ -98,6 +104,14 @@ from oris_matcher.settings import (
     load_service_units,
     load_supply_markers,
     resolve_models,
+)
+from oris_matcher.verification import (
+    BATCHING,
+    NOT_FLAGGED,
+    VerifierGroup,
+    VerifierLine,
+    verifier_groups,
+    verifier_line,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -131,6 +145,8 @@ CONTEXT_NONE = "none"
 TEXT_SEPARATOR = " "
 DECISION_PROFILE_KEY = "decision_profile"
 DROP_CONFLICTING_VOTES_KEY = "drop_conflicting_votes"
+VERIFIER_ADOPTED_KEY = "verifier_adopted"
+VERIFIER_KEY = "verifier"
 UNAVAILABLE_REASONS = frozenset(
     {ReasonCode.LLM_UNAVAILABLE.value, llm_failure_reason(LLMFailureKind.REPLAY_MISS)}
 )
@@ -487,21 +503,33 @@ class ServiceResources:
 
     @property
     def decision_profile(self) -> DecisionProfile:
-        """The decision table's flags, from the settings (A64)."""
-        return DecisionProfile(drop_conflicting_votes=self.settings.drop_conflicting_votes)
+        """The decision table's flags, from the settings (A64, A65)."""
+        settings = self.settings
+        return DecisionProfile(
+            verifier_adopted=settings.verifier_adopted,
+            drop_conflicting_votes=settings.drop_conflicting_votes,
+        )
 
 
 def decision_profile_fields(profile: DecisionProfile) -> dict[str, Any]:
     """Return the manifest's ``decision_profile`` field.
 
+    ``verifier_adopted`` is written only when it is on, so the manifest of every run decided
+    without the verifier keeps the bytes it had before E-08, and reads back as off like a run
+    recorded before it.
+
     Args:
         profile: The profile a run decided with.
 
     Returns:
-        ``{"decision_profile": {"drop_conflicting_votes": bool}}``.
+        ``{"decision_profile": {"drop_conflicting_votes": bool}}``, with
+        ``"verifier_adopted": true`` added when the verifier decided the run.
 
     """
-    return {DECISION_PROFILE_KEY: {DROP_CONFLICTING_VOTES_KEY: profile.drop_conflicting_votes}}
+    fields: dict[str, bool] = {DROP_CONFLICTING_VOTES_KEY: profile.drop_conflicting_votes}
+    if profile.verifier_adopted:
+        fields[VERIFIER_ADOPTED_KEY] = True
+    return {DECISION_PROFILE_KEY: fields}
 
 
 def recorded_decision_profile(manifest: Mapping[str, Any]) -> DecisionProfile:
@@ -511,11 +539,15 @@ def recorded_decision_profile(manifest: Mapping[str, Any]) -> DecisionProfile:
         manifest: A run manifest.
 
     Returns:
-        The recorded profile; a run recorded before A64 has no field and decided with it off.
+        The recorded profile; a flag a run did not record (before A64, before E-08, or off)
+        reads back as off.
 
     """
     recorded = manifest.get(DECISION_PROFILE_KEY) or {}
-    return DecisionProfile(drop_conflicting_votes=bool(recorded.get(DROP_CONFLICTING_VOTES_KEY)))
+    return DecisionProfile(
+        verifier_adopted=bool(recorded.get(VERIFIER_ADOPTED_KEY)),
+        drop_conflicting_votes=bool(recorded.get(DROP_CONFLICTING_VOTES_KEY)),
+    )
 
 
 @dataclass(frozen=True)
@@ -536,6 +568,7 @@ class LineResult:
         raw_line_responses: The line's verbatim answer object from each pass that gave one.
         context: ``section_path`` when the prompt carried one, else ``none``.
         flags: Audit flags such as ``TRUNCATED``.
+        verifier: What E-08 recorded for the line; None when the run did not adopt it.
 
     """
 
@@ -552,6 +585,7 @@ class LineResult:
     raw_line_responses: tuple[str, ...]
     context: str
     flags: tuple[str, ...]
+    verifier: VerifierLine | None = None
 
 
 @dataclass(frozen=True)
@@ -655,6 +689,25 @@ class _Rescue:
 
 
 @dataclass(frozen=True)
+class _Verified:
+    """The E-08 stage of a run: each flagged line's answer and every verifier attempt.
+
+    Attributes:
+        adopted: Whether the run decided with the verifier (B3 with the setting on).
+        lines: Transport id -> the flagged line's verifier record.
+        records: Every verifier attempt, in request order.
+
+    """
+
+    adopted: bool
+    lines: Mapping[str, VerifierLine] = dataclasses.field(default_factory=dict)
+    records: tuple[CallRecord, ...] = ()
+
+
+NOT_VERIFIED = _Verified(adopted=False)
+
+
+@dataclass(frozen=True)
 class _RunInfo:
     """What the manifest records about a run beyond its plan and calls."""
 
@@ -732,13 +785,15 @@ def run_mode(adapter: LLMPort, calls: Iterable[CallRecord]) -> RunMode:
         calls: Every attempt of the run.
 
     Returns:
-        ``replay`` for a ReplayLLM, ``fake`` for a FakeLLM, ``cached`` when at least one
-        attempt was a cache hit, else ``live``.
+        ``replay`` for a ReplayLLM, ``fake`` for a FakeLLM or a routing port with a FakeLLM
+        route, ``cached`` when at least one attempt was a cache hit, else ``live``.
 
     """
     if isinstance(adapter, ReplayLLM):
         return RunMode.REPLAY
     if isinstance(adapter, FakeLLM):
+        return RunMode.FAKE
+    if isinstance(adapter, RoutingLLM) and any(isinstance(r, FakeLLM) for r in adapter.routes):
         return RunMode.FAKE
     return RunMode.CACHED if any(record.cache_hit for record in calls) else RunMode.LIVE
 
@@ -869,8 +924,9 @@ class MatchService:
         plan = self._plan(boq, library_id, profile, options, provider)
         outcomes = await self._call_passes(plan, llm)
         rescue = await self._rescue(plan, llm, outcomes, options)
+        verified = await self._verify(plan, llm, _Inputs(self.resources, plan, rescue))
         identity = options.run_id or make_run_id(self._clock(), self._run_seed(plan))
-        assembly = _Assembly(self.resources, plan, rescue, llm)
+        assembly = _Assembly(self.resources, plan, rescue, llm, verified)
         source = options.source_run_id
         if assembly.mode == RunMode.CACHED:
             source = cache_source_run_id(assembly.calls, options.cache_sources)
@@ -1007,6 +1063,70 @@ class MatchService:
         policy = self._policy(plan.boq, target, plan.profile, options.threshold)
         return _Rescue(merged, served, policy, tuple(backup.declined))
 
+    async def _verify(self, plan: _RunPlan, llm: LLMWrapper, inputs: "_Inputs") -> _Verified:
+        """Ask the sibling verifier about every flagged line of a B3 run that adopted E-08.
+
+        The flagged lines are those the table matches with the verifier off (A65.2). Their
+        requests go through the run's wrapper, so retries, the budget and its waits (A61), the
+        breaker, recording, the cache and replay apply as to any call.
+
+        The stage always uses the primary wrapper, never the A33 fallback: E-08 is measured on
+        the primary model. After the fallback rescued the main passes the primary breaker is
+        open, so every flagged line fails closed as D1b ``partial_signal`` with
+        ``LLM_UNAVAILABLE`` and the run exits 3; the same holds when the verifier calls trip
+        the breaker themselves.
+        """
+        profile = self.resources.decision_profile
+        if not plan.is_full or not profile.verifier_adopted:
+            return NOT_VERIFIED
+        flagged = self._flagged(plan, inputs, profile)
+        groups = verifier_groups(flagged, plan.library, self.resources.settings.batch_size)
+        semaphore = asyncio.Semaphore(self.resources.settings.concurrency)
+        outcomes = await asyncio.gather(
+            *(self._verify_group(semaphore, plan, llm, group) for group in groups)
+        )
+        lines = {
+            transport: verifier_line(outcome.lines[transport], group.codes)
+            for group, outcome in zip(groups, outcomes, strict=True)
+            for transport in group.transport_ids
+        }
+        records = tuple(record for outcome in outcomes for record in outcome.records)
+        return _Verified(adopted=True, lines=lines, records=records)
+
+    def _flagged(
+        self, plan: _RunPlan, inputs: "_Inputs", profile: DecisionProfile
+    ) -> list[tuple[BoqLine, str]]:
+        """Return (line, top1) for every routed line the table matches with the verifier off."""
+        flagged: list[tuple[BoqLine, str]] = []
+        for line in plan.lines:
+            calls = inputs.line_calls(line)
+            if calls is None:
+                continue
+            top1 = flagged_top1(inputs.decision_input(line, calls), plan.library, profile)
+            if top1 is not None:
+                flagged.append((line, top1))
+        return flagged
+
+    async def _verify_group(
+        self, semaphore: asyncio.Semaphore, plan: _RunPlan, llm: LLMWrapper, group: VerifierGroup
+    ) -> BatchOutcome:
+        """Run one verifier request, for lines of one material type, under the semaphore."""
+        by_transport = {transport_id(line): _prompt_line(line) for line in group.lines}
+        target = plan.target
+
+        def build(ids: tuple[str, ...]) -> LLMRequest:
+            """Render the verifier request for these transport ids, in this order."""
+            request = build_verifier_request(
+                [by_transport[transport] for transport in ids],
+                group.rows,
+                model=target.model,
+                max_tokens=self.resources.max_tokens,
+            )
+            return dataclasses.replace(request, provider=target.provider, line_ids=tuple(ids))
+
+        async with semaphore:
+            return await llm.run_batch(group.transport_ids, build, VERIFIER_ANSWERS)
+
     def _builder(self, target: _Target, batch: Batch, variant: PromptVariant) -> RequestBuilder:
         """Return the wrapper's request builder for any subset of one batch's transport ids."""
         by_transport = {
@@ -1028,6 +1148,56 @@ class MatchService:
         return build
 
 
+class _Inputs:
+    """Builds what the decision table reads for each line from a run's pass outcomes."""
+
+    def __init__(self, resources: ServiceResources, plan: _RunPlan, rescue: _Rescue) -> None:
+        """Index the outcomes by transport id.
+
+        Args:
+            resources: The service's resources.
+            plan: The run's plan.
+            rescue: Every job's outcome, with any fallback re-run merged in.
+
+        """
+        self.resources = resources
+        self.plan = plan
+        self.policy = rescue.policy or plan.policy
+        self.outcomes = rescue.outcomes
+        self.batch_of = {
+            transport: index
+            for index, batch in enumerate(plan.batches)
+            for transport in batch.transport_ids
+        }
+
+    def line_calls(self, line: BoqLine) -> _LineCalls | None:
+        """Return a routed line's outcome from every pass, or None for a rule-decided line."""
+        transport = transport_id(line)
+        batch_index = self.batch_of.get(transport)
+        if batch_index is None:
+            return None
+        passes = range(len(self.plan.variants))
+        return _LineCalls(tuple(self.outcomes[p, batch_index].lines[transport] for p in passes))
+
+    def decision_input(
+        self, line: BoqLine, calls: _LineCalls | None, verifier_top1: str | None = None
+    ) -> DecisionInput:
+        """Build what the decision table reads for one line."""
+        full = self.plan.is_full
+        text = _line_text(line)
+        return DecisionInput(
+            line=line,
+            haystack=make_haystack(line),
+            attributes=extract(text) if full else Attributes(),
+            has_supply_marker=full and has_supply_marker(text, self.resources.supply_markers),
+            is_service_unit=is_service_unit(line.unit, self.resources.service_units),
+            passes=calls.pass_outcomes() if calls else (),
+            threshold=self.policy.threshold,
+            line_failure=calls.line_failure() if calls else None,
+            verifier_top1=verifier_top1,
+        )
+
+
 class _Assembly:
     """Turns a run's batch outcomes into ordered line results, audit records and a manifest."""
 
@@ -1037,6 +1207,7 @@ class _Assembly:
         plan: _RunPlan,
         rescue: _Rescue,
         llm: LLMWrapper,
+        verified: _Verified = NOT_VERIFIED,
     ) -> None:
         """Index the outcomes by transport id and attribute every attempt to its lines.
 
@@ -1045,22 +1216,20 @@ class _Assembly:
             plan: The run's plan.
             rescue: Every job's outcome, with any fallback re-run merged in.
             llm: The primary wrapper the run used.
+            verified: The E-08 stage; its attempts follow the passes' in ``calls``.
 
         """
         self.resources = resources
         self.plan = plan
         self.rescue = rescue
-        self.policy = rescue.policy or plan.policy
-        self.outcomes = rescue.outcomes
+        self.verified = verified
+        self.inputs = _Inputs(resources, plan, rescue)
+        self.policy = self.inputs.policy
         outcomes = rescue.outcomes
-        self.calls = tuple(record for job in sorted(outcomes) for record in outcomes[job].records)
+        passes = (record for job in sorted(outcomes) for record in outcomes[job].records)
+        self.calls = (*passes, *verified.records)
         self.mode = RunMode.RULES if plan.is_rules_only else run_mode(llm.adapter, self.calls)
         self.attribution: dict[str, LineAttribution] = attribute_costs(self.calls)
-        self.batch_of = {
-            transport: index
-            for index, batch in enumerate(plan.batches)
-            for transport in batch.transport_ids
-        }
         self.versions = tuple(prompt_version(variant) for variant in plan.variants)
         self.declined = (*llm.declined, *rescue.declined)
 
@@ -1086,29 +1255,11 @@ class _Assembly:
             attributed_cost_usd=attributed,
         )
 
-    def _line_calls(self, line: BoqLine) -> _LineCalls | None:
-        """Return a routed line's outcome from every pass, or None for a rule-decided line."""
-        transport = transport_id(line)
-        batch_index = self.batch_of.get(transport)
-        if batch_index is None:
+    def _verifier(self, line: BoqLine) -> VerifierLine | None:
+        """Return the line's E-08 record when the run adopted the verifier, else None."""
+        if not self.verified.adopted:
             return None
-        passes = range(len(self.plan.variants))
-        return _LineCalls(tuple(self.outcomes[p, batch_index].lines[transport] for p in passes))
-
-    def _decision_input(self, line: BoqLine, calls: _LineCalls | None) -> DecisionInput:
-        """Build what the decision table reads for one line."""
-        full = self.plan.is_full
-        text = _line_text(line)
-        return DecisionInput(
-            line=line,
-            haystack=make_haystack(line),
-            attributes=extract(text) if full else Attributes(),
-            has_supply_marker=full and has_supply_marker(text, self.resources.supply_markers),
-            is_service_unit=is_service_unit(line.unit, self.resources.service_units),
-            passes=calls.pass_outcomes() if calls else (),
-            threshold=self.policy.threshold,
-            line_failure=calls.line_failure() if calls else None,
-        )
+        return self.verified.lines.get(transport_id(line), NOT_FLAGGED)
 
     @property
     def decision_profile(self) -> DecisionProfile:
@@ -1125,8 +1276,10 @@ class _Assembly:
 
     def _line_result(self, line: BoqLine) -> LineResult:
         """Decide one line and attach its attribution, suggestions and audit fields."""
-        calls = self._line_calls(line)
-        decision_input = self._decision_input(line, calls)
+        calls = self.inputs.line_calls(line)
+        verifier = self._verifier(line)
+        verifier_top1 = verifier.top1 if verifier else None
+        decision_input = self.inputs.decision_input(line, calls, verifier_top1)
         decision = self._decide(decision_input)
         attribution = self.attribution.get(transport_id(line))
         suggested = self._row(decision.top1)
@@ -1144,6 +1297,7 @@ class _Assembly:
             raw_line_responses=calls.raw_responses() if calls else (),
             context=CONTEXT_PATH if self.plan.is_full and line.section_path else CONTEXT_NONE,
             flags=(TRUNCATED_FLAG,) if calls and capped_for_prompt(line).truncated else (),
+            verifier=verifier,
         )
 
     def _row(self, code: str) -> LibraryRow | None:
@@ -1175,6 +1329,9 @@ class _Assembly:
         for variant in self.plan.variants:
             blocks = render_system_blocks(self.plan.library, variant)
             prompts[system_blocks_sha256(blocks)] = system_blocks_document(blocks)
+        if self.verified.adopted:
+            verifier = render_verifier_system()
+            prompts[system_blocks_sha256(verifier)] = system_blocks_document(verifier)
         return prompts
 
     def _manifest(
@@ -1199,6 +1356,7 @@ class _Assembly:
             **_candidate_fields(plan),
             **_policy_fields(self.policy),
             **decision_profile_fields(self.decision_profile),
+            **_verifier_fields(self.verified, resources.settings.batch_size),
             "path_mode": plan.boq.path_mode.value,
             "encoding": plan.boq.encoding,
             "delimiter": plan.boq.delimiter,
@@ -1238,9 +1396,30 @@ def decide_b0(decision_input: DecisionInput, library: Library) -> LineDecision:
 
 
 def _exit_code(lines: Iterable[LineResult]) -> int:
-    """Return 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss, else 0 (§11.3)."""
-    unavailable = any(item.decision.reason in UNAVAILABLE_REASONS for item in lines)
+    """Return 3 when any line or its verifier is ``LLM_UNAVAILABLE`` or a replay miss (§11.3)."""
+    unavailable = any(
+        item.decision.reason in UNAVAILABLE_REASONS
+        or (item.verifier is not None and item.verifier.is_unavailable)
+        for item in lines
+    )
     return EXIT_LLM_UNAVAILABLE if unavailable else EXIT_OK
+
+
+def _verifier_fields(verified: _Verified, batch_size: int) -> dict[str, Any]:
+    """Return the manifest's ``verifier`` field for a run that adopted E-08, else nothing."""
+    if not verified.adopted:
+        return {}
+    answered = [line for line in verified.lines.values() if line.top1 is not None]
+    return {
+        VERIFIER_KEY: {
+            "prompt_version": verifier_prompt_version(),
+            "batching": BATCHING,
+            "batch_size": batch_size,
+            "flagged_count": len(verified.lines),
+            "answered_count": len(answered),
+            "call_count": len(verified.records),
+        }
+    }
 
 
 def _library_fields(plan: _RunPlan) -> dict[str, Any]:
@@ -1344,6 +1523,19 @@ def _signals_record(signals: Signals | None) -> dict[str, Any] | None:
     }
 
 
+def _verifier_record(verifier: VerifierLine | None) -> dict[str, Any]:
+    """Return a line's E-08 audit fields when the run adopted the verifier, else nothing."""
+    if verifier is None:
+        return {}
+    return {
+        "verifier_flagged": verifier.flagged,
+        "verifier_top1": verifier.top1,
+        "verifier_raw": verifier.raw,
+        "verifier_call_ids": list(verifier.call_ids),
+        "verifier_failure": verifier.failure,
+    }
+
+
 def audit_record(item: LineResult) -> dict[str, Any]:
     """Build one ``audit.jsonl`` record (§9.6).
 
@@ -1352,11 +1544,13 @@ def audit_record(item: LineResult) -> dict[str, Any]:
 
     Returns:
         The rule fired, reason, signals, top-1/top-2, attribute result, raw line responses,
-        call ids, context and flags, keyed by the line id.
+        call ids, context and flags, keyed by the line id; with the verifier adopted, also its
+        flag, validated answer, raw answer, call ids and failure.
 
     """
     decision = item.decision
     return {
+        **_verifier_record(item.verifier),
         "line_id": item.line.line_id,
         "position": item.line.position,
         "item_no": item.line.item_no,

@@ -72,7 +72,9 @@ class Settings(BaseSettings):
     ``primary_model`` and ``fallback_model`` are optional overrides; the pinned models live only
     in ``models.toml``, and ``resolve_models`` checks any override against its allowlist.
     ``drop_conflicting_votes`` (``ORIS_DROP_CONFLICTING_VOTES``, off by default) turns on arm
-    ``E-subtype-drop`` of the decision table (A64).
+    ``E-subtype-drop`` of the decision table (A64). ``verifier_adopted``
+    (``ORIS_VERIFIER_ADOPTED``, off by default) turns on the E-08 sibling verifier: a B3 run
+    asks it about every line that would match, and D8a and D1b read its answer (A20, A65.2).
     """
 
     model_config = SettingsConfigDict(
@@ -103,6 +105,7 @@ class Settings(BaseSettings):
     budget_usd_per_100_lines: float = Field(default=DEFAULT_BUDGET_USD_PER_100_LINES, gt=0)
     breaker_consecutive_failures: int = Field(default=DEFAULT_BREAKER_CONSECUTIVE_FAILURES, ge=1)
     drop_conflicting_votes: bool = False
+    verifier_adopted: bool = False
 
     def config_file(self, name: str) -> Path:
         """Return the path of one config file inside ``config_dir``.
