@@ -1572,6 +1572,73 @@ Two questions followed, and the owner decided both on Tue 6 Oct (option A each).
 
 Changed: §10.6 (the policy entry, and selection over verifier runs); §11.3 (the setting); `eval/run_experiment.py` (`--policy`); `eval/select_threshold.py`.
 
+
+### A68 · 2026-10-07 · E-01 arm C: deterministic bilingual library enrichment
+
+**Results existing at the time:** E-08 is kept (A67): `T8` with the verifier, baseline `B3-dev-e08` (EN 82/83, FR 81/82). The cause panel (O18) counts `lexical_gap` at EN 11 and FR 13 rows.
+
+- **The rows are mostly terminology bridges**, for example:
+  - CL 90-Q / CL 90-S against quicklime / hydrated lime;
+  - CBGM and grave-ciment against hydraulically bound mixtures;
+  - tiède and reduced temperature against WMA;
+  - AE and RA against RAP;
+  - regard and manhole against "Other prefabricated";
+  - caniveau à câbles against cable ducts;
+  - liernes against excavation beam.
+- **Most are missed lines at v = 1:** one pass proposed the right row and the other did not.
+- No arm-C output exists. Owner decisions, Wed 7 Oct: full arm C (option A), run E-01 and decide the remaining spend at the pause (A), and build both libraries' enrichment while measuring the global one (A).
+
+**1. Sources, all under `data/enrichment/`, written by the builder and reviewed before use.**
+
+- **`term_map.yaml`:** `entries`, each with:
+  - `term`: a phrase as one library writes it in a type, usage or subtype;
+  - `lang`: `en` or `fr`, the term's language;
+  - `equivalents`: a list of short phrases, the other language's terms, abbreviations and standard designations for the same thing;
+  - `source`: `library`, `standard` or `dev_error`;
+  - `ref`: required for `standard`, the public norm or reference.
+
+  Every term must occur in at least one of the two libraries. Equivalents state general domain terms, never BoQ item text.
+
+- **`glossary_supplement.yaml`:** the schema of `prompts/v1/glossary.yaml` and the same provenance tags (§10.8). These are general facts that the default glossary does not carry, mostly `standard` with a ref, or `dev_error`.
+
+**2. Generator.** `scripts/enrich_library.py --library <csv> --output <yaml>` is offline and deterministic. It reads only the library, the term map and the supplement, never BoQ text, labels or annotations.
+
+- **What it writes:** `library_sha256`, `generator` and `generator_version`, `term_map_sha256`, `glossary_supplement_sha256`, `reviewed_by`, and three node lists: `types` (type), `usages` (type and usage) and `subtypes` (type, usage and subtype).
+- **Each node's `also` list:** the sorted, de-duplicated equivalents of every term-map entry whose `term` matches the node's own label as a whole phrase (case-insensitive, after the §6 normaliser).
+- **The glossary:** the supplement's entries are copied in.
+- **Determinism:** the same inputs always give byte-identical output: sorted keys, LF line ends, no timestamps. The shipped files are `data/enrichment/global.yaml` and `data/enrichment/fr.yaml`.
+
+**3. Rendering.** With an enrichment loaded, the coded tree appends ` [also: a; b; c]` to each type, usage and row line whose node has a non-empty `also`, in both renderings, and the glossary block adds the supplement's entries.
+
+- The enrichment file's SHA-256 enters the prompt-version hash (§9.3), so an enriched run has its own `prompt_version` and cached prefixes.
+- Without an enrichment, every rendered byte, prompt version and pin is unchanged.
+- B0 and B2 never render enrichment.
+
+**4. Selection and binding.**
+
+- **Turning it on.** `--enrichment <file>` (runner and `oris match`) and the setting `ORIS_ENRICHMENT` load a file. Its `library_sha256` must equal the loaded library's, or the run is refused before any call (exit 2).
+- **Binding, as in A67.** A policy entry may name `enrichment` (a repo-relative path) and `enrichment_sha256`. A B3 run with no forced enrichment uses the entry's file after checking its SHA-256. A forced value wins, and `none` forces it off.
+- **Manifest and replay.** The manifest records `enrichment_sha256` (null without one) and the enrichment path, copying an external file into the run folder. A replay re-renders with the recorded enrichment, whatever the policy says now.
+
+**5. Leakage (§10.8).** A CI test fails if any word 6-gram, after the §6 normaliser, is shared between both BoQ inputs (every short and long description) and any of the following:
+
+- a term-map entry (its term and every equivalent);
+- a supplement entry (its term and meaning);
+- a generated `also` list.
+
+A second test fails if the generator imports or opens anything under `eval/` or `input/`, or the ground truth.
+
+**6. Measurement.**
+
+- **Smoke:** 5 EN slice items, k = 2, live.
+- **Then `E-01-C` on EN and FR dev:** live, with `--enrichment data/enrichment/global.yaml`, `--baseline-id B3-dev-e08`, `--cause-targeted lexical_gap` and `--budget-usd 0.45` each. The run decides under the shipped entry (`T8` with the verifier), and the paid-run rule applies.
+- **Keep rule:** §7.2 for a coverage arm (owner decision D2 = A).
+- **If kept:** the entry names the enrichment. A $0 `oris select` over the arm runs then measures `T8` exactly. Any other threshold that A67.2 shows could win is measured live under the paid-run rule before the entry changes.
+- **The FR library's enrichment** ships only if E-01 is kept, and is first checked on the FR smoke set at G3 (A10).
+- **At the lockbox (G4):** precision is also reported excluding lines that contain a `dev_error` term or equivalent (§10.8).
+
+Changed: §6 (arm C made concrete), §9.3 (prompt version), §10.6 (policy entry), §10.8 (the overlap check covers enrichment), §11.10 (manifest).
+
 ---
 
 ## 17. Results
