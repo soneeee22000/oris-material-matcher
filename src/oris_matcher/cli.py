@@ -84,7 +84,13 @@ from oris_matcher.io.writer import render_csv
 from oris_matcher.llm.base import LLMPort, canonical_json
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.recording import CallRecord, ReasonForCall, read_calls_jsonl
-from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ReplayMissError, ResponseCache
+from oris_matcher.llm.replay_llm import (
+    RecordedRun,
+    ReplayLLM,
+    ReplayMissError,
+    ResponseCache,
+    is_cacheable,
+)
 from oris_matcher.llm.routing import RoutingLLM
 from oris_matcher.llm.wrapper import PrefixKey
 from oris_matcher.prompts.v1.verifier import is_verifier_request
@@ -640,6 +646,60 @@ def origin_mode(run_dir: Path, root: Path) -> str:
     raise WiringError(f"{run_dir.as_posix()}: the replay chain does not end at a recorded run")
 
 
+def require_measured_origin(run_dir: Path, root: Path) -> None:
+    """Refuse a live verifier over answers that were not first recorded live (or cached).
+
+    Args:
+        run_dir: The replayed run folder.
+        root: The repository root.
+
+    Raises:
+        WiringError: The chain of replays ends at a ``fake`` or ``rules`` run, or is broken.
+
+    """
+    origin = origin_mode(run_dir, root)
+    if origin not in MEASURED_MODES:
+        raise WiringError(
+            f"the answers of {run_dir.as_posix()} come from a {origin} run: a live verifier "
+            "over them would measure nothing; use --llm-verifier fake"
+        )
+
+
+def cache_served_records(run_dir: Path) -> list[CallRecord]:
+    """Return a mixed run's source records once the cache provably serves them as a replay would.
+
+    The cache keeps content records only, by occurrence of their hash, and knows nothing of the
+    wrapper's retry chain or declines. Serving the main passes from it equals replaying them
+    only when every recorded attempt delivered content, no request hash was sent twice and the
+    run declined nothing.
+
+    Args:
+        run_dir: The replayed run folder.
+
+    Returns:
+        Its records, in recording order.
+
+    Raises:
+        WiringError: A record that is not content, a repeated request hash, or a declined
+            attempt.
+
+    """
+    records = read_calls_jsonl(run_dir / CALLS_FILE)
+    hashes = [record.request_sha256 for record in records]
+    problems = (
+        ("an attempt that delivered no content", not all(map(is_cacheable, records))),
+        ("a request hash sent more than once", len(set(hashes)) != len(hashes)),
+        ("a declined attempt", bool(recorded_declines(run_dir))),
+    )
+    found = [name for name, present in problems if present]
+    if found:
+        raise WiringError(
+            f"{run_dir.as_posix()} cannot be served exactly from the cache: it records "
+            f"{', '.join(found)}; replay it plainly instead"
+        )
+    return records
+
+
 def mixed_adapter(
     job: MatchJob, verifier_spec: LLMSpec, model: str, settings: Settings, runtime: Runtime
 ) -> RoutingLLM:
@@ -661,7 +721,8 @@ def mixed_adapter(
 
     Raises:
         WiringError: No replayed folder, a live verifier over a run whose answers are not
-            measurements (``origin_mode``), or a verifier spec whose model is not the replayed
+            measurements (``origin_mode``), a replayed run the cache cannot serve exactly
+            (``cache_served_records``), or a verifier spec whose model is not the replayed
             run's.
 
     """
@@ -669,20 +730,14 @@ def mixed_adapter(
     if run_dir is None:
         raise WiringError("a mixed E-08 run replays a run folder: --llm replay:<run_dir>")
     if verifier_spec.kind in LIVE_KINDS:
-        origin = origin_mode(run_dir, runtime.root())
-        if origin not in MEASURED_MODES:
-            raise WiringError(
-                f"the answers of {run_dir.as_posix()} come from a {origin} run: a live verifier "
-                "over them would measure nothing; use --llm-verifier fake"
-            )
+        require_measured_origin(run_dir, runtime.root())
     models_config = load_models_config(settings.config_file(MODELS_FILE))
     pricing = load_pricing(settings.config_file(PRICING_FILE))
     if resolve_spec_model(verifier_spec, settings, pricing, models_config) != model:
         raise WiringError(f"--llm-verifier must answer with the replayed run's model {model}")
     allowlist = models_config.allowlist.patterns
-    recorded = RecordedRun.from_calls_jsonl(run_dir / CALLS_FILE)
-    declined = recorded_declines(run_dir)
-    main = ReplayLLM(recorded, model, allowlist, strict=True, declined=declined)
+    recorded = RecordedRun.from_records(cache_served_records(run_dir))
+    main = ReplayLLM(recorded, model, allowlist, strict=True, declined=())
     verifier = build_adapter(verifier_spec, model, settings, allowlist, runtime)
     if verifier_spec.kind in LIVE_KINDS:
         verifier = CapturingPort(verifier)

@@ -523,3 +523,63 @@ def test_a_live_verifier_is_allowed_over_a_replay_of_a_live_run(isolated: Path) 
     assert all(is_verifier_request(request) for request in port.calls)
     assert manifest["mode"] == "cached"
     assert manifest["source_run_id"] == read_manifest(replayed)["run_id"]
+
+
+# The cache serves the source's main passes only when that equals replaying them
+
+
+def _rewrite_calls(folder: Path, change: Any) -> None:
+    """Rewrite a run's calls.jsonl through ``change``, a function of the list of records."""
+    path = folder / "calls.jsonl"
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    text = "".join(json.dumps(record) + "\n" for record in change(records))
+    path.write_text(text, encoding="utf-8", newline="")
+
+
+def _failed_first(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    failed = {**records[0], "http_status": 500, "error_class": "APIStatusError"}
+    return [failed, *records[1:]]
+
+
+def _duplicated_first(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [*records, {**records[0], "call_id": "f" * 16}]
+
+
+def _declined(folder: Path) -> None:
+    path = folder / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    first = _calls(folder)[0]
+    manifest["declined_attempts"] = [
+        {
+            "request_sha256": first.request_sha256,
+            "parent_call_id": first.call_id,
+            "attempt_no": 2,
+            "reason": "LLM_UNAVAILABLE",
+        }
+    ]
+    path.write_text(json.dumps(manifest), encoding="utf-8", newline="")
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        pytest.param(lambda folder: _rewrite_calls(folder, _failed_first), id="failed-attempt"),
+        pytest.param(lambda folder: _rewrite_calls(folder, _duplicated_first), id="repeated-hash"),
+        pytest.param(_declined, id="declined-attempt"),
+    ],
+)
+def test_a_source_the_cache_cannot_serve_exactly_is_refused(
+    isolated: Path, capsys: pytest.CaptureFixture[str], tamper: Any
+) -> None:
+    source = _source(isolated)
+    tamper(source)
+    fake = FakeLLM(HAIKU, ALLOWLIST)
+    capsys.readouterr()
+    extra = ("--verifier-adopted", "--llm-verifier", "fake")
+    code = runner.main(
+        argv(isolated, f"replay:{source.as_posix()}", "E-08", *extra),
+        make_runtime(isolated, Factory(fake)),
+    )
+    assert code == 2
+    assert "cannot be served exactly" in capsys.readouterr().err
+    assert fake.calls == []
