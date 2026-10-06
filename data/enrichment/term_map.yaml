@@ -9,6 +9,19 @@
 # Entries are sorted by (lang, normalised term); keys are in the order term, lang, equivalents,
 # source, ref. Reviewed before use: see data/enrichment/README.md.
 entries:
+  - term: '- WMA'
+    lang: en
+    equivalents:
+      - enrobé tiède
+      - enrobés tièdes
+      - tiède
+      - température abaissée
+      - basse température
+      - warm mix
+      - warm mix asphalt
+      - reduced temperature
+    source: dev_error
+    ref: ''
   - term: abutment
     lang: en
     equivalents:
@@ -76,8 +89,6 @@ entries:
     equivalents:
       - enrobé
       - enrobés
-      - enrobés bitumineux
-      - mélanges bitumineux
     source: standard
     ref: EN 13108-1, bituminous mixtures
   - term: Asphalt Concrete
@@ -92,12 +103,21 @@ entries:
       - GB
     source: standard
     ref: EN 13108-1, asphalt concrete; NF P 98-130, NF P 98-138
+  - term: asphalt mixture
+    lang: en
+    equivalents:
+      - enrobé
+      - enrobés
+      - enrobés bitumineux
+      - mélanges bitumineux
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
   - term: asphalt mixtures
     lang: en
     equivalents:
-      - enrobés bitumineux
-      - mélanges bitumineux
-      - enrobés
+      - pour enrobés
+      - pour enrobés bitumineux
+      - pour mélanges bitumineux
     source: standard
     ref: EN 13108-1, bituminous mixtures
   - term: Ballast
@@ -161,8 +181,8 @@ entries:
     lang: en
     equivalents:
       - mélanges bitumineux
-      - enrobés bitumineux
       - déchets d'enrobés
+      - déchets de mélanges bitumineux
     source: standard
     ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
   - term: Blast furnace slag
@@ -186,11 +206,17 @@ entries:
       - brique
       - briques
       - brique en terre cuite
+    source: standard
+    ref: EN 771-1, clay masonry units
+  - term: Brick (clay)
+    lang: en
+    equivalents:
       - pavé en terre cuite
       - pavés en terre cuite
       - clay paver
-    source: standard
-    ref: EN 771-1, clay masonry units; EN 1344, clay pavers
+      - clay pavers
+    source: dev_error
+    ref: ''
   - term: Bricks
     lang: en
     equivalents:
@@ -227,7 +253,6 @@ entries:
     lang: en
     equivalents:
       - mortier cellulaire
-      - béton cellulaire
       - béton mousse
     source: library
     ref: ''
@@ -366,10 +391,17 @@ entries:
     equivalents:
       - caniveau à câbles
       - caniveaux à câbles
-      - caniveau béton
       - cable trough
       - cable troughs
     source: dev_error
+    ref: ''
+  - term: Concrete for piles
+    lang: en
+    equivalents:
+      - pieu
+      - pieux
+      - béton pour pieux
+    source: library
     ref: ''
   - term: concrete mixtures
     lang: en
@@ -456,6 +488,13 @@ entries:
       - terrassement
     source: library
     ref: ''
+  - term: edges
+    lang: en
+    equivalents:
+      - bordurette
+      - bordurettes
+    source: library
+    ref: ''
   - term: embankment
     lang: en
     equivalents:
@@ -527,9 +566,9 @@ entries:
     lang: en
     equivalents:
       - moussage
-      - bitume moussé
       - procédé par moussage
-      - mousse de bitume
+      - zéolithe
+      - zéolithes
     source: library
     ref: ''
   - term: footings
@@ -825,16 +864,10 @@ entries:
   - term: piers
     lang: en
     equivalents:
-      - pile
-      - piles
+      - pile de pont
       - piles de pont
-    source: standard
-    ref: TLFi (CNRTL), entry pile, bridge-support sense
-  - term: piles
-    lang: en
-    equivalents:
-      - pieu
-      - pieux
+      - appui intermédiaire
+      - appuis intermédiaires
     source: library
     ref: ''
   - term: Plastic
@@ -947,8 +980,6 @@ entries:
       - AE
       - reclaimed asphalt
       - RA
-      - fraisats
-      - fraisats d'enrobés
     source: standard
     ref: EN 13108-8, reclaimed asphalt
   - term: Reclaimed Asphalt
@@ -1054,6 +1085,15 @@ entries:
       - microsilice
     source: standard
     ref: EN 13263-1, silica fume for concrete
+  - term: sleeper
+    lang: en
+    equivalents:
+      - traverse
+      - traverses
+      - traverse béton
+      - traverses béton
+    source: standard
+    ref: EN 13230, concrete sleepers and bearers
   - term: Soil
     lang: en
     equivalents:
@@ -1140,6 +1180,15 @@ entries:
       - produits goudronnés
     source: standard
     ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: technologies (WMA)
+    lang: en
+    equivalents:
+      - additif WMA
+      - additifs WMA
+      - additif pour WMA
+      - warm mix additive
+    source: library
+    ref: ''
   - term: Tile
     lang: en
     equivalents:
@@ -1180,6 +1229,13 @@ entries:
     equivalents:
       - dalle de transition
       - dalles de transition
+    source: library
+    ref: ''
+  - term: trenches
+    lang: en
+    equivalents:
+      - caniveau
+      - caniveaux
     source: library
     ref: ''
   - term: tunnel blasting
@@ -1234,7 +1290,6 @@ entries:
     lang: en
     equivalents:
       - eau
-      - eau de gâchage
     source: library
     ref: ''
   - term: Water resisting admixtures
@@ -1257,19 +1312,6 @@ entries:
       - béton projeté par voie humide
     source: standard
     ref: EN 14487-1, sprayed concrete
-  - term: WMA
-    lang: en
-    equivalents:
-      - enrobé tiède
-      - enrobés tièdes
-      - tiède
-      - température abaissée
-      - basse température
-      - warm mix
-      - warm mix asphalt
-      - reduced temperature
-    source: library
-    ref: ''
   - term: Wood
     lang: en
     equivalents:
@@ -1603,6 +1645,13 @@ entries:
       - EME
     source: standard
     ref: EN 13108-1, asphalt concrete; NF P 98-140, EME
+  - term: Emulsion d'enrobage
+    lang: fr
+    equivalents:
+      - coating emulsion
+      - bitumen emulsion for coating
+    source: library
+    ref: ''
   - term: Emulsions
     lang: fr
     equivalents:
@@ -1625,7 +1674,7 @@ entries:
       - warm mix asphalt
       - warm mix
       - reduced temperature
-    source: library
+    source: dev_error
     ref: ''
   - term: Enrobés bitumineux
     lang: fr
@@ -1796,7 +1845,7 @@ entries:
       - CBGM
       - hydraulically bound materials
     source: standard
-    ref: EN 14227-1, cement bound granular mixtures
+    ref: EN 14227 series, hydraulically bound mixtures
   - term: Mélanges Bitumineux
     lang: fr
     equivalents:
@@ -1972,15 +2021,15 @@ entries:
     equivalents:
       - sleeper
       - railway sleeper
-    source: standard
-    ref: EN 13230, railway sleepers
+    source: library
+    ref: ''
   - term: Traverses
     lang: fr
     equivalents:
       - sleepers
       - railway sleepers
-    source: standard
-    ref: EN 13230, railway sleepers
+    source: library
+    ref: ''
   - term: Tube
     lang: fr
     equivalents:

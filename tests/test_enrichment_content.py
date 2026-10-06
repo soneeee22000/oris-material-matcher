@@ -142,12 +142,12 @@ def test_both_libraries_get_entries_in_their_own_language() -> None:
         ("Quicklime", "en", {"chaux vive", "cl 90-q"}),
         ("Hydrated lime", "en", {"chaux éteinte", "chaux hydratée", "cl 90-s"}),
         ("hydraulically bound mixtures", "en", {"hbm", "cbgm", "grave-ciment"}),
-        ("WMA", "en", {"enrobé tiède", "température abaissée", "reduced temperature"}),
+        ("- WMA", "en", {"enrobé tiède", "température abaissée", "reduced temperature"}),
         ("RAP", "en", {"agrégats d'enrobés", "ae", "ra"}),
         ("Concrete cable ducts", "en", {"caniveau à câbles"}),
         ("excavation beam", "en", {"lierne", "liernes"}),
         ("Other prefabricated concrete elements", "en", {"regard", "manhole"}),
-        ("Brick", "en", {"pavé en terre cuite", "clay paver"}),
+        ("Brick (clay)", "en", {"pavé en terre cuite", "clay paver"}),
         ("enrobé tiède", "fr", {"wma", "warm mix asphalt"}),
         ("AE", "fr", {"rap", "reclaimed asphalt"}),
         ("Grave ciment", "fr", {"cbgm"}),
@@ -202,3 +202,159 @@ def test_the_supplement_explains_the_dev_gap_terms(needle: str) -> None:
         normalize(f"{entry['term']} {entry['meaning']}") for entry in _entries(SUPPLEMENT)
     )
     assert needle in text
+
+
+def _also(label: str) -> set[str]:
+    """Return the also list the A68 §2 generator gives a node with this label.
+
+    Every entry whose term occurs in the label as a whole phrase contributes, whatever its
+    language, as the generator matches it.
+    """
+    found: set[str] = set()
+    for entry in _entries(TERM_MAP):
+        if _occurs(entry["term"], [normalize(label)]):
+            found |= {normalize(value) for value in entry["equivalents"]}
+    return found
+
+
+WMA_MIXTURE_VOCABULARY = {
+    "enrobé tiède",
+    "tiède",
+    "température abaissée",
+    "basse température",
+    "reduced temperature",
+}
+WMA_ADDITIVE_LABELS = (
+    "For chemical process technologies (WMA)",
+    "For foaming systems technologies (WMA)",
+    "For organic additives technologies (WMA)",
+    "Additif pour WMA (organique)",
+)
+BITUMINOUS_WASTE = "17 03 02 - Bituminous mixtures other than those mentioned in 17 03 01"
+OTHER_PREFAB = "Other prefabricated concrete elements (i.e., curbs, edges, trenches)"
+
+
+@pytest.mark.parametrize(
+    ("label", "forbidden"),
+    [
+        ("Sheet piles", {"pieu", "pieux"}),
+        ("Concrete for piers", {"pile", "piles"}),
+        ("Concrete cable ducts", {"caniveau béton"}),
+        ("Water resisting admixtures", {"eau de gâchage"}),
+        (BITUMINOUS_WASTE, {"enrobés bitumineux"}),
+        ("Reclaimed Asphalt", {"enrobés bitumineux", "mélanges bitumineux"}),
+        ("for use in asphalt mixtures", {"enrobés bitumineux", "mélanges bitumineux"}),
+        ("Additives for asphalt", {"enrobés bitumineux", "mélanges bitumineux"}),
+        *((label, WMA_MIXTURE_VOCABULARY) for label in WMA_ADDITIVE_LABELS),
+        ("For foaming systems technologies (WMA)", {"bitume moussé", "mousse de bitume"}),
+        ("Asphalt Concrete (AC) - HMA 30% RAP", {"fraisats", "fraisats d'enrobés"}),
+        ("Stone Mastic Asphalt (SMA) - WMA 10% RAP", {"fraisats", "fraisats d'enrobés"}),
+        ("Cellular concrete mortar", {"béton cellulaire"}),
+    ],
+)
+def test_terms_do_not_bleed_into_sibling_rows(label: str, forbidden: set[str]) -> None:
+    assert not forbidden & _also(label)
+
+
+@pytest.mark.parametrize(
+    ("label", "expected"),
+    [
+        ("Concrete for piles", {"pieu", "pieux"}),
+        ("Concrete for piers", {"pile de pont", "piles de pont"}),
+        ("Sheet piles", {"palplanches"}),
+        ("Concrete cable ducts", {"caniveau à câbles", "cable trough"}),
+        (OTHER_PREFAB, {"bordurettes", "caniveaux", "regard"}),
+        ("Precast Concrete sleeper for railway", {"traverse", "traverses"}),
+        ("Emulsion d'enrobage 65%", {"coating emulsion"}),
+        ("Water", {"eau"}),
+        (BITUMINOUS_WASTE, {"mélanges bitumineux", "déchets d'enrobés"}),
+        ("asphalt mixture for surface course", {"enrobés bitumineux", "mélanges bitumineux"}),
+        ("Asphalt", {"enrobé", "enrobés"}),
+        ("Asphalt Concrete (AC) - WMA", WMA_MIXTURE_VOCABULARY),
+        ("Mastic Asphalt (MA) - WMA 10% RAP", WMA_MIXTURE_VOCABULARY),
+        ("For foaming systems technologies (WMA)", {"moussage", "additif wma"}),
+        ("Asphalt Concrete (AC) - HMA 30% RAP", {"ae", "agrégats d'enrobés", "ra"}),
+        ("Reclaimed Asphalt Planings (RAP)", {"fraisats", "fraisats d'enrobés"}),
+        ("Reclaimed Asphalt", {"fraisats d'enrobés"}),
+        ("Cellular concrete mortar", {"mortier cellulaire", "béton mousse"}),
+    ],
+)
+def test_rows_keep_their_specific_bridges(label: str, expected: set[str]) -> None:
+    assert expected <= _also(label)
+
+
+DEV_MOTIVATED_EQUIVALENTS = {
+    "tiède",
+    "enrobé tiède",
+    "enrobés tièdes",
+    "température abaissée",
+    "basse température",
+    "reduced temperature",
+    "pavé en terre cuite",
+    "pavés en terre cuite",
+    "clay paver",
+    "regard",
+    "manhole",
+    "caniveau à câbles",
+    "lierne",
+    "liernes",
+}
+DEV_MOTIVATED_SUPPLEMENT_TERMS = {
+    "clay paver",
+    "pavé en terre cuite",
+    "manhole",
+    "regard",
+    "enrobé tiède",
+    "température abaissée",
+    "reduced temperature",
+}
+
+
+def test_dev_motivated_equivalents_sit_only_in_dev_error_entries() -> None:
+    """A68 §6: the G4 dev_error exclusion must see every bridge the dev evidence motivated."""
+    seen: set[str] = set()
+    for entry in _entries(TERM_MAP):
+        dev_motivated = DEV_MOTIVATED_EQUIVALENTS & {normalize(v) for v in entry["equivalents"]}
+        seen |= dev_motivated
+        if dev_motivated:
+            assert entry["source"] == "dev_error", (entry["term"], dev_motivated)
+    assert seen == DEV_MOTIVATED_EQUIVALENTS
+
+
+def test_dev_motivated_supplement_entries_are_tagged_dev_error() -> None:
+    tags = {normalize(entry["term"]): entry["source"] for entry in _entries(SUPPLEMENT)}
+    tagged = {term: tags[normalize(term)] for term in DEV_MOTIVATED_SUPPLEMENT_TERMS}
+    assert tagged == dict.fromkeys(DEV_MOTIVATED_SUPPLEMENT_TERMS, "dev_error")
+
+
+def test_standard_supplement_meanings_carry_no_library_classification() -> None:
+    """A standard entry states what its norm fixes, not where this library files the thing."""
+    for entry in _entries(SUPPLEMENT):
+        if entry["source"] == "standard":
+            assert not re.search(r"rather than|classed with|so a ", entry["meaning"]), entry["term"]
+
+
+def test_the_manhole_meaning_does_not_list_the_units_a_boq_line_names() -> None:
+    manhole = next(e for e in _entries(SUPPLEMENT) if normalize(e["term"]) == "manhole")
+    assert not re.search(r"\b(base|ring|rings|cone)\b", manhole["meaning"])
+
+
+def test_en_13230_is_cited_only_for_concrete_sleepers() -> None:
+    labels = _labels()
+    for entry in _entries(TERM_MAP):
+        if "13230" in entry["ref"]:
+            hits = [label for label in labels if _occurs(entry["term"], [label])]
+            assert hits, entry["term"]
+            assert all("concrete" in label for label in hits), entry["term"]
+
+
+@pytest.mark.parametrize(
+    ("path", "term"),
+    [
+        (SUPPLEMENT, "GTLH"),
+        (TERM_MAP, "Matériaux traités aux Liant hydraulique"),
+    ],
+)
+def test_the_hbm_family_cites_the_whole_en_14227_series(path: Path, term: str) -> None:
+    entry = next(e for e in _entries(path) if normalize(e["term"]) == normalize(term))
+    assert "EN 14227 series" in entry["ref"]

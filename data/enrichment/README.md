@@ -20,11 +20,19 @@ Each entry has the keys `term`, `lang`, `equivalents`, `source`, `ref`, in that 
   there as a whole phrase, case-insensitive after the §6 normaliser. A node's `also` list is the
   union of the equivalents of every term found in its label, so the terms are chosen to be specific
   enough not to bleed into unrelated rows: `Mastic Asphalt (MA)`, not `Mastic Asphalt`, which would
-  also hit Stone Mastic Asphalt.
+  also hit Stone Mastic Asphalt; `- WMA`, which hits the warm-mix mixture subtypes but not the
+  `technologies (WMA)` additive rows; `Concrete for piles`, not `piles`, which would also hit
+  Sheet piles. Matching ignores the term's language, so a French equivalent that is also an English
+  word (`piles`) is left out.
+- **Known limit.** A bare type label (`Concrete`, `Water`, `Asphalt`) can only be reached by a term
+  that also occurs inside longer labels, so its equivalents reach those rows too (`béton` on
+  `Asphalt Concrete (AC)`, `eau` on `Water resisting admixtures`, `enrobés` on `Reclaimed Asphalt`).
+  Those terms carry only the plain translation of the word, never a product name such as
+  `enrobés bitumineux` or `eau de gâchage`. Scoping a term to an exact label needs a generator change.
 - **`equivalents`** are short general phrases in the other language, plus abbreviations and
   standard designations (`Quicklime` → `chaux vive`, `CL 90-Q`; `RAP` → `AE`, `RA`). A few English
-  synonyms appear on English terms where the dev evidence showed a same-language gap (`WMA` →
-  `reduced temperature`).
+  synonyms appear on English terms where the dev evidence showed a same-language gap (`- WMA` →
+  `reduced temperature`); those entries are tagged `dev_error`.
 - **Coverage.** Every type and usage of both libraries is reached by at least one term, except
   where no standard translation exists. Those were left out rather than guessed: `Custom` rows,
   `Building Components`, `Composite`, concrete strength and exposure classes, `B99`,
@@ -56,6 +64,12 @@ gaps the dev cause panel (O18, `lexical_gap`) pointed at, written as general fac
 | `library`   | A translation of the library's own vocabulary, or a correspondence between the two libraries' labels       |
 | `standard`  | A designation or fact fixed by a public norm, named in `ref` (EN 459-1, EN 14227-1, EN 13108-x, EN 197-1…) |
 | `dev_error` | A general fact added because the dev error evidence showed the gap. It still states general domain terms   |
+
+An equivalent or supplement entry that exists because of the dev evidence is tagged `dev_error`, even
+where a norm defines the thing it names, so the G4 exclusion below sees it: the warm-mix family
+(`- WMA`, `enrobé tiède`), clay pavers filed under `Brick (clay)`, manholes and regards filed under
+`Other prefabricated concrete elements`, cable troughs and walings. `standard` is kept for facts the
+cited norm itself fixes, never for where this library files a product.
 
 `dev_obs` and `lockbox_obs` are not used. At the lockbox (G4), precision is also reported
 excluding lines that contain a `dev_error` term or equivalent (A68 §6).

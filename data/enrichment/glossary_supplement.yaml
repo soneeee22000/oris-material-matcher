@@ -28,7 +28,7 @@ entries:
   - term: clay paver
     meaning: a fired clay paving unit, a clay brick product rather than a tile
     lang: en
-    source: standard
+    source: dev_error
     ref: EN 1344, clay pavers
   - term: creosote
     meaning: a coal-tar wood preservative, so creosoted timber counts as wood containing hazardous substances (17 02 04)
@@ -36,9 +36,9 @@ entries:
     source: standard
     ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
   - term: manhole
-    meaning: a precast concrete chamber assembled from base, ring and cone units, classed with precast concrete elements
+    meaning: a precast concrete chamber giving access to a buried drain or sewer, classed with precast concrete elements
     lang: en
-    source: standard
+    source: dev_error
     ref: EN 1917, concrete manholes and inspection chambers
   - term: RA (reclaimed asphalt)
     meaning: reclaimed asphalt recovered from old pavements, the same material as RAP or the French AE
@@ -83,7 +83,7 @@ entries:
   - term: enrobé tiède
     meaning: warm-mix asphalt (WMA), as opposed to enrobé à chaud, hot-mix asphalt (HMA)
     lang: fr
-    source: library
+    source: dev_error
   - term: fraisats
     meaning: asphalt planings milled off a pavement, a source of reclaimed asphalt (RAP, AE)
     lang: fr
@@ -98,7 +98,7 @@ entries:
     meaning: grave traitée aux liants hydrauliques, the French family name for hydraulically bound mixtures (HBM)
     lang: fr
     source: standard
-    ref: EN 14227-1, cement bound granular mixtures
+    ref: EN 14227 series, hydraulically bound mixtures
   - term: lierne
     meaning: waling, a horizontal beam along a secant-pile, diaphragm or sheet-pile excavation wall
     lang: fr
@@ -106,12 +106,12 @@ entries:
   - term: pavé en terre cuite
     meaning: fired clay paver, a clay brick product rather than a clay tile
     lang: fr
-    source: standard
+    source: dev_error
     ref: NF EN 1344, clay pavers
   - term: regard
     meaning: manhole or inspection chamber, usually built from precast concrete units, so a precast concrete element
     lang: fr
-    source: standard
+    source: dev_error
     ref: NF EN 1917, concrete manholes and inspection chambers
   - term: température abaissée
     meaning: in asphalt specifications, marks warm-mix (WMA) production, not hot mix
