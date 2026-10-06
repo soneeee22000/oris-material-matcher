@@ -68,6 +68,7 @@ from oris_matcher.io.audit import (
     CALLS_FILE,
     EXTERNAL_DIR,
     EXTERNAL_PATH_KEY,
+    MANIFEST_FILE,
     ManifestContext,
     build_manifest,
     code_version,
@@ -132,7 +133,9 @@ SHARE_DIGITS = 1
 COST_DIGITS = 6
 USAGE_ERRORS = (WiringError, ConfigError, OSError, ValueError, KeyError, ReplayMissError)
 LIVE_MODE = "live"
-UNMEASURED_MODES = frozenset({"fake", "rules"})
+REPLAY_MODE = "replay"
+MEASURED_MODES = frozenset({LIVE_MODE, "cached"})
+MAX_REPLAY_CHAIN = 64
 INPUT_ROLE = "input"
 POLICY_ROLE = "policy"
 LIBRARY_ROLE = "library"
@@ -578,6 +581,65 @@ def mixed_verifier_spec(job: MatchJob, settings: Settings) -> LLMSpec | None:
     return spec
 
 
+def _replayed_parent(folder: Path, manifest: Mapping[str, Any], root: Path) -> Path:
+    """Return the folder a replay run replayed: its ``source_run_id`` sibling, else ``llm_run_dir``.
+
+    Args:
+        folder: The replay run folder.
+        manifest: Its manifest.
+        root: The repository root ``llm_run_dir`` is relative to.
+
+    Returns:
+        The replayed run folder.
+
+    Raises:
+        WiringError: Neither names a folder holding a manifest.
+
+    """
+    candidates: list[Path] = []
+    source = manifest.get("source_run_id")
+    if source:
+        candidates.append(folder.parent / str(source))
+    recorded = manifest.get("llm_run_dir")
+    if isinstance(recorded, str):
+        candidates.append(root / recorded)
+    found = next((path for path in candidates if (path / MANIFEST_FILE).is_file()), None)
+    if found is None:
+        raise WiringError(
+            f"{folder.as_posix()} is a replay whose replayed run cannot be found, so where its "
+            "answers came from is unknown"
+        )
+    return found
+
+
+def origin_mode(run_dir: Path, root: Path) -> str:
+    """Return the mode of the run a folder's answers were first recorded in.
+
+    A replay records mode ``replay`` whatever it replayed, so the chain is followed down to the
+    first run that is not a replay: ``live`` or ``cached`` answers are measurements, ``fake``
+    or ``rules`` ones are not.
+
+    Args:
+        run_dir: The replayed run folder.
+        root: The repository root a recorded ``llm_run_dir`` is relative to.
+
+    Returns:
+        That run's manifest mode.
+
+    Raises:
+        WiringError: A link of the chain is missing, or the chain does not end.
+
+    """
+    folder = run_dir
+    for _ in range(MAX_REPLAY_CHAIN):
+        manifest = read_manifest(folder)
+        mode = str(manifest.get("mode") or "")
+        if mode != REPLAY_MODE:
+            return mode
+        folder = _replayed_parent(folder, manifest, root)
+    raise WiringError(f"{run_dir.as_posix()}: the replay chain does not end at a recorded run")
+
+
 def mixed_adapter(
     job: MatchJob, verifier_spec: LLMSpec, model: str, settings: Settings, runtime: Runtime
 ) -> RoutingLLM:
@@ -599,19 +661,20 @@ def mixed_adapter(
 
     Raises:
         WiringError: No replayed folder, a live verifier over a run whose answers are not
-            measurements (fake or rules), or a verifier spec whose model is not the replayed
+            measurements (``origin_mode``), or a verifier spec whose model is not the replayed
             run's.
 
     """
     run_dir = job.llm.run_dir
     if run_dir is None:
         raise WiringError("a mixed E-08 run replays a run folder: --llm replay:<run_dir>")
-    manifest = read_manifest(run_dir)
-    if verifier_spec.kind in LIVE_KINDS and manifest.get("mode") in UNMEASURED_MODES:
-        raise WiringError(
-            f"{run_dir.as_posix()} is a {manifest.get('mode')} run: a live verifier over its "
-            "answers would measure nothing; use --llm-verifier fake"
-        )
+    if verifier_spec.kind in LIVE_KINDS:
+        origin = origin_mode(run_dir, runtime.root())
+        if origin not in MEASURED_MODES:
+            raise WiringError(
+                f"the answers of {run_dir.as_posix()} come from a {origin} run: a live verifier "
+                "over them would measure nothing; use --llm-verifier fake"
+            )
     models_config = load_models_config(settings.config_file(MODELS_FILE))
     pricing = load_pricing(settings.config_file(PRICING_FILE))
     if resolve_spec_model(verifier_spec, settings, pricing, models_config) != model:

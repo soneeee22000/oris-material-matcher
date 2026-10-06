@@ -484,3 +484,42 @@ def test_llm_verifier_on_a_b2_replay_is_refused_before_any_call(
     )
     assert code == 2
     assert "--llm-verifier applies only" in capsys.readouterr().err
+
+
+# A live verifier needs measured main passes at the root of the replay chain
+
+
+def test_a_live_verifier_is_refused_over_a_replay_of_a_fake_run(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = _source(isolated)
+    replayed = _run(isolated, f"replay:{source.as_posix()}", "B3-again")
+    assert read_manifest(replayed)["mode"] == "replay"
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-used")
+    port = LivePort()
+    capsys.readouterr()
+    code = runner.main(
+        argv(isolated, f"replay:{replayed.as_posix()}", "E-08", "--verifier-adopted"),
+        make_runtime(isolated, Factory(port)),
+    )
+    assert code == 2
+    assert "fake" in capsys.readouterr().err
+    assert port.calls == []
+
+
+def test_a_live_verifier_is_allowed_over_a_replay_of_a_live_run(isolated: Path) -> None:
+    source = _source(isolated, live=True)
+    replayed = _run(isolated, f"replay:{source.as_posix()}", "B3-dev-sel")
+    port = LivePort()
+    arm = _run(
+        isolated,
+        f"replay:{replayed.as_posix()}",
+        "E-08",
+        "--verifier-adopted",
+        factory=Factory(port),
+    )
+    manifest = read_manifest(arm)
+    assert port.calls
+    assert all(is_verifier_request(request) for request in port.calls)
+    assert manifest["mode"] == "cached"
+    assert manifest["source_run_id"] == read_manifest(replayed)["run_id"]
