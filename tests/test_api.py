@@ -1,6 +1,7 @@
 """The /v1 API contract: limits, 422s, auth, X-Request-ID, partial failure, parity (§11.4)."""
 
 import csv
+import hashlib
 import json
 from collections.abc import Sequence
 from pathlib import Path
@@ -22,9 +23,11 @@ from oris_matcher.api.app import (
 from oris_matcher.doctor import LLMSpec, Runtime
 from oris_matcher.domain.boq import LineKind
 from oris_matcher.io.boq_reader import read_boq
-from oris_matcher.llm.base import LLMRequest
+from oris_matcher.llm.base import LLMRequest, LLMResult
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind
 from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.service import MatchService
 from oris_matcher.settings import Settings, load_models_config
 from test_service import answers_for
@@ -407,3 +410,63 @@ def test_breaker_trip_hands_the_request_to_the_fallback() -> None:
     assert {d["reason"] for d in decisions}.isdisjoint({"LLM_UNAVAILABLE"})
     assert any(d["model"].startswith("gpt-4o-mini") for d in decisions)
     assert any(request.model.startswith("gpt-4o-mini") for request in recorder.calls)
+
+
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+HAIKU = "claude-haiku-4-5-20251001"
+
+
+class LiveLike:
+    """A port that is neither FakeLLM nor ReplayLLM, so the API treats its run as live."""
+
+    def __init__(self, model: str) -> None:
+        self.inner = FakeLLM(model, ALLOWLIST)
+        self.calls: list[LLMRequest] = []
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        self.calls.append(req)
+        return await self.inner.complete(req)
+
+
+class LiveRecorder:
+    """An LLM factory handing out live-like ports and keeping them."""
+
+    def __init__(self) -> None:
+        self.ports: list[LiveLike] = []
+
+    def __call__(self, model: str) -> LiveLike:
+        port = LiveLike(model)
+        self.ports.append(port)
+        return port
+
+
+def _oversized_prefix_evidence(folder: Path) -> None:
+    """Record a doctor measurement whose prefix alone costs more than a small run's cap."""
+    versions = {prompt_version(v): OVERSIZED_PREFIX_TOKENS for v in (CANONICAL_V1, REVERSE_V1, B2)}
+    data = {
+        "library_sha256": hashlib.sha256(LIBRARIES["fr"].read_bytes()).hexdigest(),
+        "model": HAIKU,
+        "by_prompt_version": versions,
+    }
+    check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
+    evidence = folder / "evidence" / "doctor_2026-10-06.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+
+
+def test_a_live_api_run_reserves_its_prefix_from_the_doctor_measurement(in_tmp: Path) -> None:
+    """A63: the API reserves a live run's prefix from the measurement, as the CLI does."""
+    estimated = LiveRecorder()
+    runtime = Runtime(sleep=no_sleep, git=fake_git)
+    client = TestClient(create_app(make_settings(), estimated, runtime=runtime))
+    first = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+    assert first["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert sum(len(port.calls) for port in estimated.ports) > 0
+
+    _oversized_prefix_evidence(in_tmp)
+    measured = LiveRecorder()
+    client = TestClient(create_app(make_settings(), measured, runtime=runtime))
+    second = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert second["decisions"][0]["reason"] == "BUDGET_CAP"
+    assert sum(len(port.calls) for port in measured.ports) == 0

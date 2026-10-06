@@ -994,6 +994,52 @@ def test_a_fake_run_keeps_the_estimate(workdir: Path) -> None:
     assert manifest_of(only_run(workdir))["library_rendered_tokens"]["estimated"] is True
 
 
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+
+
+def _oversized_prefix_evidence(workdir: Path) -> None:
+    """Record a doctor measurement whose prefix alone costs more than any small run's cap."""
+    versions = {prompt_version(v): OVERSIZED_PREFIX_TOKENS for v in (CANONICAL_V1, REVERSE_V1, B2)}
+    data = {
+        "library_sha256": hashlib.sha256(FR_LIBRARY.read_bytes()).hexdigest(),
+        "model": HAIKU,
+        "by_prompt_version": versions,
+    }
+    check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
+    evidence = workdir / "evidence" / "doctor_2026-10-06.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+
+
+def test_a_live_run_reserves_its_prefix_from_the_doctor_measurement(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A63: a live run's reservation counts the measured prefix, so a huge one refuses calls."""
+    requests: list[httpx2.Request] = []
+    _live_runtime(workdir, monkeypatch, requests)
+    assert run_and_note("estimated", match_args(workdir / "a.csv", "--no-cache")).exit_code == 0
+    assert requests
+
+    _oversized_prefix_evidence(workdir)
+    requests.clear()
+    assert run_and_note("measured", match_args(workdir / "b.csv", "--no-cache")).exit_code == 0
+
+    assert requests == []
+    with (workdir / "b.csv").open(encoding="utf-8", newline="") as handle:
+        reasons = {
+            row["reason"] for row in csv.DictReader(handle) if row["decision"] != "not_a_material"
+        }
+    assert "BUDGET_CAP" in reasons
+
+
+def test_a_fake_run_reserves_from_the_estimate_despite_a_measurement(workdir: Path) -> None:
+    """A63: only a run that reaches the measured model reserves from the doctor's count."""
+    _oversized_prefix_evidence(workdir)
+    output = workdir / "out.csv"
+    assert invoke(match_args(output, "--llm", "fake")).exit_code == 0
+    assert "BUDGET_CAP" not in output.read_text(encoding="utf-8")
+
+
 def _always_down(spec: LLMSpec, model: str) -> FakeLLM:
     del spec
     return FakeLLM(model, ALLOWLIST, FakeBehaviour(rule=lambda n, r: Fault(FaultKind.SERVER_ERROR)))

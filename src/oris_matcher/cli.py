@@ -49,6 +49,7 @@ from oris_matcher.doctor import (
     render_table,
     resolve_spec_model,
     run_doctor,
+    run_prefix_tokens,
     with_measured_tokens,
 )
 from oris_matcher.domain.boq import BoqFile
@@ -73,6 +74,7 @@ from oris_matcher.llm.base import LLMPort, canonical_json
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.recording import CallRecord, ReasonForCall, read_calls_jsonl
 from oris_matcher.llm.replay_llm import ResponseCache
+from oris_matcher.llm.wrapper import PrefixKey
 from oris_matcher.service import (
     EXIT_OK,
     MatchService,
@@ -617,6 +619,23 @@ def _source_run_id(job: MatchJob, spec: LLMSpec) -> str | None:
     return str(read_manifest(replayed).get("run_id") or "") or None
 
 
+def measured_prefix(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> dict[PrefixKey, int]:
+    """Return the doctor's measured prefix sizes for a live Anthropic run, else {} (A63).
+
+    Args:
+        job: The run's inputs.
+        prepared: The prepared run.
+        runtime: The environment.
+
+    Returns:
+        ``prefix_key`` -> measured tokens, the same lookup the API makes.
+
+    """
+    if not reaches_model(job, prepared.spec) or prepared.spec.kind != LLMKind.ANTHROPIC:
+        return {}
+    return run_prefix_tokens(prepared.service, prepared.library_id, runtime.root())
+
+
 def run_match(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> tuple[RunResult, float]:
     """Run the service over a prepared input.
 
@@ -636,7 +655,8 @@ def run_match(job: MatchJob, prepared: PreparedRun, runtime: Runtime) -> tuple[R
     run_id = make_run_id(runtime.clock(), seed)
     cap = _cap(job, prepared.settings, line_count)
     index = _cache_index(job, prepared)
-    setup = WrapperSetup(cap, index.cache, run_id)
+    measured = measured_prefix(job, prepared, runtime)
+    setup = WrapperSetup(cap, index.cache, run_id, measured_prefix_tokens=measured)
     wrapper = make_wrapper(prepared.adapter, prepared.pricing, prepared.settings, setup, runtime)
     options = RunOptions(
         select=select,

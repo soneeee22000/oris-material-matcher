@@ -16,7 +16,7 @@ import math
 import random
 import re
 from collections import deque
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
@@ -94,6 +94,7 @@ FAILURE_BY_STATUS = {
 
 RequestBuilder = Callable[[tuple[str, ...]], LLMRequest]
 AnswerHook = Callable[[LineAnswer], LineAnswer]
+PrefixKey = tuple[str, str]
 
 
 def _identity(answer: LineAnswer) -> LineAnswer:
@@ -112,6 +113,20 @@ def estimate_tokens(text: str) -> int:
 
     """
     return math.ceil(len(text) / CHARS_PER_TOKEN)
+
+
+def prefix_key(model: str, blocks: Iterable[SystemBlock]) -> PrefixKey:
+    """Key a measured cached prefix by the requested model and the system blocks (A63).
+
+    Args:
+        model: The requested model snapshot id.
+        blocks: The request's system blocks, i.e. one rendering of one library.
+
+    Returns:
+        ``(model, system_blocks_sha256)``.
+
+    """
+    return model, system_blocks_sha256(blocks)
 
 
 def _utc_now() -> datetime:
@@ -176,6 +191,9 @@ class WrapperDeps:
         rng: Jitter source, seeded so tests are deterministic.
         now: UTC clock for record timestamps.
         count_tokens: Token estimator for budget reservation.
+        measured_prefix_tokens: The doctor's measured token count of a rendering, keyed by
+            ``prefix_key``; a request found here reserves its cached prefix from it instead of
+            ``count_tokens`` (A63). Reservations never enter a request or its hash.
         answer_hook: Called on every validated answer before it is returned.
         call_id_namespace: Mixed into call ids, e.g. the run id.
 
@@ -187,6 +205,7 @@ class WrapperDeps:
     rng: random.Random = field(default_factory=_default_rng)
     now: Callable[[], datetime] = _utc_now
     count_tokens: Callable[[str], int] = estimate_tokens
+    measured_prefix_tokens: Mapping[PrefixKey, int] = field(default_factory=dict)
     answer_hook: AnswerHook = _identity
     call_id_namespace: str = ""
 
@@ -221,15 +240,16 @@ def _split_prefix(blocks: Sequence[SystemBlock]) -> tuple[str, str]:
     return prefix, rest
 
 
-def reservation_usd(
+def reservation_usd(  # noqa: PLR0913
     req: LLMRequest,
     price: ModelPrice,
     per_tokens: int,
     *,
     prefix_read: bool,
     count_tokens: Callable[[str], int],
+    prefix_tokens: int | None = None,
 ) -> float:
-    """Reserve the worst-case cost of one dispatch (DESIGN.md §11.3).
+    """Reserve the worst-case cost of one dispatch (DESIGN.md §11.3, A63).
 
     Args:
         req: The request.
@@ -237,6 +257,7 @@ def reservation_usd(
         per_tokens: Tokens the prices refer to.
         prefix_read: Whether a cache read of this prefix has been observed.
         count_tokens: Token estimator.
+        prefix_tokens: The cached prefix's measured token count; estimated when None.
 
     Returns:
         Prefix at the cache-write rate (read rate once a read is seen), the rest of the input
@@ -245,10 +266,9 @@ def reservation_usd(
     """
     prefix, rest = _split_prefix(req.system_blocks)
     prefix_rate = price.cache_read if prefix_read else price.cache_write
+    cached = count_tokens(prefix) if prefix_tokens is None else prefix_tokens
     uncached = count_tokens(rest) + count_tokens(req.user_payload)
-    total = (
-        count_tokens(prefix) * prefix_rate + uncached * price.input + req.max_tokens * price.output
-    )
+    total = cached * prefix_rate + uncached * price.input + req.max_tokens * price.output
     return total / per_tokens
 
 
@@ -720,6 +740,9 @@ class LLMWrapper:
             self.pricing.per_tokens,
             prefix_read=self.ledger.prefix_read(req),
             count_tokens=self.deps.count_tokens,
+            prefix_tokens=self.deps.measured_prefix_tokens.get(
+                prefix_key(req.model, req.system_blocks)
+            ),
         )
 
     def _cached(self, req: LLMRequest, meta: _AttemptMeta) -> CallRecord | None:
