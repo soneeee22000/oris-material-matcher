@@ -4,6 +4,17 @@ import asyncio
 from pathlib import Path
 
 import pytest
+
+from oris_matcher.doctor import read_manifest
+from oris_matcher.llm.recording import MemoryCallSink
+from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps
+from oris_matcher.service import (
+    DECISION_PROFILE_KEY,
+    MatchService,
+    RunOptions,
+    RunProfile,
+    RunResult,
+)
 from test_drop_conflicting_votes_wiring import (
     FIXED_NOW,
     PRICING,
@@ -16,17 +27,6 @@ from test_drop_conflicting_votes_wiring import (
     make_runtime,
     make_settings,
     runner,
-)
-
-from oris_matcher.doctor import read_manifest
-from oris_matcher.llm.recording import MemoryCallSink
-from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps
-from oris_matcher.service import (
-    DECISION_PROFILE_KEY,
-    MatchService,
-    RunOptions,
-    RunProfile,
-    RunResult,
 )
 
 __all__ = ["isolated"]
