@@ -266,6 +266,36 @@ class BudgetLedger:
         self.spent_usd = 0.0
         self.reserved_usd = 0.0
         self._read_prefixes: set[str] = set()
+        self._settled: list[asyncio.Event] = []
+
+    def _over_cap(self, total_usd: float) -> bool:
+        """Tell whether a total is above the cap."""
+        return total_usd > self.cap_usd + BUDGET_EPSILON_USD
+
+    async def reserve(self, amount: Callable[[], float]) -> float | None:
+        """Reserve once in-flight reservations leave room; decline only what spend alone exceeds.
+
+        Spend only grows and reservations only shrink, so a reservation over the cap on spend
+        alone can never fit, and one that fits spend always fits once nothing is in flight
+        (A61). The amount is asked again after every wait, since a cache read seen meanwhile
+        lowers it.
+
+        Args:
+            amount: Returns the reservation for a dispatch made now.
+
+        Returns:
+            The amount reserved, or None when the dispatch must not happen.
+
+        """
+        while True:
+            amount_usd = amount()
+            if self._over_cap(self.spent_usd + amount_usd):
+                return None
+            if self.try_reserve(amount_usd):
+                return amount_usd
+            settled = asyncio.Event()
+            self._settled.append(settled)
+            await settled.wait()
 
     def try_reserve(self, amount_usd: float) -> bool:
         """Reserve an amount if spent + reserved + amount stays within the cap.
@@ -277,8 +307,7 @@ class BudgetLedger:
             True when reserved; False means the dispatch must not happen.
 
         """
-        total = self.spent_usd + self.reserved_usd + amount_usd
-        if total > self.cap_usd + BUDGET_EPSILON_USD:
+        if self._over_cap(self.spent_usd + self.reserved_usd + amount_usd):
             return False
         self.reserved_usd += amount_usd
         return True
@@ -292,7 +321,12 @@ class BudgetLedger:
 
         """
         self.reserved_usd -= reserved_usd
+        if abs(self.reserved_usd) <= BUDGET_EPSILON_USD:
+            self.reserved_usd = 0.0
         self.spent_usd += cost_usd
+        waiting, self._settled = self._settled, []
+        for settled in waiting:
+            settled.set()
 
     def prefix_read(self, req: LLMRequest) -> bool:
         """Tell whether a cache read was observed for this request's system blocks."""
@@ -670,9 +704,12 @@ class LLMWrapper:
         if cached is not None:
             return self._from_cache(req, cached, meta)
         price = self.pricing.lookup(req.provider, req.model)
-        reserve = self._reservation(req, price)
-        if not self.ledger.try_reserve(reserve):
+        reserve = await self.ledger.reserve(lambda: self._reservation(req, price))
+        if reserve is None:
             return self._decline(req, meta, ReasonCode.BUDGET_CAP)
+        if self.breaker.tripped:
+            self.ledger.settle(reserve, 0.0)
+            return self._decline(req, meta, ReasonCode.LLM_UNAVAILABLE)
         return await self._live(req, meta, price, reserve)
 
     def _reservation(self, req: LLMRequest, price: ModelPrice) -> float:
