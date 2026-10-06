@@ -222,15 +222,16 @@ def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def config_hashes(settings: Settings, root: Path) -> dict[str, str]:
-    """Hash every file under ``config/`` and the glossary (§9.6 ``config_sha256``).
+def config_hashes(settings: Settings, root: Path, extra: Iterable[Path] = ()) -> dict[str, str]:
+    """Hash every file under ``config/``, the glossary and any extra file (§9.6 ``config_sha256``).
 
     Args:
         settings: The effective settings; ``config_dir`` is hashed recursively.
         root: The repository root.
+        extra: Further files the prompt read, e.g. the run's enrichment file (A68.4).
 
     Returns:
-        Repo-relative POSIX path -> SHA-256, sorted by path.
+        Repo-relative POSIX path (a file name outside the repository) -> SHA-256, sorted.
 
     """
     config_dir = (
@@ -238,6 +239,7 @@ def config_hashes(settings: Settings, root: Path) -> dict[str, str]:
     )
     files = [path for path in config_dir.rglob("*") if path.is_file()]
     files.append(GLOSSARY_PATH)
+    files.extend(extra)
     hashes = {repo_relative(path, root): _file_sha256(path) for path in files}
     return dict(sorted(hashes.items()))
 
@@ -294,6 +296,8 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
 
     The rate-limit headers are null, with ``rate_limit_source: none``, when the run made no
     successful live call that carried them (a fake, replayed, fully cached or OpenAI run).
+    ``enrichment_path`` names the arm C enrichment file the run rendered, portably, or is null;
+    its hash enters ``config_sha256`` beside the glossary's (A68.4).
 
     Args:
         result: The run.
@@ -305,6 +309,8 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
     """
     root = context.root
     input_path, tier_source = context.input_path, context.rate_limit_tier_source
+    enrichment = result.enrichment_path
+    extra = () if enrichment is None else (enrichment,)
     return {
         **result.manifest,
         "code_sha": context.code.sha,
@@ -317,10 +323,11 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
         "rate_limit_headers": dict(context.rate_limit_headers or {}) or None,
         "rate_limit_source": context.rate_limit_source,
         "rate_limit_tier_source": portable_path(tier_source, root) if tier_source else None,
-        "config_sha256": config_hashes(context.settings, root),
+        "config_sha256": config_hashes(context.settings, root, extra),
         "settings_effective": effective_settings(context.settings, root),
         "excel_bom": context.excel_bom,
         "input_path": portable_path(input_path, root) if input_path else None,
+        "enrichment_path": portable_path(enrichment, root) if enrichment else None,
     }
 
 

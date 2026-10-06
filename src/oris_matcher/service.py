@@ -8,7 +8,10 @@ ladder (§10.5); profile B0 is its rules-only floor, which plans no batch and so
 (§7.1, §10.5). Inside a batch the model sees transport ids ``L<position>``, so the wrapper and
 every call record carry those ids; the service maps them back to lines. With the E-08 verifier
 adopted, a B3 run then asks the sibling verifier about every line the table would match
-(``verification.py``) and decides with its answers (A65.2).
+(``verification.py``) and decides with its answers (A65.2). A B3 run may render an arm C
+enrichment (A68): the forced setting's file, else the deciding entry's after its SHA-256 is
+checked; the file must belong to the run's library, which is checked before any call. Its hash
+enters each pass's prompt version and the manifest's ``enrichment_sha256``.
 """
 
 import asyncio
@@ -23,6 +26,7 @@ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
@@ -57,6 +61,13 @@ from oris_matcher.domain.decision import (
 from oris_matcher.domain.library import Library, LibraryRow, load_library
 from oris_matcher.domain.normalize import normalize
 from oris_matcher.domain.validator import is_valid_code
+from oris_matcher.enrichment import (
+    LoadedEnrichment,
+    is_enrichment_off,
+    read_enrichment,
+    require_enrichment_sha256,
+    require_library,
+)
 from oris_matcher.io.boq_reader import capped_for_prompt
 from oris_matcher.llm.base import HASH_ENCODING, LLMPort, LLMRequest, SystemBlock, canonical_json
 from oris_matcher.llm.fake_llm import FakeLLM
@@ -76,14 +87,16 @@ from oris_matcher.llm.wrapper import (
     LLMWrapper,
     RequestBuilder,
 )
+from oris_matcher.prompts.v1.enriched import (
+    build_enriched_request,
+    render_enriched_system_blocks,
+)
 from oris_matcher.prompts.v1.render import (
     B2,
     CANONICAL_V1,
     REVERSE_V1,
     TEMPERATURE,
     PromptVariant,
-    build_request,
-    render_system_blocks,
 )
 from oris_matcher.prompts.v1.verifier import build_verifier_request, render_verifier_system
 from oris_matcher.prompts.v1.version import prompt_version, verifier_prompt_version
@@ -215,6 +228,9 @@ class ResolvedPolicy:
         claimed_certified_by: What a ``--policy`` file claims as certification; never verified.
         verifier_adopted: The entry's E-08 verifier (A67); False for every resolution that is
             not an entry of a policy file.
+        enrichment: The entry's arm C enrichment file, repository-relative (A68.4); None for
+            every resolution that is not an entry naming one.
+        enrichment_sha256: The SHA-256 the entry certifies for that file.
 
     """
 
@@ -224,6 +240,8 @@ class ResolvedPolicy:
     certified_by: str | None = None
     claimed_certified_by: str | None = None
     verifier_adopted: bool = False
+    enrichment: str | None = None
+    enrichment_sha256: str | None = None
 
 
 def as_override(policy: ResolvedPolicy) -> ResolvedPolicy:
@@ -233,19 +251,18 @@ def as_override(policy: ResolvedPolicy) -> ResolvedPolicy:
         policy: The policy resolved from the override file.
 
     Returns:
-        An ``override`` resolution keeping the policy id, threshold and the entry's verifier,
-        with the file's ``certified_by`` moved to ``claimed_certified_by``; any other
-        resolution unchanged.
+        An ``override`` resolution keeping the policy id, threshold and the entry's verifier
+        and enrichment, with the file's ``certified_by`` moved to ``claimed_certified_by``;
+        any other resolution unchanged.
 
     """
     if policy.resolution != PolicyResolution.EXACT:
         return policy
-    return ResolvedPolicy(
-        policy.threshold,
-        policy.policy_id,
-        PolicyResolution.OVERRIDE,
+    return dataclasses.replace(
+        policy,
+        resolution=PolicyResolution.OVERRIDE,
+        certified_by=None,
         claimed_certified_by=policy.certified_by,
-        verifier_adopted=policy.verifier_adopted,
     )
 
 
@@ -321,7 +338,58 @@ def resolve_policy(config: PolicyConfig, query: PolicyQuery) -> ResolvedPolicy:
         PolicyResolution.EXACT,
         entry.certified_by,
         verifier_adopted=entry.verifier_adopted,
+        enrichment=entry.enrichment,
+        enrichment_sha256=entry.enrichment_sha256,
     )
+
+
+def _under(root: Path, path: Path) -> Path:
+    """Resolve a relative path against the repository root; an absolute one is kept."""
+    return path if path.is_absolute() else root / path
+
+
+def _forced_enrichment(forced: Path, root: Path) -> LoadedEnrichment | None:
+    """Load a forced enrichment file; ``none`` loads nothing."""
+    if is_enrichment_off(forced):
+        return None
+    return read_enrichment(_under(root, forced))
+
+
+def _entry_enrichment(policy: ResolvedPolicy, root: Path) -> LoadedEnrichment | None:
+    """Load the deciding entry's enrichment file after checking its certified SHA-256."""
+    if policy.enrichment is None:
+        return None
+    loaded = read_enrichment(_under(root, Path(policy.enrichment)))
+    require_enrichment_sha256(loaded, policy.enrichment_sha256)
+    return loaded
+
+
+def resolve_enrichment(
+    forced: Path | None, policy: ResolvedPolicy, library: Library, root: Path
+) -> LoadedEnrichment | None:
+    """Choose and check the arm C enrichment a B3 run renders (A68.4).
+
+    Args:
+        forced: The setting: a file, ``none``, or None to follow the policy entry.
+        policy: The run's resolved policy; an entry may name a file and its SHA-256.
+        library: The run's library; the file must have been generated from it.
+        root: The repository root a relative path resolves against.
+
+    Returns:
+        The forced file, else the entry's file, else None; ``none`` forces None.
+
+    Raises:
+        ConfigError: The file cannot be read or is invalid, its SHA-256 is not the one the
+            entry certifies, or it was generated from another library.
+
+    """
+    if forced is not None:
+        loaded = _forced_enrichment(forced, root)
+    else:
+        loaded = _entry_enrichment(policy, root)
+    if loaded is not None:
+        require_library(loaded, library)
+    return loaded
 
 
 @functools.cache
@@ -473,6 +541,8 @@ class ServiceResources:
         max_tokens: Output token cap per request.
         policy_override: Whether ``policy`` came from a ``--policy`` file rather than
             ``config/policy.yaml``; its exact hits are then ``override`` resolutions (§10.6).
+        root: The repository root a relative enrichment path resolves against (A68.4); the
+            working directory by default, as for the configured libraries.
 
     """
 
@@ -485,6 +555,7 @@ class ServiceResources:
     fallback_model: str
     max_tokens: int = DEFAULT_MAX_TOKENS
     policy_override: bool = False
+    root: Path = Path()
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "ServiceResources":
@@ -627,6 +698,7 @@ class RunResult:
         system_prompts: ``system_blocks_sha256`` -> the canonical JSON text it hashes.
         exit_code: 3 when a line is ``LLM_UNAVAILABLE`` or a replay miss, else 0.
         attributed_cost_usd: The sum of the lines' attributed costs.
+        enrichment_path: The arm C enrichment file the run rendered, or None (A68.4).
 
     """
 
@@ -644,6 +716,7 @@ class RunResult:
     system_prompts: Mapping[str, str]
     exit_code: int
     attributed_cost_usd: float
+    enrichment_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -657,7 +730,7 @@ class _Target:
 
 @dataclass(frozen=True)
 class _RunPlan:
-    """What a run decided before any call: lines, batches, passes, policy and model."""
+    """What a run decided before any call: lines, batches, passes, policy, model, enrichment."""
 
     boq: BoqFile
     library_id: str
@@ -668,11 +741,17 @@ class _RunPlan:
     batches: tuple[Batch, ...]
     target: _Target
     select_count: int | None
+    enrichment: LoadedEnrichment | None = None
 
     @property
     def library(self) -> Library:
         """The run's library."""
         return self.target.library
+
+    @property
+    def enrichment_sha256(self) -> str | None:
+        """The SHA-256 of the enrichment file the run renders, or None."""
+        return self.enrichment.sha256 if self.enrichment else None
 
     @property
     def model(self) -> str:
@@ -991,20 +1070,35 @@ class MatchService:
     def _plan(
         self, boq: BoqFile, library_id: str, profile: RunProfile, options: RunOptions, provider: str
     ) -> _RunPlan:
-        """Fix the output lines, batches, passes, policy and model before any call."""
+        """Fix the output lines, batches, passes, policy, model and enrichment before any call."""
         target = _Target(self.library(library_id), self.resources.requested_model, provider)
         lines = _selected(boq, options.select)
+        policy = self._policy(boq, target, profile, options.threshold)
         return _RunPlan(
             boq=boq,
             library_id=library_id,
             profile=profile,
             variants=self._variants(profile),
-            policy=self._policy(boq, target, profile, options.threshold),
+            policy=policy,
             lines=lines,
             batches=self._batches(profile, lines),
             target=target,
             select_count=None if options.select is None else len(lines),
+            enrichment=self._enrichment(profile, policy, target.library),
         )
+
+    def _enrichment(
+        self, profile: RunProfile, policy: ResolvedPolicy, library: Library
+    ) -> LoadedEnrichment | None:
+        """Return the enrichment a B3 run renders; B0 and B2 never render one (A68.3, A68.4).
+
+        The primary's policy decides it before any call; lines the A33 fallback re-runs are
+        sent the same requests, so they render it too.
+        """
+        if profile != RunProfile.B3:
+            return None
+        resources = self.resources
+        return resolve_enrichment(resources.settings.enrichment, policy, library, resources.root)
 
     def _batches(self, profile: RunProfile, lines: Sequence[BoqLine]) -> tuple[Batch, ...]:
         """Plan the routed batches; B0 routes nothing, so it makes no call."""
@@ -1045,7 +1139,7 @@ class MatchService:
         """Run one job, or some of its transport ids, under the concurrency semaphore."""
         (pass_index, batch_index), ids = work
         batch = plan.batches[batch_index]
-        build = self._builder(plan.target, batch, plan.variants[pass_index])
+        build = self._builder(plan, batch, plan.variants[pass_index])
         async with semaphore:
             return await llm.run_batch(batch.transport_ids if ids is None else ids, build)
 
@@ -1149,19 +1243,22 @@ class MatchService:
         async with semaphore:
             return await llm.run_batch(group.transport_ids, build, VERIFIER_ANSWERS)
 
-    def _builder(self, target: _Target, batch: Batch, variant: PromptVariant) -> RequestBuilder:
+    def _builder(self, plan: _RunPlan, batch: Batch, variant: PromptVariant) -> RequestBuilder:
         """Return the wrapper's request builder for any subset of one batch's transport ids."""
         by_transport = {
             transport: _prompt_line(line)
             for transport, line in zip(batch.transport_ids, batch.lines, strict=True)
         }
+        target = plan.target
+        enrichment = plan.enrichment.content if plan.enrichment else None
 
         def build(ids: tuple[str, ...]) -> LLMRequest:
             """Render the request for these transport ids, in this order."""
-            request = build_request(
+            request = build_enriched_request(
                 [by_transport[transport] for transport in ids],
                 target.library,
                 variant,
+                enrichment,
                 model=target.model,
                 max_tokens=self.resources.max_tokens,
             )
@@ -1252,7 +1349,8 @@ class _Assembly:
         self.calls = (*passes, *verified.records)
         self.mode = RunMode.RULES if plan.is_rules_only else run_mode(llm.adapter, self.calls)
         self.attribution: dict[str, LineAttribution] = attribute_costs(self.calls)
-        self.versions = tuple(prompt_version(variant) for variant in plan.variants)
+        sha = plan.enrichment_sha256
+        self.versions = tuple(prompt_version(variant, sha) for variant in plan.variants)
         self.declined = (*llm.declined, *rescue.declined)
 
     def result(self, info: _RunInfo) -> RunResult:
@@ -1275,6 +1373,7 @@ class _Assembly:
             system_prompts=self._system_prompts(),
             exit_code=exit_code,
             attributed_cost_usd=attributed,
+            enrichment_path=self.plan.enrichment.path if self.plan.enrichment else None,
         )
 
     def _verifier(self, line: BoqLine) -> VerifierLine | None:
@@ -1350,8 +1449,10 @@ class _Assembly:
     def _system_prompts(self) -> dict[str, str]:
         """Return each pass's system blocks as stored text, keyed by their hash."""
         prompts: dict[str, str] = {}
-        for variant in self.plan.variants:
-            blocks = render_system_blocks(self.plan.library, variant)
+        plan = self.plan
+        enrichment = plan.enrichment.content if plan.enrichment else None
+        for variant in plan.variants:
+            blocks = render_enriched_system_blocks(plan.library, variant, enrichment)
             prompts[system_blocks_sha256(blocks)] = system_blocks_document(blocks)
         if self.verified.adopted:
             verifier = render_verifier_system()
@@ -1376,7 +1477,7 @@ class _Assembly:
             **_library_fields(plan),
             "prompt_version": list(self.versions),
             "passes_k": len(plan.variants),
-            "enrichment_sha256": None,
+            "enrichment_sha256": plan.enrichment_sha256,
             **_candidate_fields(plan),
             **_policy_fields(self.policy),
             **decision_profile_fields(self.decision_profile),

@@ -26,6 +26,11 @@ primary when absent; ``fake`` offline), so its ``spend_usd`` is the verifier's a
 ``--policy`` replaces ``config/policy.yaml`` for the run, as ``oris match --policy`` does: the
 run decides at that file's entry, recorded as ``policy_resolution: override``. It measures a
 threshold other than the certified one (A67); a lockbox session refuses it.
+``--enrichment <file>`` renders that arm C enrichment in a B3 run, and ``--enrichment none``
+renders none (A68.4); without it, ``ORIS_ENRICHMENT`` and then the deciding policy entry
+decide, and a ``replay:<run>`` renders the replayed run's recorded enrichment. The file must
+have been generated from the run's library, or the run is refused before any call (exit 2). A
+lockbox session refuses both the flag and the setting: it renders the shipped entry's file.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -34,8 +39,8 @@ lockbox row that uses up the rung's slot, before the error is reported.
 The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
 --lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, the working
 tree is clean (``git status --porcelain`` lists nothing outside ``runs/`` and the log) and
-``--llm`` names a live provider, with none of ``--slice``, ``--limit``, ``--baseline-id`` or
-``--policy``.
+``--llm`` names a live provider, with none of ``--slice``, ``--limit``, ``--baseline-id``,
+``--policy`` or ``--enrichment``.
 It runs the full file once per frozen rung (profile, language, code SHA), never reads the
 response cache, scores the lockbox side and appends its row, with the run's mode, llm and
 dirty flag, to the pinned ``<repo>/eval/lockbox_log.md``; a second session of the same rung
@@ -52,7 +57,7 @@ Usage::
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
         [--policy policy.yaml] [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
-        [--verifier-adopted [--llm-verifier fake]] --change "..."
+        [--verifier-adopted [--llm-verifier fake]] [--enrichment FILE|none] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
 A mixed E-08 run whose source lacks a main-pass record exits 2 with no ledger row: the
@@ -302,6 +307,18 @@ def _refuse_partial_lockbox(args: argparse.Namespace) -> None:
         )
     if args.policy is not None:
         raise RefusedError("a lockbox session decides under the shipped policy: no --policy")
+    if args.enrichment is not None:
+        raise RefusedError(
+            "a lockbox session renders the shipped entry's enrichment: no --enrichment"
+        )
+
+
+def _refuse_forced_enrichment() -> None:
+    """Refuse a lockbox session while ``ORIS_ENRICHMENT`` forces an enrichment (A68.4)."""
+    if Settings().enrichment is not None:
+        raise RefusedError(
+            "a lockbox session renders the shipped entry's enrichment: unset ORIS_ENRICHMENT"
+        )
 
 
 def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
@@ -319,6 +336,7 @@ def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
     if args.side == SIDE_DEV and not args.lockbox_session:
         return
     _refuse_partial_lockbox(args)
+    _refuse_forced_enrichment()
     if FREEZE_TAG not in _git_output(runtime, GIT_TAGS_AT_HEAD).split():
         raise RefusedError(f"--lockbox-session is refused: the tag {FREEZE_TAG} is not at HEAD")
     _refuse_non_live(args)
@@ -1140,6 +1158,7 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         drop_conflicting_votes=True if args.drop_conflicting_votes else None,
         verifier_adopted=True if args.verifier_adopted else None,
         llm_verifier=parse_llm_spec(args.llm_verifier) if args.llm_verifier else None,
+        enrichment=Path(args.enrichment) if args.enrichment is not None else None,
     )
 
 
@@ -1324,6 +1343,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--drop-conflicting-votes", action="store_true")
     parser.add_argument("--verifier-adopted", action="store_true")
     parser.add_argument("--llm-verifier")
+    parser.add_argument("--enrichment")
     parser.set_defaults(profile=RunProfile.B3.value)
     return parser
 
