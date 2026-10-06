@@ -1022,18 +1022,32 @@ def check_coverage(errors: Mapping[Key, Row], panel: Mapping[str, Mapping[Key, R
             raise MergeError(f"{name}: rows missing {missing}, rows not in the errors {extra}")
 
 
-def resolve_cause(key: Key, first: Row, second: Row, ruling: Row | None) -> str:
-    """Return the adjudicated cause, else the labellers' common cause.
+def check_split_levels(errors: Mapping[Key, Row], panel: Mapping[str, Mapping[Key, Row]]) -> None:
+    """Refuse a usage split any panel file puts on a row whose first wrong level is not usage.
+
+    Raises:
+        MergeError: Naming the file and the row, to return for relabelling.
+
+    """
+    for name, rows in panel.items():
+        for key, row in sorted(rows.items()):
+            level = errors[key]["level_first_wrong"]
+            if row["usage_split"] and level != LEVEL_USAGE:
+                raise MergeError(f"{name}: {key}: a usage split on a {level} row")
+
+
+def resolve_required(key: Key, field: str, first: Row, second: Row, ruling: Row | None) -> str:
+    """Return the adjudicated value of a required field, else the labellers' common value.
 
     Raises:
         MergeError: The labellers disagree and nothing adjudicates it.
 
     """
-    if ruling is not None and ruling["cause"]:
-        return ruling["cause"]
-    if first["cause"] == second["cause"]:
-        return first["cause"]
-    raise MergeError(f"{key}: {first['cause']} vs {second['cause']} has no adjudication")
+    if ruling is not None and ruling[field]:
+        return ruling[field]
+    if first[field] == second[field]:
+        return first[field]
+    raise MergeError(f"{key}: {field} {first[field]} vs {second[field]} has no adjudication")
 
 
 def resolve_optional(field: str, first: Row, second: Row, ruling: Row | None) -> str:
@@ -1043,22 +1057,35 @@ def resolve_optional(field: str, first: Row, second: Row, ruling: Row | None) ->
     return first[field] if first[field] == second[field] else ""
 
 
+def resolve_usage_split(error: Row, first: Row, second: Row, ruling: Row | None) -> str:
+    """Return a usage row's split, required and agreed or adjudicated; blank on other rows.
+
+    Raises:
+        MergeError: An unadjudicated disagreement, or a usage row left without a split.
+
+    """
+    if error["level_first_wrong"] != LEVEL_USAGE:
+        return ""
+    key = (error["item_id"], error["lang"])
+    usage_split = resolve_required(key, "usage_split", first, second, ruling)
+    if not usage_split:
+        raise MergeError(f"{key}: a usage row needs a usage split")
+    return usage_split
+
+
 def merged_row(error: Row, first: Row, second: Row, ruling: Row | None) -> Row:
     """Return an error row with the panel's labels folded in.
 
     Raises:
-        MergeError: An unadjudicated disagreement, or a usage split on a non-usage row.
+        MergeError: An unadjudicated cause or usage-split disagreement, or a missing split.
 
     """
     key = (error["item_id"], error["lang"])
-    usage_split = resolve_optional("usage_split", first, second, ruling)
-    if usage_split and error["level_first_wrong"] != LEVEL_USAGE:
-        raise MergeError(f"{key}: a usage split on a {error['level_first_wrong']} row")
     return {
         **error,
-        "cause": resolve_cause(key, first, second, ruling),
+        "cause": resolve_required(key, "cause", first, second, ruling),
         "cause_2": resolve_optional("cause_2", first, second, ruling),
-        "usage_split": usage_split,
+        "usage_split": resolve_usage_split(error, first, second, ruling),
         "evidence": (ruling or {}).get("evidence") or first["evidence"],
         "labeller_a": first["cause"],
         "labeller_b": second["cause"],
@@ -1121,6 +1148,7 @@ def merge(errors: Sequence[Row], panel: Mapping[str, Sequence[Row]]) -> list[Row
     check_values(indexed["labels_a"], "labels_a", cause_required=True)
     check_values(indexed["labels_b"], "labels_b", cause_required=True)
     check_values(indexed["adjudication"], "adjudication", cause_required=False)
+    check_split_levels(by_key, indexed)
     rows = [
         merged_row(
             row,
