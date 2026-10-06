@@ -26,7 +26,8 @@ Refused (exit 4) before any replay: a run that is not B3, a run where the fallba
 and FR runs that differ in model, library, prompt version or ``passes_k`` (one threshold for
 both languages needs the same T-definitions), and a run that routed an item outside the
 split's dev side. Every further run of a language is checked the same way and must share
-its language's input SHA-256.
+its language's input SHA-256. All runs must share one recorded decision profile, so a run
+without the verifier never measures a threshold of a selection with it.
 
 Writes ``eval/selection_v1.json`` (sorted keys, LF, portable paths) and the trade-off table
 ``eval/selection_v1.md``. Reference rows, never candidates: match-all (every valid in-library
@@ -73,7 +74,13 @@ from oris_matcher.domain.decision import (
 from oris_matcher.domain.validator import is_valid_code
 from oris_matcher.io.audit import AUDIT_FILE, portable_path
 from oris_matcher.io.writer import render_csv
-from oris_matcher.service import BUCKET_LABELS, PolicyResolution, RunProfile, RunResult
+from oris_matcher.service import (
+    BUCKET_LABELS,
+    PolicyResolution,
+    RunProfile,
+    RunResult,
+    recorded_decision_profile,
+)
 from oris_matcher.settings import ConfigError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,6 +111,7 @@ REPLAY_MISS = llm_failure_reason(LLMFailureKind.REPLAY_MISS)
 UNANSWERED_VERIFIER = LLMFailureKind.REPLAY_MISS.value
 VERIFIER_FAILURE_FIELD = "verifier_failure"
 INPUT_FIELD = "input_sha256"
+PROFILE_FIELD = "decision_profile"
 STRUCTURAL_RULES = frozenset({Rule.D0.value, Rule.D0A.value, Rule.D0B.value})
 SHARED_FIELDS = ("requested_model", "library_sha256", "prompt_version", "passes_k")
 DECISION_COLUMN = "decision"
@@ -227,6 +235,10 @@ def check_runs(
         values = {json.dumps(manifest.get(field)) for manifest in manifests.values()}
         if len(values) > 1:
             raise RefusedError(f"the EN and FR runs differ in {field}: {sorted(values)}")
+    profiles = {recorded_decision_profile(manifest) for manifest in manifests.values()}
+    if len(profiles) > 1:
+        shown = sorted(map(str, profiles))
+        raise RefusedError(f"the EN and FR runs differ in {PROFILE_FIELD}: {shown}")
 
 
 def check_further_runs(
@@ -241,7 +253,7 @@ def check_further_runs(
 
     Raises:
         RefusedError: A further run fails ``check_run``, or differs from its language's first
-            run in model, library, prompt version, ``passes_k`` or input.
+            run in model, library, prompt version, ``passes_k``, input or decision profile.
 
     """
     dev = dev_ids(split)
@@ -255,6 +267,10 @@ def check_further_runs(
                     raise RefusedError(
                         f"{lang} run {run_dir.name} differs from {first['run_id']} in {field}"
                     )
+            if recorded_decision_profile(manifest) != recorded_decision_profile(first):
+                raise RefusedError(
+                    f"{lang} run {run_dir.name} differs from {first['run_id']} in {PROFILE_FIELD}"
+                )
 
 
 # --- re-deciding by replay --------------------------------------------------------------
@@ -889,6 +905,14 @@ def thresholds_block(results: Mapping[str, LanguageResults]) -> list[dict[str, A
     ]
 
 
+def check_measured_table(table: Sequence[rule.Row[str]], ceilings: Mapping[str, int]) -> None:
+    """Refuse a selection with no threshold measured in both languages (A67.2)."""
+    if not table:
+        raise RefusedError(
+            f"{', '.join(ceilings)} unmeasured at $0: no threshold is measured in both languages"
+        )
+
+
 def check_unmeasured(
     selection: rule.Selection[str],
     table: Sequence[rule.Row[str]],
@@ -997,8 +1021,9 @@ def build_payload(
     """
     args = context.args
     table = rule_table(results)
-    outcome = rule.run_rule(table, args.target)
     unmeasured = ceiling_sums(results)
+    check_measured_table(table, unmeasured)
+    outcome = rule.run_rule(table, args.target)
     check_unmeasured(outcome.selected, table, threshold_order(results), unmeasured)
     inputs = ScoreInputs(args.reference, args.split, args.classes)
     return {

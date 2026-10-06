@@ -49,6 +49,7 @@ class VerifierWorld:
     ledger: Path
     t8: dict[str, Path]
     strict: dict[str, Path]
+    off_en: Path
 
 
 def policy_file(root: Path, threshold_id: str) -> Path:
@@ -75,7 +76,8 @@ def world(tmp_path_factory: pytest.TempPathFactory) -> Iterator[VerifierWorld]:
             lang: _run(root, split, lang, "--id", E08_STRICT_ID, "--verifier-adopted", *forced)
             for lang in LANGUAGES
         }
-    yield VerifierWorld(root, split, root / "experiments.jsonl", t8, strict)
+        off_en = _run(root, split, "en", "--id", "B3-off")
+    yield VerifierWorld(root, split, root / "experiments.jsonl", t8, strict, off_en)
 
 
 @pytest.fixture
@@ -223,3 +225,23 @@ def test_nothing_unmeasured_is_never_refused() -> None:
     below = {"en": _stats(50, 40), "fr": _stats(50, 40)}
     table = [("T8", below)]
     selector.check_unmeasured(_selected(table), table, ORDER, {})
+
+
+def test_a_further_run_with_another_decision_profile_is_refused(
+    env: VerifierWorld, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A verifier-off run must never measure a threshold of a verifier-on selection."""
+    argv = [
+        *("--run-en", str(env.t8["en"]), "--run-en", str(env.off_en)),
+        *("--run-fr", str(env.t8["fr"])),
+        *("--split", str(env.split), "--reference", str(REFERENCE), "--classes", str(CLASSES)),
+        *("--ledger", str(env.ledger)),
+        *("--output-json", str(tmp_path / "s.json"), "--output-md", str(tmp_path / "s.md")),
+    ]
+    assert selector.main(argv, make_runtime(env.root)) == selector.EXIT_REFUSED
+    assert "decision_profile" in capsys.readouterr().err
+
+
+def test_no_threshold_measured_in_both_languages_is_refused() -> None:
+    with pytest.raises(selector.RefusedError, match="T8"):
+        selector.check_measured_table([], {"T8": 0})
