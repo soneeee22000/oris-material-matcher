@@ -1,4 +1,25 @@
 {
+  "d5a_false_rejects": {
+    "definition": "A60.12 (D5a rule A62): dev lines with reason EVIDENCE_NOT_IN_LINE whose suggested (plurality top1) triple equals the non-blank reference triple, on the replay at the selected threshold; evidence is each pass's quote",
+    "en": {
+      "count": 1,
+      "lines": [
+        {
+          "evidence": [
+            "Base layer beneath paving C12/15 lean base",
+            "C12/15 base below block paving, 150 mm"
+          ],
+          "item_no": "03.02.0060."
+        }
+      ]
+    },
+    "fr": {
+      "count": 0,
+      "lines": []
+    },
+    "retriggers_10_9": false,
+    "total": 1
+  },
   "inputs": {
     "input_sha256": {
       "en": "ea19f4791cbb048d07bc3521fb806159a87560569099a5386d6208725a5c1bbc",

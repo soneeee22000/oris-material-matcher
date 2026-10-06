@@ -17,6 +17,8 @@ Selected: **T8**, below the dev bar (loosest qualifying: none).
 
 Sensitivity rows (never shipped): en alone T8 (below the dev bar), fr alone T8 (below the dev bar)
 
+D5a false rejects (A60.12): EN 1 (03.02.0060.), FR 0 (none); total 1, §10.9 not re-triggered.
+
 ## EN
 
 | row | matched | correct | P | CP-LB | C₂₅₂ | H₂₆₅ | review /100 | not_a_material | F_NM | mean $/line |
