@@ -20,6 +20,7 @@ from oris_matcher.domain.batching import transport_id
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import Library, load_library
 from oris_matcher.io.boq_reader import read_boq
+from oris_matcher.llm.base import LLMRequest, LLMResult
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, default_answer
 from oris_matcher.settings import load_models_config
 
@@ -39,6 +40,12 @@ FIXED_NOW = datetime(2026, 10, 6, 10, 0, tzinfo=UTC)
 ITEMS = 8
 CONFIDENCES = (95, 85, 75, 60)
 WRONG_EVERY = 4
+UNQUOTED_AT = (2, 3)
+UNQUOTED_EVIDENCE = "zqxjunquotedword"
+SECOND_PASS_EVIDENCE = "zqxjsecondword"
+BLANK_TRIPLE = ("", "", "")
+LINE_BREAK = "\n"
+D5A_REASON = "EVIDENCE_NOT_IN_LINE"
 THRESHOLD_IDS = [f"T{index}" for index in range(1, 9)]
 SCORE_RULES = {"D9", "D10"}
 B3_ID = "B3-fake"
@@ -105,26 +112,67 @@ def _code(library: Library, position: int, wanted: tuple[str, str, str]) -> str:
     return library.rows[position % len(library.rows)].code
 
 
+def _evidence(line_short: str, position: int) -> str:
+    """Quote the line's first word, except at ``UNQUOTED_AT``: a word the line does not hold."""
+    words = line_short.split()
+    if position in UNQUOTED_AT:
+        return UNQUOTED_EVIDENCE
+    return words[0] if words else ""
+
+
 def answers_for(boq: BoqFile, library: Library, items: frozenset[str]) -> dict[str, Any]:
-    """Return the same answer for both passes: mostly the GT row, confidence by position."""
+    """Return the same answer for both passes: mostly the GT row, confidence by position.
+
+    At ``UNQUOTED_AT`` the quote is not in the line, so D5a rejects: position 2 carries the GT
+    row (a false reject), position 3 a wrong row (a true reject).
+    """
     reference = _reference()
     answers: dict[str, Any] = {}
     chosen = [line for line in boq.lines if line.kind == LineKind.ITEM and line.item_no in items]
     for index, line in enumerate(chosen):
-        words = line.short.split()
         answers[transport_id(line)] = {
             **default_answer(transport_id(line)),
-            "evidence": words[0] if words else "",
+            "evidence": _evidence(line.short, index),
             "top1": _code(library, index, reference.get(line.item_no, ("", "", ""))),
             "confidence": CONFIDENCES[index % len(CONFIDENCES)],
         }
     return answers
 
 
-def make_runtime(root: Path, answers: dict[str, Any] | None = None) -> Runtime:
-    def factory(spec: LLMSpec, model: str) -> FakeLLM:
+def second_pass_answers(
+    answers: dict[str, Any], boq: BoqFile, items: frozenset[str]
+) -> dict[str, Any]:
+    """Return the reverse pass's answers: pass 1's, another unquoted word at the false reject."""
+    chosen = [line for line in boq.lines if line.kind == LineKind.ITEM and line.item_no in items]
+    line_id = transport_id(chosen[UNQUOTED_AT[0]])
+    return {**answers, line_id: {**answers[line_id], "evidence": SECOND_PASS_EVIDENCE}}
+
+
+class PassAwareLLM:
+    """Answers the canonical pass from one fake and the reverse pass from another."""
+
+    def __init__(self, canonical: FakeLLM, reverse: FakeLLM, codes: Sequence[str]) -> None:
+        """Keep both fakes and the lowest and highest codes, which tell the passes apart."""
+        self.canonical, self.reverse = canonical, reverse
+        self.lowest, self.highest = f" {min(codes)} ", f" {max(codes)} "
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        """Answer from the reverse fake when the library block lists the highest code first."""
+        text = LINE_BREAK.join(block.text for block in req.system_blocks)
+        reversed_rows = 0 <= text.find(self.highest) < text.find(self.lowest)
+        return await (self.reverse if reversed_rows else self.canonical).complete(req)
+
+
+def make_runtime(
+    root: Path, answers: dict[str, Any] | None = None, reverse: dict[str, Any] | None = None
+) -> Runtime:
+    codes = [row.code for row in load_library(GLOBAL_LIBRARY.read_bytes()).rows]
+
+    def factory(spec: LLMSpec, model: str) -> PassAwareLLM:
         del spec
-        return FakeLLM(model, ALLOWLIST, FakeBehaviour(answers=answers or {}))
+        canonical = FakeLLM(model, ALLOWLIST, FakeBehaviour(answers=answers or {}))
+        second = FakeLLM(model, ALLOWLIST, FakeBehaviour(answers=reverse or answers or {}))
+        return PassAwareLLM(canonical, second, codes)
 
     return Runtime(
         root=lambda: root,
@@ -146,10 +194,17 @@ def write_split(path: Path, dev: Sequence[str]) -> Path:
 
 
 def first_dev_items(count: int) -> list[str]:
+    """Return the first dev items whose GT triple is a library row, so a GT answer exists."""
     dev = set(json.loads(SPLIT.read_text(encoding="utf-8"))["item_ids_dev"])
+    library = load_library(GLOBAL_LIBRARY.read_bytes())
+    in_library = {
+        (row.material_type, row.material_usage, row.material_subtype) for row in library.rows
+    }
+    reference = _reference()
     boq = read_boq(INPUTS["en"])
     items = [line.item_no for line in boq.lines if line.kind == LineKind.ITEM]
-    return [item for item in items if item in dev][:count]
+    labelled = [item for item in items if reference.get(item) in in_library]
+    return [item for item in labelled if item in dev][:count]
 
 
 @dataclass(frozen=True)
@@ -167,7 +222,9 @@ class World:
 def _run(root: Path, split: Path, lang: str, *extra: str) -> Path:
     library = load_library(GLOBAL_LIBRARY.read_bytes())
     items = frozenset(first_dev_items(ITEMS))
-    answers = answers_for(read_boq(INPUTS[lang]), library, items)
+    boq = read_boq(INPUTS[lang])
+    answers = answers_for(boq, library, items)
+    reverse = second_pass_answers(answers, boq, items)
     argv = [
         "--lang",
         lang,
@@ -189,7 +246,7 @@ def _run(root: Path, split: Path, lang: str, *extra: str) -> Path:
         str(root / "experiments.jsonl"),
         *extra,
     ]
-    assert runner.main(argv, make_runtime(root, answers)) == 0
+    assert runner.main(argv, make_runtime(root, answers, reverse)) == 0
     row = json.loads((root / "experiments.jsonl").read_text(encoding="utf-8").splitlines()[-1])
     return root / "runs" / str(row["run_id"])
 
@@ -342,6 +399,99 @@ def test_match_all_reference_row_matches_every_valid_plurality_top1(
     match_all = payload["reference_rows"]["match_all"]["per_language"]["en"]["matched"]
     assert match_all >= loosest
     assert match_all == ITEMS
+
+
+def _audit_reasons(run_dir: Path) -> dict[str, str]:
+    """Return Item No. -> audit reason for one run's audit.jsonl."""
+    text = (run_dir / "audit.jsonl").read_text(encoding="utf-8")
+    records = [json.loads(line) for line in text.splitlines() if line.strip()]
+    return {str(record["item_no"]): str(record["reason"]) for record in records}
+
+
+def test_d5a_false_rejects_lists_gt_carrying_unquoted_lines(env: World, tmp_path: Path) -> None:
+    assert run_select(env, tmp_path) == 0
+    payload = json.loads((tmp_path / "selection.json").read_text(encoding="utf-8"))
+
+    block = payload["d5a_false_rejects"]
+    assert set(block) == {"definition", "en", "fr", "total", "retriggers_10_9"}
+    assert block["definition"].startswith("A60.12")
+    false_reject, true_reject = env.items[UNQUOTED_AT[0]], env.items[UNQUOTED_AT[1]]
+    for lang in ("en", "fr"):
+        reasons = _audit_reasons(env.runs[lang])
+        assert reasons[false_reject] == D5A_REASON
+        assert reasons[true_reject] == D5A_REASON
+        assert block[lang] == {
+            "count": 1,
+            "lines": [
+                {"item_no": false_reject, "evidence": [UNQUOTED_EVIDENCE, SECOND_PASS_EVIDENCE]}
+            ],
+        }
+    assert block["total"] == 2
+    assert block["retriggers_10_9"] is False
+    markdown = (tmp_path / "selection.md").read_text(encoding="utf-8")
+    assert f"D5a false rejects (A60.12): EN 1 ({false_reject}), FR 1 ({false_reject})" in markdown
+    assert "total 2, §10.9 not re-triggered" in markdown
+
+
+def test_d5a_summary_flags_a_retrigger_above_three() -> None:
+    lines = [{"item_no": f"01.01.000{index}.", "evidence": ["x"]} for index in range(2)]
+    per_language = {"en": {"count": 2, "lines": lines}, "fr": {"count": 2, "lines": lines}}
+    block = selector.d5a_summary(per_language)
+
+    assert block["total"] == 4
+    assert block["retriggers_10_9"] is True
+    assert "§10.9 re-triggered" in selector.d5a_line(block)
+
+
+def test_d5a_counts_only_dev_lines(env: World, tmp_path: Path) -> None:
+    redecided = selector.redecide(
+        env.runs["en"], THRESHOLD_IDS[0], make_runtime(env.root), tmp_path
+    )
+    false_reject = env.items[UNQUOTED_AT[0]]
+    narrowed = [item for item in env.items if item != false_reject]
+    split = write_split(tmp_path / "split.json", narrowed)
+
+    dev = selector.d5a_false_rejects(redecided, selector.ScoreInputs(REFERENCE, env.split, CLASSES))
+    lockbox = selector.d5a_false_rejects(redecided, selector.ScoreInputs(REFERENCE, split, CLASSES))
+
+    assert [line["item_no"] for line in dev["lines"]] == [false_reject]
+    assert lockbox == {"count": 0, "lines": []}
+
+
+@pytest.mark.parametrize(
+    ("reference", "suggested", "expected"),
+    [(BLANK_TRIPLE, BLANK_TRIPLE, False), (("A", "B", "C"), ("A", "B", "C"), True)],
+)
+def test_is_false_reject_needs_a_non_blank_reference(
+    reference: tuple[str, str, str], suggested: tuple[str, str, str], expected: bool
+) -> None:
+    pair = SimpleNamespace(
+        ref=SimpleNamespace(labels=reference), out=SimpleNamespace(suggested=suggested)
+    )
+
+    assert selector.is_false_reject(pair, {"reason": D5A_REASON}) is expected
+
+
+def test_d5a_skips_a_reference_line_missing_from_the_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    missing = SimpleNamespace(key="01.01.0001.", out=None, ref=SimpleNamespace(labels=("A",) * 3))
+    monkeypatch.setattr(selector, "dev_pairs", lambda *args: ([], [missing]))
+    redecided = SimpleNamespace(result=SimpleNamespace(audit=[]))
+
+    assert selector.d5a_false_rejects(redecided, None) == {"count": 0, "lines": []}
+
+
+def test_d5a_summary_at_three_does_not_retrigger_and_renders_none() -> None:
+    lines = [{"item_no": f"01.01.000{index}.", "evidence": ["x"]} for index in range(3)]
+    per_language = {"en": {"count": 0, "lines": []}, "fr": {"count": 3, "lines": lines}}
+    block = selector.d5a_summary(per_language)
+
+    assert block["total"] == 3
+    assert block["retriggers_10_9"] is False
+    rendered = selector.d5a_line(block)
+    assert "EN 0 (none), FR 3 (01.01.0000., 01.01.0001., 01.01.0002.)" in rendered
+    assert "total 3, §10.9 not re-triggered" in rendered
 
 
 def test_target_adds_only_a_sensitivity_row(env: World, tmp_path: Path) -> None:
