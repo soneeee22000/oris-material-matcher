@@ -29,9 +29,11 @@ from oris_matcher.domain.attributes import Attributes, AttrResult, compare, extr
 from oris_matcher.domain.batching import Batch, plan_batches, transport_id
 from oris_matcher.domain.boq import BoqFile, BoqLine, LineKind, PathMode
 from oris_matcher.domain.decision import (
+    DEFAULT_PROFILE,
     ConfidenceBucket,
     Decision,
     DecisionInput,
+    DecisionProfile,
     LineDecision,
     LLMFailureKind,
     PassOutcome,
@@ -127,6 +129,8 @@ TRUNCATED_FLAG = "TRUNCATED"
 CONTEXT_PATH = "section_path"
 CONTEXT_NONE = "none"
 TEXT_SEPARATOR = " "
+DECISION_PROFILE_KEY = "decision_profile"
+DROP_CONFLICTING_VOTES_KEY = "drop_conflicting_votes"
 UNAVAILABLE_REASONS = frozenset(
     {ReasonCode.LLM_UNAVAILABLE.value, llm_failure_reason(LLMFailureKind.REPLAY_MISS)}
 )
@@ -480,6 +484,38 @@ class ServiceResources:
             requested_model=models.primary,
             fallback_model=models.fallback,
         )
+
+    @property
+    def decision_profile(self) -> DecisionProfile:
+        """The decision table's flags, from the settings (A64)."""
+        return DecisionProfile(drop_conflicting_votes=self.settings.drop_conflicting_votes)
+
+
+def decision_profile_fields(profile: DecisionProfile) -> dict[str, Any]:
+    """Return the manifest's ``decision_profile`` field.
+
+    Args:
+        profile: The profile a run decided with.
+
+    Returns:
+        ``{"decision_profile": {"drop_conflicting_votes": bool}}``.
+
+    """
+    return {DECISION_PROFILE_KEY: {DROP_CONFLICTING_VOTES_KEY: profile.drop_conflicting_votes}}
+
+
+def recorded_decision_profile(manifest: Mapping[str, Any]) -> DecisionProfile:
+    """Read back the profile a recorded run decided with, so a replay re-decides as it did.
+
+    Args:
+        manifest: A run manifest.
+
+    Returns:
+        The recorded profile; a run recorded before A64 has no field and decided with it off.
+
+    """
+    recorded = manifest.get(DECISION_PROFILE_KEY) or {}
+    return DecisionProfile(drop_conflicting_votes=bool(recorded.get(DROP_CONFLICTING_VOTES_KEY)))
 
 
 @dataclass(frozen=True)
@@ -1074,12 +1110,17 @@ class _Assembly:
             line_failure=calls.line_failure() if calls else None,
         )
 
+    @property
+    def decision_profile(self) -> DecisionProfile:
+        """The profile that decides the run: the settings' for B3; B0 and B2 have none (A64)."""
+        return self.resources.decision_profile if self.plan.is_full else DEFAULT_PROFILE
+
     def _decide(self, decision_input: DecisionInput) -> LineDecision:
         """Apply the profile's decision table."""
         if self.plan.is_rules_only:
             return decide_b0(decision_input, self.plan.library)
         if self.plan.is_full:
-            return decide(decision_input, self.plan.library)
+            return decide(decision_input, self.plan.library, self.decision_profile)
         return decide_b2(decision_input, self.plan.library)
 
     def _line_result(self, line: BoqLine) -> LineResult:
@@ -1157,6 +1198,7 @@ class _Assembly:
             "enrichment_sha256": None,
             **_candidate_fields(plan),
             **_policy_fields(self.policy),
+            **decision_profile_fields(self.decision_profile),
             "path_mode": plan.boq.path_mode.value,
             "encoding": plan.boq.encoding,
             "delimiter": plan.boq.delimiter,

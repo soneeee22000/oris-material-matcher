@@ -84,6 +84,7 @@ from oris_matcher.service import (
     ServiceResources,
     budget_cap_usd,
     make_run_id,
+    recorded_decision_profile,
 )
 from oris_matcher.settings import (
     MODELS_FILE,
@@ -214,6 +215,8 @@ class MatchJob:
         selector: Picks the line ids to route and output, from the whole parsed file.
         split_sha256: Recorded in the manifest; src never reads the split file.
         budget_usd: A hard cap below the §11.3 per-100-lines cap.
+        drop_conflicting_votes: Forces arm ``E-subtype-drop`` (A64) on or off; None keeps the
+            replayed run's recorded value for a replay, else the setting.
 
     """
 
@@ -229,6 +232,7 @@ class MatchJob:
     selector: Selector | None = None
     split_sha256: str | None = None
     budget_usd: float | None = None
+    drop_conflicting_votes: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -478,6 +482,28 @@ def _adapters(
     return adapter, fallback or _replay_fallback(spec, adapter)
 
 
+def decision_settings(job: MatchJob, settings: Settings) -> Settings:
+    """Apply the run's decision profile: the job's value, else a replay's recorded one (A64).
+
+    Args:
+        job: The run's inputs.
+        settings: The effective settings.
+
+    Returns:
+        The settings with ``drop_conflicting_votes`` forced by the job, or read back from the
+        replayed run's manifest (off for a run recorded before A64); otherwise unchanged. A B0
+        run reads no replayed folder.
+
+    """
+    value = job.drop_conflicting_votes
+    replayed = job.llm.run_dir if job.llm.kind == LLMKind.REPLAY else None
+    if value is None and replayed is not None and job.profile != RunProfile.B0:
+        value = recorded_decision_profile(read_manifest(replayed)).drop_conflicting_votes
+    if value is None:
+        return settings
+    return settings.model_copy(update={"drop_conflicting_votes": value})
+
+
 def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     """Read the input and build the settings, service and adapters of a run.
 
@@ -502,6 +528,7 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     data = job.input_path.read_bytes()
     boq = read_boq(data)
     settings, library_id = settings_for_library(base, job.library_path, runtime.root())
+    settings = decision_settings(job, settings)
     spec = job.llm if job.profile == RunProfile.B0 else effective_spec(job.llm, settings)
     digest = hashlib.sha256(data).hexdigest()
     check_exercise_input(job, spec, digest, runtime)
@@ -958,7 +985,8 @@ def settings_from_manifest(manifest: Mapping[str, Any]) -> Settings:
         manifest: A run manifest.
 
     Returns:
-        The settings the run used, with its requested model as the primary.
+        The settings the run used, with its requested model as the primary and its recorded
+        decision profile (off for a run recorded before A64).
 
     """
     recorded = manifest.get("settings_effective") or {}
@@ -969,6 +997,7 @@ def settings_from_manifest(manifest: Mapping[str, Any]) -> Settings:
         if name in Settings.model_fields
     }
     known["primary_model"] = manifest["requested_model"]
+    known["drop_conflicting_votes"] = recorded_decision_profile(manifest).drop_conflicting_votes
     return Settings(**known)
 
 

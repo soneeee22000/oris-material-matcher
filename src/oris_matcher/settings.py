@@ -71,6 +71,8 @@ class Settings(BaseSettings):
 
     ``primary_model`` and ``fallback_model`` are optional overrides; the pinned models live only
     in ``models.toml``, and ``resolve_models`` checks any override against its allowlist.
+    ``drop_conflicting_votes`` (``ORIS_DROP_CONFLICTING_VOTES``, off by default) turns on arm
+    ``E-subtype-drop`` of the decision table (A64).
     """
 
     model_config = SettingsConfigDict(
@@ -100,6 +102,7 @@ class Settings(BaseSettings):
     line_budget_seconds: float = Field(default=DEFAULT_LINE_BUDGET_SECONDS, gt=0)
     budget_usd_per_100_lines: float = Field(default=DEFAULT_BUDGET_USD_PER_100_LINES, gt=0)
     breaker_consecutive_failures: int = Field(default=DEFAULT_BREAKER_CONSECUTIVE_FAILURES, ge=1)
+    drop_conflicting_votes: bool = False
 
     def config_file(self, name: str) -> Path:
         """Return the path of one config file inside ``config_dir``.
