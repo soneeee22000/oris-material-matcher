@@ -38,6 +38,7 @@ from oris_matcher.doctor import (
     live_adapter,
     live_context,
     make_wrapper,
+    run_prefix_tokens,
     with_measured_tokens,
 )
 from oris_matcher.domain.boq import (
@@ -64,6 +65,7 @@ from oris_matcher.io.boq_reader import (
 from oris_matcher.llm.base import HASH_ENCODING, LLMPort, canonical_json
 from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.replay_llm import ReplayLLM
+from oris_matcher.llm.wrapper import PrefixKey
 from oris_matcher.service import (
     LineResult,
     MatchService,
@@ -402,7 +404,8 @@ class ApiState:
         wiring = RunWiring(
             pricing, cap, capturing(self._adapter()), fallback is not None, body_sha256(body)
         )
-        setup = WrapperSetup(cap, run_id=run_id)
+        measured = self._measured_prefix(wiring, body.library)
+        setup = WrapperSetup(cap, run_id=run_id, measured_prefix_tokens=measured)
         wrapper = make_wrapper(wiring.adapter, pricing, self.settings, setup, self.runtime)
         options = RunOptions(run_id=run_id, fallback=fallback)
         result = await self.service.match(
@@ -410,6 +413,23 @@ class ApiState:
         )
         self.persist(result, wiring)
         return JSONResponse(match_response(result), headers={REQUEST_ID_HEADER: run_id})
+
+    def _measured_prefix(self, wiring: RunWiring, library_id: str) -> dict[PrefixKey, int]:
+        """Return the doctor's measured prefix sizes for a live Anthropic run, else {} (A63).
+
+        Args:
+            wiring: What the run is wired with; only a live adapter reaches the model.
+            library_id: The request's library.
+
+        Returns:
+            ``prefix_key`` -> measured tokens, the same lookup the CLI makes.
+
+        """
+        model = self.service.resources.requested_model
+        live = isinstance(wiring.adapter, CapturingPort)
+        if not live or provider_for(model, wiring.pricing) != LLMKind.ANTHROPIC.value:
+            return {}
+        return run_prefix_tokens(self.service, library_id, self.runtime.root())
 
     def persist(self, result: RunResult, wiring: RunWiring) -> Path:
         """Write the run folder: manifest, calls, audit and prompts, as the CLI does (§9.6).

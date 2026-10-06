@@ -39,6 +39,7 @@ from oris_matcher.llm.wrapper import (
     WrapperDeps,
     WrapperPolicy,
     cost_of,
+    prefix_key,
     reservation_usd,
 )
 from oris_matcher.prompts.v1.schema import EVIDENCE_MAX_WORDS, LineAnswer, output_json_schema
@@ -1301,3 +1302,80 @@ async def test_a_replay_without_declined_records_keeps_the_legacy_explanation() 
     assert replay.wrapper.declined == []
     replay_outcomes = [await replay.run((line_id,)) for line_id in IDS]
     assert [o.lines for o in replay_outcomes] == [o.lines for o in live_outcomes]
+
+
+# ---------------------------------------------------------------- measured prefix (A63)
+
+MEASURED_PREFIX_TOKENS = 10_066
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+MEASURED_CAP = 1.0
+OTHER_MODEL = "claude-other-model"
+
+
+def test_reservation_counts_a_measured_prefix_instead_of_the_estimate() -> None:
+    """A63: the prefix term uses the doctor's measured token count when one is given."""
+    req = make_request(("L1",))
+    price = PRICING.lookup("anthropic", HAIKU)
+    per = PRICING.per_tokens
+    rest = len(req.user_payload) * price.input + req.max_tokens * price.output
+    cold = reservation_usd(
+        req, price, per, prefix_read=False, count_tokens=len, prefix_tokens=MEASURED_PREFIX_TOKENS
+    )
+    warm = reservation_usd(
+        req, price, per, prefix_read=True, count_tokens=len, prefix_tokens=MEASURED_PREFIX_TOKENS
+    )
+    assert cold == pytest.approx((MEASURED_PREFIX_TOKENS * price.cache_write + rest) / per)
+    assert warm == pytest.approx((MEASURED_PREFIX_TOKENS * price.cache_read + rest) / per)
+
+
+def test_reservation_without_a_measurement_estimates_the_prefix() -> None:
+    """A63: with no measurement the prefix term stays the estimator's count."""
+    req = make_request(("L1",))
+    price = PRICING.lookup("anthropic", HAIKU)
+    per = PRICING.per_tokens
+    prefix = len("vocabulary") + len("library")
+    rest = len(req.user_payload) * price.input + req.max_tokens * price.output
+    unmeasured = reservation_usd(
+        req, price, per, prefix_read=False, count_tokens=len, prefix_tokens=None
+    )
+    assert unmeasured == pytest.approx((prefix * price.cache_write + rest) / per)
+
+
+def _measured_harness(model: str, tokens: int, cap_usd: float) -> Harness:
+    """Build a harness whose wrapper holds one measured prefix for the test request's blocks."""
+    harness = Harness(cap_usd=cap_usd)
+    key = prefix_key(model, make_request(IDS).system_blocks)
+    deps = replace(harness.wrapper.deps, measured_prefix_tokens={key: tokens})
+    harness.wrapper = LLMWrapper(harness.fake, PRICING, harness.ledger, None, deps)
+    return harness
+
+
+async def test_a_measured_prefix_sets_the_reservation_of_a_dispatch() -> None:
+    """A measured prefix too large for the cap refuses the dispatch the estimate let through."""
+    estimated = Harness(cap_usd=MEASURED_CAP)
+    assert answered(await estimated.run()) == set(IDS)
+
+    measured = _measured_harness(HAIKU, OVERSIZED_PREFIX_TOKENS, MEASURED_CAP)
+    outcome = await measured.run()
+
+    assert set(failures(outcome).values()) == {ReasonCode.BUDGET_CAP}
+    assert measured.fake.calls == []
+
+
+async def test_a_measurement_of_another_model_is_not_used() -> None:
+    """A measurement keyed by another model leaves the request on the estimate."""
+    harness = _measured_harness(OTHER_MODEL, OVERSIZED_PREFIX_TOKENS, MEASURED_CAP)
+    assert answered(await harness.run()) == set(IDS)
+
+
+async def test_a_measured_prefix_leaves_requests_and_their_hashes_unchanged() -> None:
+    """Reservations never enter a request: the bytes and hashes sent are the same."""
+    estimated = Harness()
+    await estimated.run()
+    measured = _measured_harness(HAIKU, MEASURED_PREFIX_TOKENS, BIG_CAP)
+    await measured.run()
+
+    assert measured.fake.calls == estimated.fake.calls
+    hashes = [record.request_sha256 for record in measured.sink.records]
+    assert hashes == [record.request_sha256 for record in estimated.sink.records]
+    assert hashes == [req.sha256() for req in estimated.fake.calls]
