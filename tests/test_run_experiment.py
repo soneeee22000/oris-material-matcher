@@ -295,6 +295,16 @@ def test_lockbox_session_refuses_a_narrowed_run(isolated: Path, extra: tuple[str
     assert factory.fakes == []
 
 
+def test_lockbox_session_refuses_a_policy_override(isolated: Path) -> None:
+    """The lockbox decides under the shipped, certified policy only (A67)."""
+    factory = RecordingFactory()
+    policy = isolated / "policy.yaml"
+    args = argv(isolated, "en", "--side", "all", "--lockbox-session", "--policy", str(policy))
+    code = runner.main(args, make_runtime(isolated, factory, Git("eval-freeze\n")))
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
 SESSION = ("--side", "all", "--lockbox-session", "--llm", "anthropic")
 
 

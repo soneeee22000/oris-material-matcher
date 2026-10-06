@@ -23,6 +23,9 @@ setting. The row records the profile used as ``decision_profile``, whatever ``--
 ``--llm replay:<run>`` of a run recorded without it, the run is mixed: the main passes are
 served from that run at $0 and only the verifier requests reach ``--llm-verifier`` (the live
 primary when absent; ``fake`` offline), so its ``spend_usd`` is the verifier's alone.
+``--policy`` replaces ``config/policy.yaml`` for the run, as ``oris match --policy`` does: the
+run decides at that file's entry, recorded as ``policy_resolution: override``. It measures a
+threshold other than the certified one (A67); a lockbox session refuses it.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -31,7 +34,8 @@ lockbox row that uses up the rung's slot, before the error is reported.
 The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
 --lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, the working
 tree is clean (``git status --porcelain`` lists nothing outside ``runs/`` and the log) and
-``--llm`` names a live provider, with neither ``--slice``, ``--limit`` nor ``--baseline-id``.
+``--llm`` names a live provider, with none of ``--slice``, ``--limit``, ``--baseline-id`` or
+``--policy``.
 It runs the full file once per frozen rung (profile, language, code SHA), never reads the
 response cache, scores the lockbox side and appends its row, with the run's mode, llm and
 dirty flag, to the pinned ``<repo>/eval/lockbox_log.md``; a second session of the same rung
@@ -47,7 +51,7 @@ Usage::
         --library data/oris_materials_global.csv --split eval/split_v1.json --side dev \
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
-        [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
+        [--policy policy.yaml] [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
         [--verifier-adopted [--llm-verifier fake]] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
@@ -296,6 +300,8 @@ def _refuse_partial_lockbox(args: argparse.Namespace) -> None:
         raise RefusedError(
             "a lockbox session runs the whole file once: no --slice, --limit or --baseline-id"
         )
+    if args.policy is not None:
+        raise RefusedError("a lockbox session decides under the shipped policy: no --policy")
 
 
 def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
@@ -1125,6 +1131,7 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         llm=parse_llm_spec(args.llm),
         output_path=args.output,
         profile=RunProfile(args.profile),
+        policy_path=args.policy,
         use_cache=not args.no_cache and not is_lockbox_session(args),
         runs_dir=args.runs_dir,
         selector=selection.line_ids if selection is not None else None,
@@ -1301,6 +1308,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--profile", choices=[profile.value for profile in RunProfile])
     parser.add_argument("--llm", default=DEFAULT_LLM)
+    parser.add_argument("--policy", type=Path)
     parser.add_argument("--budget-usd", type=float)
     parser.add_argument("--baseline-id")
     parser.add_argument("--id", required=True)
