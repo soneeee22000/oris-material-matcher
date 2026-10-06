@@ -839,7 +839,7 @@ After the freeze, a descriptive lockbox error table is added: material family (t
 
 **CTO version:** _"We rank lines by how strongly independent checks agree, accept down the list while dev precision stays ≥ 95% in both languages, and report the untouched lockbox with an exact bound."_ [A31]
 
-**Policy resolution.** `config/policy.yaml` maps (model_id, library_sha256) → {policy_id, certified_by: dev_selection | smoke_A10}. An exact hit uses its entry. Any unknown pair uses the strictest threshold, runs unenriched, logs a WARNING and records `policy_resolution: fallback_strictest` in the manifest and the run summary. This covers a library with one byte changed and the fallback model, unless an optional ~$0.50 dev run certifies the fallback under this rule. `--policy` overrides, and the override is recorded. [A33, A38]
+**Policy resolution.** `config/policy.yaml` maps (model_id, library_sha256) → {policy_id, certified_by: dev_selection | smoke_A10, verifier_adopted (optional, default false)}. An exact hit uses its entry, including whether the E-08 verifier runs (A67). Any unknown pair uses the strictest threshold, runs unenriched, logs a WARNING and records `policy_resolution: fallback_strictest` in the manifest and the run summary. This covers a library with one byte changed and the fallback model, unless an optional ~$0.50 dev run certifies the fallback under this rule. `--policy` overrides, and the override is recorded. [A33, A38]
 
 **Reported with the selection:**
 
@@ -1532,6 +1532,45 @@ Owner decision, Tue 6 Oct, option A. Changed: §7.2 (keep rule for precision arm
 - **Exit codes.** A verifier request that is never answered (the breaker trips, or a replay miss in a later plain replay) leaves its line D1b and the run exits 3, as §11.3 says. A main-pass request missing from the source is a different case: the run is not a measurement of that source. It raises `ReplayMissError`, writes no run folder and no ledger row, and exits 2 from `oris` and from `eval/run_experiment.py`.
 
 Changed: §11.3 (replay miss in a mixed run); docstrings of `src/oris_matcher/cli.py` and `eval/run_experiment.py`.
+
+
+### A67 · 2026-10-06 · E-08 kept: the policy entry binds the verifier, and selecting over verifier runs
+
+**Results existing at the time:** the E-08 dev runs, `runs/20261006T203537Z-891d4ff3` (EN) and `runs/20261006T203620Z-a56a890b` (FR). They are mixed runs of the T5 votes at `T8`, with the verifier live, and spent $0.1558.
+
+- **Verifier vetoes:** 18 EN would-be matches (10 wrong, 8 correct) and 22 FR (8 wrong, 14 correct).
+- **At `T8`:** EN P .988 (82/83), CP-LB .944; FR P .988 (81/82), CP-LB .943; F_NM 0.
+- **`$0` re-selection:** it found that `T8` meets the dev bar, so E-08 is **kept** under A65.1.
+
+Two questions followed, and the owner decided both on Tue 6 Oct (option A each).
+
+**1. The policy entry binds the verifier.** A certification describes the whole decision configuration, not only the threshold.
+
+- **The entry.** An entry of `config/policy.yaml` gains an optional `verifier_adopted` (default `false`). An entry without the key certifies its threshold alone.
+- **Who decides.** A B3 run takes its verifier from the entry of the policy it decides under: the primary's entry, or the fallback's once the A33 fallback has rescued the run. That way a fallback certified without the verifier never inherits it, and never fails every flagged line closed.
+- **Forcing.** `ORIS_VERIFIER_ADOPTED`, and the job values behind `--verifier-adopted`, become three-valued. Unset (the default) follows the entry; `true` or `false` forces the verifier on or off.
+- **Replays.** A replay still re-decides with its recorded profile.
+- **`--policy` files.** An exact hit of a `--policy` file carries its entry's `verifier_adopted` with its other claims (the resolution is `override`). Every other resolution (`fallback_strictest`, `no_path_strictest`, a forced threshold) adopts no verifier.
+- **Lockbox.** A lockbox session refuses `--policy`, so the lockbox decides under the shipped entry only.
+
+**2. Selecting over verifier runs.** The verifier is asked only about the lines that would match at the run's own threshold.
+
+- **What breaks at $0.** Re-deciding at another threshold flags other lines. The groups (≤ 10 lines per material type) and their request hashes change, so the recorded run cannot answer them. Those lines fail closed as `verifier_failure: replay_miss`, D1b. The old `oris select` guard counted only main-pass misses, so its first E-08 re-selection reported contaminated `T1`–`T7` rows. At `T7`, 2 EN and 42 FR lines were left unanswered; `T8` was exact. Found before anything was committed.
+- **The rule now.** `--run-en` and `--run-fr` are repeatable. A threshold is **measured** in a language by the first given run whose replay at it answers every verifier request. Otherwise it is **unmeasured at $0**, and it carries a ceiling: the verifier-off replay of the first run. A veto only removes matches, so the ceiling bounds matched and correct lines.
+- **How it selects.** The §10.6 rule runs on the thresholds measured in both languages. The selection is refused (exit 4) unless no unmeasured threshold could have been selected:
+  - the measured selection meets the dev bar;
+  - every unmeasured threshold is stricter than the loosest measured qualifier;
+  - each unmeasured threshold's summed ceiling of correct lines is below that qualifier's summed correct minus the tie window (3).
+- **What the output records.** The payload marks each threshold `measured` with its `source_runs`, or unmeasured with its ceilings. Sensitivity rows use measured thresholds only.
+- **The runner.** `eval/run_experiment.py` gains `--policy`, to measure a threshold other than the certified one.
+
+**3. What decides the shipped threshold.** On the T5 votes without the verifier, the summed correct lines are ≤ 125 for `T1`–`T6` and 169 for `T7`. The measured `T8` has 163, so the window floor is 160.
+
+- `T1`–`T6` can never be selected.
+- `T7` can, so it is measured: ledger id `E-08-T7`, with the T5 runs replayed, the policy forced to `T7`, the verifier live, and a budget of $0.15 per language.
+- `oris select` then runs over the E-08 and E-08-T7 runs, and the threshold it selects, with `verifier_adopted: true`, becomes the (Haiku, global library) entry. The result goes to `eval/selection_v1_e08.json`; `eval/selection_v1.json` remains the record of the selection without the verifier.
+
+Changed: §10.6 (the policy entry, and selection over verifier runs); §11.3 (the setting); `eval/run_experiment.py` (`--policy`); `eval/select_threshold.py`.
 
 ---
 
