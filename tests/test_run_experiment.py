@@ -767,6 +767,29 @@ def test_a_failed_lockbox_session_is_logged_and_still_uses_its_slot(
     assert runner.main(argv(isolated, "en", *SESSION), runtime) == runner.EXIT_REFUSED
 
 
+def test_cause_targeted_is_recorded_in_the_row(isolated: Path) -> None:
+    runtime = make_runtime(isolated)
+    assert runner.main(argv(isolated, "en", "--limit", "2"), runtime) == 0
+    targeted = ("--limit", "2", "--cause-targeted", "lexical_gap")
+    assert runner.main([*argv(isolated, "en", *targeted), "--id", "E-01"], runtime) == 0
+
+    plain, targeted_row = ledger_rows(isolated)
+    assert plain["cause_targeted"] is None
+    assert targeted_row["cause_targeted"] == "lexical_gap"
+    markdown = (isolated / "experiments.md").read_text(encoding="utf-8")
+    assert "| lexical_gap |" in markdown
+
+
+def test_cause_targeted_outside_the_section_10_7_list_is_refused(isolated: Path) -> None:
+    factory = RecordingFactory()
+    extra = ("--limit", "2", "--cause-targeted", "prompt_wording")
+    with pytest.raises(SystemExit) as raised:
+        runner.main(argv(isolated, "en", *extra), make_runtime(isolated, factory))
+    assert raised.value.code == runner.EXIT_ERROR
+    assert factory.fakes == []
+    assert not (isolated / "experiments.jsonl").exists()
+
+
 def test_a_bad_baseline_id_is_refused_before_any_call(isolated: Path) -> None:
     runtime = make_runtime(isolated)
     assert runner.main(argv(isolated, "en", "--limit", "2"), runtime) == 0
