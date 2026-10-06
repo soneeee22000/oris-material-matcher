@@ -1,0 +1,13 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty
+0,Earthworks and structures,,,
+01.,Structures,,,
+01.01.,Concrete and binders,,,
+01.01.0010.,Lean concrete blinding C12/15,"Blinding under footings, 50 mm",m3,1
+01.01.0020.,Lean concrete base C16/20,"Base below block paving, 150 mm",m3,1
+01.01.0030.,Structural concrete C30/37 walls,"Retaining walls, formed faces",m3,1
+01.01.0040.,Polymer modified binder,For the surface course,t,1
+01.01.0050.,Reinforcement bars,"High-yield bars, cut and bent",t,1
+01.01.0060.,Traffic management,"Signing and cones, phase 1",LS,1
+01.01.0070.,Demobilise compound,"Remove facilities, reinstate",LS,1
+01.01.0080.,Creosoted timber sleepers,Disposed of as hazardous waste,t,1
+01.01.0090.,Bitumen emulsion tack coat,Sprayed at 0.3 kg/m2,t,1
