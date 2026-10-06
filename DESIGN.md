@@ -651,7 +651,7 @@ Only the description, the unit and the section path are sent. **Quantities, file
 - **The candidate gap is a verbal, ordinal judgement, not a probability.** The API exposes no log-probabilities, and I never call it a margin.
 - Codes are checked against the library in code, case-sensitively, not through schema enums, which keeps the schema identical across libraries. [A44]
 - Responses are read with `messages.create`, never `parse()`, so the raw text survives a malformed answer. [A44]
-- `max_tokens` is sized from measured output (p99 × 1.3), because output-token rate limits are reserved against it. [A39]
+- `max_tokens` is a fixed 4,096. The measured output peaks at 1,213 tokens for a 10-line batch, so 4,096 never truncates; the reasons for not sizing it from p99 × 1.3 are given in A63. [A39, A63]
 
 **Versioning.** `prompt_version = v1+sha256(templates ‖ generated JSON schema ‖ glossary ‖ renderer ‖ rendering variant)[:8]`, with one component per pass. The rendering is canonical (sorted, with no timestamps), so each cached prefix is byte-stable and a snapshot test pins it. [A44, A46]
 
@@ -1452,6 +1452,30 @@ The check is meant to test grounding: the answer must rest on this line's text, 
 **Measured** by a $0 replay of the two runs, ledger id `R-D5a-words` against `B3-dev`, decided at the same `T1`. The alternative "same words, in order" (owner option B) would have recovered EN 28 of 52 and FR 36 of 71; it was not adopted.
 
 Changed: §9.5 D5a. Owner decision Tue 6 Oct (pause #1b, option A).
+
+### A63 · 2026-10-06 · `max_tokens` stays 4,096; budget reservations count the measured prefix
+
+**Results existing at the time:** the G2 B3 dev runs, the selection (`T8`, below the dev bar) and the analysis `evidence/o13-max-tokens-brief.md` (`docs/gates/G2.md` O13). Neither decision below uses a quality result.
+
+**1. `max_tokens` stays 4,096, and §9.4 now says so.** §9.4 said `max_tokens` is "sized from measured output (p99 × 1.3)"; the code has always sent 4,096.
+
+The measurement: across 505 fresh Haiku calls (G1 and G2), output peaks at 1,213 tokens (10 lines) and at 138 per line. There were 0 truncations.
+
+The rule is not adopted, for four reasons:
+- `max_tokens` is part of the request hash. Changing it would stop every recorded run from replaying: the golden fixture, the selection evidence and `runs/submission/`. It would force about $0.58–0.90 of re-runs and re-derive the selection on new votes before the freeze.
+- A39's reason, output-token rate limits, does not bind at the recorded tier: 1,000,000 output tokens per minute, against about 16k in flight.
+- Since A61, the slack costs only waiting time on small runs.
+- The slack keeps every reservation a true worst case (item 2).
+
+Owner decision (O13, option A).
+
+**2. The budget reservation counts the cached prefix with its measured token count.** The reservation estimated the prefix as characters ÷ 4: about 5.3k tokens for the global library, against 10,066 billed cache-write tokens. With the 4,096-token output term the reservation was still above the true cost, but only by accident.
+
+- The prefix term now uses the `oris doctor --live` measurement for that rendering (`rendered_tokens`, keyed by library SHA-256, model and prompt version) whenever one exists.
+- Otherwise it falls back to characters ÷ 4, recorded as estimated.
+- Reservations change only in size; they never enter a request hash. Replays that recorded their `declined_attempts` are unaffected.
+
+Owner decision (O13 follow-up, option A). Changed: §9.4, §11.3.
 
 ---
 
