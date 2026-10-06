@@ -26,6 +26,7 @@ ENSEMBLE_DEGRADED_PREFIX = "ENSEMBLE_DEGRADED:"
 LLM_FAILURE_PREFIX = "LLM_FAILURE:"
 LOW_SIGNAL_SEPARATOR = "+"
 THRESHOLD_ID_RE = re.compile(r"[^\s:]+")
+EVIDENCE_WORD_RE = re.compile(r"\w+")
 BUCKET_FLOOR_90 = 90
 BUCKET_FLOOR_80 = 80
 BUCKET_FLOOR_70 = 70
@@ -735,9 +736,14 @@ def _kind_gate(context: _Context, tally: _Tally) -> LineDecision | None:
 
 
 def _evidence_in_line(evidence: str, haystack: str) -> bool:
-    """Tell whether normalised evidence is non-empty and a substring of the haystack."""
-    needle = normalize(evidence)
-    return bool(needle) and needle in normalize(haystack)
+    r"""Tell whether the evidence has a word and every word of it is a word of the haystack.
+
+    Words are whole ``\w+`` runs of the normalised texts, in any order (A62): the model
+    stitches its quote from the short and long descriptions, and a word from outside the line
+    still fails.
+    """
+    words = set(EVIDENCE_WORD_RE.findall(normalize(evidence)))
+    return bool(words) and words <= set(EVIDENCE_WORD_RE.findall(normalize(haystack)))
 
 
 def _is_generic_parent(code: str, attributes: Attributes, library: Library) -> bool:
