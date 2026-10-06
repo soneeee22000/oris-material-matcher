@@ -40,10 +40,18 @@ EXPECTED_STEPS = {
     ],
 }
 POPULATION = 8
+# EN 01.01.0065. is a D5a veto carrying a top score; FR 01.01.0070. is a D5 whose passes agree
+# on a code outside library.csv; FR 01.01.0080. is a D1b partial signal (settled, not counted).
+EXPECTED_BY_RULE = {
+    "en": {"D10": 1, "D5a": 1, "D9": 6},
+    "fr": {"D10": 1, "D5": 1, "D7": 1, "D9": 5},
+}
 THRESHOLDS = {
     "en": {"T1": (2, 2), "T2": (3, 2), "T5": (3, 2), "T6": (4, 3), "T7": (5, 3), "T8": (6, 4)},
     "fr": {"T1": (0, 0), "T2": (2, 2), "T5": (3, 3), "T7": (4, 3), "T8": (5, 4)},
 }
+GAP_LEVELS = ("decisive", "clear", "narrow", "tossup")
+EXPECTED_GAP = {"en": ([1, 3, 2, 1], [1, 3, 0, 1]), "fr": ([1, 3, 1, 1], [1, 3, 0, 1])}
 MARKS = {
     "en": {"B1": (0.5, 1 / 7), "B2": (5 / 8, 5 / 7), "match-all": (0.75, 6 / 7)},
     "fr": {"B1": (1.0, 1 / 7), "B2": (4 / 6, 4 / 7), "match-all": (5 / 7, 5 / 7)},
@@ -118,7 +126,19 @@ def test_figure_points_equal_recomputed_points(
         assert point["coverage_labelled"] == pytest.approx(correct / LABELLED_DEV)
         assert point["selective_coverage"] == pytest.approx(matched / POPULATION)
         assert point["risk"] == pytest.approx(1 - correct / matched)
-    marks = {mark["name"]: mark for mark in sidecar["marks"]}
+    assert payload["risk_coverage"][lang]["curve"] == curve
+    assert payload["risk_coverage"][lang]["population"] == {
+        "lines": POPULATION,
+        "by_rule": EXPECTED_BY_RULE[lang],
+    }
+
+
+@pytest.mark.parametrize("lang", ["en", "fr"])
+def test_figure_marks_equal_recomputed_marks(
+    produced: tuple[Path, dict[str, Any]], lang: str
+) -> None:
+    out, _ = produced
+    marks = {mark["name"]: mark for mark in _sidecar(out, f"risk_coverage_{lang}")["marks"]}
     for threshold_id, (matched, correct) in THRESHOLDS[lang].items():
         assert (marks[threshold_id]["matched"], marks[threshold_id]["correct"]) == (
             matched,
@@ -129,8 +149,6 @@ def test_figure_points_equal_recomputed_points(
         assert marks[name]["coverage_labelled"] == pytest.approx(coverage)
     assert marks["T8"]["selected"] is True
     assert not any(mark["selected"] for name, mark in marks.items() if name != "T8")
-    assert payload["risk_coverage"][lang]["curve"] == curve
-    assert payload["risk_coverage"][lang]["population"]["lines"] == POPULATION
 
 
 def test_equal_scores_are_one_step() -> None:
@@ -243,8 +261,7 @@ def test_a_line_with_an_invalid_pass_is_outside_v() -> None:
     assert report.read_vote(split_kinds, passes=2) is None
 
 
-def test_gap_is_the_weakest_supporter(produced: tuple[Path, dict[str, Any]]) -> None:
-    out, payload = produced
+def test_gap_is_the_weakest_supporter() -> None:
     record = {
         "raw_line_response": [
             _answer("T03.U01.S01", "decisive"),
@@ -255,41 +272,95 @@ def test_gap_is_the_weakest_supporter(produced: tuple[Path, dict[str, Any]]) -> 
     vote = report.read_vote(record, passes=3)
     assert vote is not None
     assert (vote.top1, vote.votes, vote.gap) == ("T03.U01.S01", 2, "narrow")
+
+
+@pytest.mark.parametrize("lang", ["en", "fr"])
+def test_precision_by_gap_levels(produced: tuple[Path, dict[str, Any]], lang: str) -> None:
+    out, payload = produced
     by_gap = payload["by_gap"]
     assert by_gap["label"] == "verbal ordinal judgement, not a probability"
-    en = by_gap["en"]["levels"]
-    assert [en[level]["n"] for level in ("decisive", "clear", "narrow", "tossup")] == [1, 3, 2, 1]
-    assert [en[level]["correct"] for level in ("decisive", "clear", "narrow", "tossup")] == [
-        1,
-        3,
-        0,
-        1,
-    ]
-    fr = by_gap["fr"]["levels"]
-    assert [fr[level]["n"] for level in ("decisive", "clear", "narrow", "tossup")] == [1, 3, 1, 1]
-    assert [fr[level]["correct"] for level in ("decisive", "clear", "narrow", "tossup")] == [
-        1,
-        3,
-        0,
-        1,
-    ]
+    levels = by_gap[lang]["levels"]
+    expected_n, expected_correct = EXPECTED_GAP[lang]
+    assert [levels[gap]["n"] for gap in GAP_LEVELS] == expected_n
+    assert [levels[gap]["correct"] for gap in GAP_LEVELS] == expected_correct
     assert _sidecar(out, "precision_by_gap")["by_gap"] == by_gap
 
 
 def _append_lockbox_record(audit: Path) -> None:
-    record = {"item_no": LOCKBOX_ITEM, "rule": "D9", "raw_line_response": [], "signals": None}
+    record: dict[str, Any] = {
+        "item_no": LOCKBOX_ITEM,
+        "rule": "D9",
+        "raw_line_response": [],
+        "signals": None,
+    }
     with audit.open("a", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(record) + "\n")
 
 
-@pytest.mark.parametrize("folder", ["b3_fr", "b2_en"])
+def _append_lockbox_row(output: Path) -> None:
+    with output.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(f"{LOCKBOX_ITEM},matched,Concrete,Foundations,C30/37,SIGNAL\n")
+
+
+def _edit_json(path: Path, key: str, value: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    payload[key] = value
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return payload
+
+
+@pytest.mark.parametrize("folder", ["b3_fr", "b2_en", "b1"])
 def test_refuses_a_run_holding_a_non_dev_item(tmp_path: Path, folder: str) -> None:
     world = _world(tmp_path)
-    _append_lockbox_record(world / folder / "audit.jsonl")
+    if folder == "b1":
+        _append_lockbox_row(world / "b1" / "output_en.csv")
+    else:
+        _append_lockbox_record(world / folder / "audit.jsonl")
     out = tmp_path / "out"
     assert report.main(_argv(world, out)) == EXIT_REFUSED
     assert not (out / "report.json").exists()
     assert not (out / "assets").exists()
+
+
+def test_refuses_a_run_that_is_not_b3(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    _edit_json(world / "b3_fr" / "manifest.json", "profile", "b2")
+    out = tmp_path / "out"
+    assert report.main(_argv(world, out)) == EXIT_REFUSED
+    assert not (out / "report.json").exists()
+
+
+def test_a_run_decided_at_another_threshold_is_an_error(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    _edit_json(world / "b3_en" / "manifest.json", "threshold_id", "T7")
+    out = tmp_path / "out"
+    assert report.main(_argv(world, out)) == EXIT_ERROR
+    assert not (out / "report.json").exists()
+
+
+def test_another_library_is_an_error(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    world = _world(tmp_path)
+    with (world / "library.csv").open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write("Steel,Rebar,B500C\n")
+    out = tmp_path / "out"
+    assert report.main(_argv(world, out)) == EXIT_ERROR
+    assert "--library" in capsys.readouterr().err
+    assert not (out / "report.json").exists()
+
+
+def test_the_selected_flag_follows_the_selection(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    selection = json.loads((world / "selection.json").read_text(encoding="utf-8"))
+    _edit_json(
+        world / "selection.json", "selected", {**selection["selected"], "threshold_id": "T7"}
+    )
+    for lang in ("en", "fr"):
+        _edit_json(world / f"b3_{lang}" / "manifest.json", "threshold_id", "T7")
+    payload = _run(world, tmp_path / "out")
+    assert payload["inputs"]["selected"] == "T7"
+    for lang in ("en", "fr"):
+        marks = payload["risk_coverage"][lang]["marks"]
+        assert [mark["name"] for mark in marks if mark["selected"]] == ["T7"]
 
 
 def test_disagreement_with_the_selection_item_correct_is_an_error(tmp_path: Path) -> None:
