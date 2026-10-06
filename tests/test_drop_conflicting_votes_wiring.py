@@ -254,7 +254,7 @@ def _api_rows(flag: bool, tmp_path: Path) -> tuple[list[dict[str, Any]], dict[st
     client = TestClient(create_app(settings, factory, runtime=runtime))
     body = client.post("/v1/match", json={"library": "global", "lines": lines}).json()
     manifest = read_manifest(tmp_path / "runs" / body["run_id"])
-    return body["lines"], manifest
+    return body["decisions"], manifest
 
 
 def request_boq_for(lines: list[dict[str, Any]]) -> BoqFile:

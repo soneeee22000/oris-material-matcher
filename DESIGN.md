@@ -682,6 +682,8 @@ The **reason-code enum is frozen**, issued here as one list, and the UI shows it
 
 `HEADER, EMPTY_ROW, HEADER_UNCONFIRMED, G2_SERVICE, NM_UNCONFIRMED, NO_LIBRARY_EQUIVALENT, INVALID_ROW_ID, EVIDENCE_NOT_IN_LINE, NEVER_MATCH_ROW, ATTR_CONFLICT, GENERIC_PARENT, VERIFIER_DISAGREES, SIGNAL:*, LOW_SIGNAL:*, ENSEMBLE_DEGRADED:SIGNAL:*, ENSEMBLE_DEGRADED:LOW_SIGNAL:*, LLM_FAILURE:{timeout, rate_limited, overloaded, api_error, truncated, malformed, refusal, missing_item, duplicate_conflict, partial_signal, replay_miss}, LLM_UNAVAILABLE, BUDGET_CAP, INTERNAL_INVARIANT`.
 
+**D7 under arm `E-subtype-drop`** (setting `drop_conflicting_votes`, default off): after D4, every `material` answer whose library top1 conflicts with the line's hard attributes (the D7 test) is removed and the vote, supporters, tie and top2 are re-tallied over the rest before D5. If no answer remains, the original tally runs D5 to D8a exactly as with the arm off. The run's manifest records `decision_profile.drop_conflicting_votes`; a replay reads it back (absent means off). [A64]
+
 `VERIFIER_DISAGREES` occurs only if E-08 is adopted. The `ENSEMBLE_DEGRADED:` forms occur only if E-02(d) is adopted and a voter is missing, so the Haiku-only threshold decided the line. `TRUNCATED` is an audit flag, not a reason code. [A17, A20, A30, A43, A48, A50]
 
 **Safety by construction:** no measured unit can reach `not_a_material`, because only D0, D0a and D2 emit it; D0 and D0a need empty Unit and Qty, and D2 requires a service unit. RQ5 checks that every `not_a_material` row has reason ∈ {HEADER, EMPTY_ROW, G2_SERVICE}. A truth-table test pins this. [A30, A48]

@@ -16,6 +16,9 @@ while the other language's compared row of the experiment is missing is ``pendin
 verdict needs both languages, so the second row decides it and names the first in
 ``pooled_with``. ``--cause-targeted`` names the §10.7 cause an arm targets; the row records it
 as ``cause_targeted`` (null when absent), and any other cause is refused.
+``--drop-conflicting-votes`` turns on arm ``E-subtype-drop`` (A64) for the run; without it a
+``replay:<run>`` re-decides with the replayed run's recorded value and any other run with the
+setting. The row records the profile used as ``decision_profile``, whatever ``--change`` says.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -40,7 +43,7 @@ Usage::
         --library data/oris_materials_global.csv --split eval/split_v1.json --side dev \
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
-        [--cause-targeted lexical_gap] --change "..."
+        [--cause-targeted lexical_gap] [--drop-conflicting-votes] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
 """
@@ -71,7 +74,7 @@ from oris_matcher.doctor import LIVE_KINDS, Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
-from oris_matcher.service import RunProfile
+from oris_matcher.service import DECISION_PROFILE_KEY, RunProfile
 from oris_matcher.settings import ConfigError, Settings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -918,6 +921,7 @@ def _run_fields(
         "hypothesis": args.hypothesis,
         "cause_targeted": args.cause_targeted,
         "change": args.change,
+        DECISION_PROFILE_KEY: manifest[DECISION_PROFILE_KEY],
         "run_id": outcome.result.run_id,
         "lang": args.lang,
         "profile": outcome.result.profile.value,
@@ -1118,6 +1122,7 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         selector=selection.line_ids if selection is not None else None,
         split_sha256=file_sha256(args.split),
         budget_usd=_budget(args),
+        drop_conflicting_votes=True if args.drop_conflicting_votes else None,
     )
 
 
@@ -1294,6 +1299,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"))
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
     parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument("--drop-conflicting-votes", action="store_true")
     parser.set_defaults(profile=RunProfile.B3.value)
     return parser
 

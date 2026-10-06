@@ -504,6 +504,7 @@ def _is_match_reason(reason: str) -> bool:
 
 
 HAYSTACK_SEPARATOR = " "
+MATERIAL = "material"
 NON_MATERIAL = "non_material"
 NO_EQUIVALENT = "no_equivalent"
 FAIL_CLOSED_KINDS = (LLMFailureKind.REPLAY_MISS, LLMFailureKind.DUPLICATE_CONFLICT)
@@ -516,10 +517,13 @@ class DecisionProfile:
     Attributes:
         verifier_adopted: E-08 is adopted, so D8a runs and a missing verifier is a D1b
             ``partial_signal`` (A20).
+        drop_conflicting_votes: Arm ``E-subtype-drop`` (A64): a ``material`` answer whose
+            library top1 conflicts with the line's hard attributes casts no vote.
 
     """
 
     verifier_adopted: bool = False
+    drop_conflicting_votes: bool = False
 
 
 DEFAULT_PROFILE = DecisionProfile()
@@ -735,6 +739,27 @@ def _kind_gate(context: _Context, tally: _Tally) -> LineDecision | None:
     return None
 
 
+def _casts_conflicting_vote(context: _Context, answer: LineAnswer) -> bool:
+    """Tell whether a ``material`` answer's library top1 conflicts with the line (the D7 test)."""
+    library = context.library
+    if answer.kind != MATERIAL or not is_valid_code(answer.top1, library):
+        return False
+    row_attributes = library.by_code[answer.top1].attributes
+    return compare(context.decision_input.attributes, row_attributes) == AttrResult.CONFLICT
+
+
+def _without_conflicting_votes(context: _Context, tally: _Tally) -> _Tally:
+    """Re-tally without the answers that cast a conflicting vote (A64).
+
+    When every answer conflicts, or none does, the original tally is kept, so the line is
+    decided exactly as without the arm: by D7 unless an earlier row fires.
+    """
+    kept = tuple(answer for answer in tally.answers if not _casts_conflicting_vote(context, answer))
+    if not kept or len(kept) == len(tally.answers):
+        return tally
+    return _tally(kept, context.library)
+
+
 def _evidence_in_line(evidence: str, haystack: str) -> bool:
     r"""Tell whether the evidence has a word and every word of it is a word of the haystack.
 
@@ -847,7 +872,8 @@ def decide(
     tie the vetoes run on the earliest pass's choice and the line ends at D10. Only D0, D0a and
     D2 emit ``not_a_material``; D0 and D0a need empty Unit and Qty, and D2 a service unit, so a
     measured unit never reaches it. ``ENSEMBLE_DEGRADED`` forms are not emitted, because
-    E-02(d) is not adopted.
+    E-02(d) is not adopted. With ``profile.drop_conflicting_votes`` (A64), after D4 the answers
+    whose top1 conflicts are removed and the vote is re-tallied over the rest before D5.
 
     Args:
         decision_input: Everything the table reads for the line.
@@ -868,6 +894,8 @@ def decide(
     by_kind = _kind_gate(context, tally)
     if by_kind is not None:
         return by_kind
+    if profile.drop_conflicting_votes:
+        tally = _without_conflicting_votes(context, tally)
     veto = _row_veto(context, tally, profile)
     if veto is not None:
         return context.decided(veto, VETO_REASONS[veto], tally)
