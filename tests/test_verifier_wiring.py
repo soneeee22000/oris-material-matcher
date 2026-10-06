@@ -6,6 +6,7 @@ requests to an adapter: ``--llm replay:<run> --verifier-adopted`` (the live prim
 records and the new verifier records, so a plain replay of it reproduces it byte for byte.
 """
 
+import dataclasses
 import importlib.util
 import json
 import sys
@@ -583,3 +584,98 @@ def test_a_source_the_cache_cannot_serve_exactly_is_refused(
     assert code == 2
     assert "cannot be served exactly" in capsys.readouterr().err
     assert fake.calls == []
+
+
+# Each guard of the mixed run, pinned
+
+
+HEADERS = {"anthropic-ratelimit-requests-limit": "50"}
+
+
+class HeaderPort(LivePort):
+    """A live-like port whose results carry rate-limit headers."""
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        result = await super().complete(req)
+        return dataclasses.replace(result, rate_limit_headers=HEADERS)
+
+
+def _mixed_code(
+    tmp_path: Path, source: Path, port: Any, capsys: pytest.CaptureFixture[str], *extra: str
+) -> tuple[int, str]:
+    """Run a mixed E-08 run over a source; return its exit code and stderr."""
+    capsys.readouterr()
+    code = runner.main(
+        argv(tmp_path, f"replay:{source.as_posix()}", "E-08", "--verifier-adopted", *extra),
+        make_runtime(tmp_path, Factory(port)),
+    )
+    return code, capsys.readouterr().err
+
+
+def test_a_verifier_on_another_model_than_the_source_is_refused(
+    isolated: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = _source(isolated, live=True)
+    port = LivePort()
+    code, err = _mixed_code(isolated, source, port, capsys, "--llm-verifier", "openai")
+    assert code == 2
+    assert "must answer with the replayed run's model" in err
+    assert port.calls == []
+
+
+def test_a_replay_as_the_verifier_is_refused(
+    isolated: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = _source(isolated)
+    port = LivePort()
+    code, err = _mixed_code(
+        isolated, source, port, capsys, "--llm-verifier", f"replay:{source.as_posix()}"
+    )
+    assert code == 2
+    assert "never a replay" in err
+    assert port.calls == []
+
+
+def test_a_live_verifier_over_a_whole_exercise_input_is_refused_before_the_freeze(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = _source(isolated, live=True)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-not-used")
+    factory = Factory(LivePort())
+    job = cli.MatchJob(
+        input_path=EN_INPUT,
+        library_path=GLOBAL_LIBRARY,
+        llm=LLMSpec(LLMKind.REPLAY, run_dir=source),
+        verifier_adopted=True,
+    )
+    with pytest.raises(cli.WiringError, match="exercise file"):
+        cli.prepare_run(job, Settings(), make_runtime(isolated, factory))
+    assert factory.specs == []
+
+
+def test_a_mixed_run_with_a_live_verifier_records_the_live_context_of_the_verifier(
+    isolated: Path,
+) -> None:
+    source = _source(isolated, live=True)
+    port = HeaderPort()
+    arm = _run(
+        isolated, f"replay:{source.as_posix()}", "E-08", "--verifier-adopted", factory=Factory(port)
+    )
+    manifest = read_manifest(arm)
+    assert port.calls
+    assert manifest["rate_limit_headers"] == HEADERS
+    assert manifest["rate_limit_tier"] == "unknown"
+
+
+def test_a_main_pass_the_source_never_recorded_exits_2_without_a_verifier_call(
+    isolated: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = _source(isolated)
+    _rewrite_calls(source, lambda records: records[1:])
+    rows = ledger_rows(isolated)
+    fake = FakeLLM(HAIKU, ALLOWLIST)
+    code, err = _mixed_code(isolated, source, fake, capsys, "--llm-verifier", "fake")
+    assert code == 2
+    assert "no recorded response" in err
+    assert fake.calls == []
+    assert ledger_rows(isolated) == rows
