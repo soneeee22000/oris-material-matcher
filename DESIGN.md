@@ -670,7 +670,7 @@ The first rule that fires wins. "top1" is the plurality top-1 across the passes.
 | D3  | `kind = non_material`, any other case                                                                                                        | `needs_review`   | `NM_UNCONFIRMED`                                                         |
 | D4  | `kind = no_equivalent`                                                                                                                       | `needs_review`   | `NO_LIBRARY_EQUIVALENT`                                                  |
 | D5  | top1 unknown, malformed or inconsistent with its prefix (case-sensitive check)                                                               | `needs_review`   | `INVALID_ROW_ID` [A44]                                                   |
-| D5a | The evidence is empty or not a substring of normalise(short + ' ' + long + ' ' + path) (NFKC, casefold, whitespace collapse, decimal comma)  | `needs_review`   | `EVIDENCE_NOT_IN_LINE` [A43]                                             |
+| D5a | The evidence has no word, or a word of it is not a word of normalise(short + ' ' + long + ' ' + path) (NFKC, casefold, whitespace collapse, decimal comma; words are `\w+` runs, any order) | `needs_review`   | `EVIDENCE_NOT_IN_LINE` [A43, A62]                                        |
 | D6  | top1 is a configured never-match row                                                                                                         | `needs_review`   | `NEVER_MATCH_ROW`                                                        |
 | D7  | Attribute comparison of top1 = conflict                                                                                                      | `needs_review`   | `ATTR_CONFLICT`                                                          |
 | D8  | top1 is the blank leaf of a mixed parent and a sibling is `agree`                                                                            | `needs_review`   | `GENERIC_PARENT` [A35]                                                   |
@@ -1429,6 +1429,29 @@ The rule becomes:
 Replay is unchanged. It reads each run's recorded `declined_attempts`, and runs recorded before this change keep their refusals. The cap, its A57 floor and the $2.00 per 100 lines target are unchanged.
 
 Changed: §11.3. Owner decision Tue 6 Oct (pause #1, option A).
+
+### A62 · 2026-10-06 · D5a checks that every quoted word is a word of the line
+
+**Results existing at the time:** the B3 dev runs `20261006T004009Z-2fb88775` (EN) and `20261006T004134Z-242c4109` (FR), decided at `T1` (`docs/gates/G2.md` O15). No threshold has been selected.
+
+The amended rule is fixed before the $0 replay that measures it, as A60.12 requires.
+
+**Why.** D5a required each supporting quote to be a contiguous substring of the normalised line, and on the B3 dev runs it rejected 52 EN and 71 FR lines. 43 EN and 60 FR of those carried the GT triple, against a §10.9 / A60.12 trigger of more than 3. Every rejected quote was classified against the haystack:
+- no quote introduced a word absent from the line;
+- the model stitches its quote from the short and long descriptions, skipping words and punctuation, and sometimes reordering them.
+
+The check is meant to test grounding: the answer must rest on this line's text, not on another line or on injected text (§11.8). The contiguous span was an implementation choice, not that purpose.
+
+**The rule.**
+- A supporting quote passes when it has at least one word and **every word of it is a word of the normalised haystack** (short + long + section path). A word is a `\w+` run, compared whole, in any order.
+- Normalisation is unchanged: NFKC, casefold, whitespace collapse, decimal comma.
+- A quote that brings in any word not in this line is still refused, so text injected from a neighbouring line or invented by the model still fails D5a.
+
+**What it does not change.** It does not touch the prompt or `prompt_version` (D5a lives in the decision table, not in the prompt), B2 (which has no D5a), the split, the candidates, the selection rule or the form of the claim.
+
+**Measured** by a $0 replay of the two runs, ledger id `R-D5a-words` against `B3-dev`, decided at the same `T1`. The alternative "same words, in order" (owner option B) would have recovered EN 28 of 52 and FR 36 of 71; it was not adopted.
+
+Changed: §9.5 D5a. Owner decision Tue 6 Oct (pause #1b, option A).
 
 ---
 
