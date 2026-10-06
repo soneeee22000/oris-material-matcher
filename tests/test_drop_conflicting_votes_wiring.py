@@ -20,7 +20,7 @@ from oris_matcher.doctor import LLMKind, LLMSpec, Runtime, read_manifest
 from oris_matcher.domain.attributes import AttrResult, compare, extract
 from oris_matcher.domain.batching import transport_id
 from oris_matcher.domain.boq import BoqFile, BoqLine, LineKind
-from oris_matcher.domain.decision import DecisionProfile, ReasonCode, Rule
+from oris_matcher.domain.decision import DecisionProfile, ReasonCode, Rule, strictest_threshold
 from oris_matcher.domain.library import Library
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.llm.base import LLMRequest, LLMResult, SystemBlock
@@ -30,6 +30,8 @@ from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps
 from oris_matcher.service import (
     DECISION_PROFILE_KEY,
     MatchService,
+    PolicyResolution,
+    ResolvedPolicy,
     RunOptions,
     RunProfile,
     RunResult,
@@ -70,11 +72,13 @@ runner = _load("oris_eval_run_experiment_a64", ROOT / "eval" / "run_experiment.p
 
 
 def make_settings(**overrides: Any) -> Settings:
+    """Settings on the shipped config, with the E-08 verifier off unless a test forces it (A67)."""
     values: dict[str, Any] = {
         "config_dir": CONFIG,
         "libraries": LIBRARIES,
         "anthropic_api_key": None,
         "openai_api_key": None,
+        "verifier_adopted": False,
         **overrides,
     }
     return Settings(_env_file=None, **values)  # type: ignore[call-arg]
@@ -183,8 +187,10 @@ def test_setting_defaults_off_and_reads_the_environment(monkeypatch: pytest.Monk
 def test_service_builds_its_decision_profile_from_settings() -> None:
     on = MatchService.from_settings(make_settings(drop_conflicting_votes=True))
     off = MatchService.from_settings(make_settings())
-    assert on.resources.decision_profile == DecisionProfile(drop_conflicting_votes=True)
-    assert off.resources.decision_profile == DecisionProfile()
+    strictest = strictest_threshold(2)
+    policy = ResolvedPolicy(strictest, strictest.threshold_id, PolicyResolution.FALLBACK_STRICTEST)
+    assert on.resources.decision_profile(policy) == DecisionProfile(drop_conflicting_votes=True)
+    assert off.resources.decision_profile(policy) == DecisionProfile()
 
 
 @pytest.mark.parametrize("flag", [False, True])
@@ -279,6 +285,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
+    monkeypatch.setenv("ORIS_VERIFIER_ADOPTED", "false")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 

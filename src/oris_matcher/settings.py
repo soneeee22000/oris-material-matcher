@@ -73,8 +73,9 @@ class Settings(BaseSettings):
     in ``models.toml``, and ``resolve_models`` checks any override against its allowlist.
     ``drop_conflicting_votes`` (``ORIS_DROP_CONFLICTING_VOTES``, off by default) turns on arm
     ``E-subtype-drop`` of the decision table (A64). ``verifier_adopted``
-    (``ORIS_VERIFIER_ADOPTED``, off by default) turns on the E-08 sibling verifier: a B3 run
-    asks it about every line that would match, and D8a and D1b read its answer (A20, A65.2).
+    (``ORIS_VERIFIER_ADOPTED``) forces the E-08 sibling verifier on or off: a B3 run with it on
+    asks the verifier about every line that would match, and D8a and D1b read its answer (A20,
+    A65.2). Unset (the default), the resolved policy entry decides (A67).
     """
 
     model_config = SettingsConfigDict(
@@ -105,7 +106,7 @@ class Settings(BaseSettings):
     budget_usd_per_100_lines: float = Field(default=DEFAULT_BUDGET_USD_PER_100_LINES, gt=0)
     breaker_consecutive_failures: int = Field(default=DEFAULT_BREAKER_CONSECUTIVE_FAILURES, ge=1)
     drop_conflicting_votes: bool = False
-    verifier_adopted: bool = False
+    verifier_adopted: bool | None = None
 
     def config_file(self, name: str) -> Path:
         """Return the path of one config file inside ``config_dir``.
@@ -216,10 +217,15 @@ class PricingTable(_Config):
 
 
 class PolicyEntry(_Config):
-    """A certified operating threshold for one (model, library) pair."""
+    """A certified operating point for one (model, library) pair (§10.6, A67).
+
+    ``verifier_adopted`` says the certification covers the E-08 sibling verifier as well as the
+    threshold; an entry without the key certifies the threshold alone.
+    """
 
     policy_id: NonEmptyStr
     certified_by: Certifier
+    verifier_adopted: bool = False
 
 
 class PolicyConfig(_Config):

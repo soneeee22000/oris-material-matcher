@@ -213,6 +213,8 @@ class ResolvedPolicy:
         certified_by: ``dev_selection`` or ``smoke_A10`` for an exact hit of ``config/``, else
             None.
         claimed_certified_by: What a ``--policy`` file claims as certification; never verified.
+        verifier_adopted: The entry's E-08 verifier (A67); False for every resolution that is
+            not an entry of a policy file.
 
     """
 
@@ -221,6 +223,7 @@ class ResolvedPolicy:
     resolution: PolicyResolution
     certified_by: str | None = None
     claimed_certified_by: str | None = None
+    verifier_adopted: bool = False
 
 
 def as_override(policy: ResolvedPolicy) -> ResolvedPolicy:
@@ -230,8 +233,9 @@ def as_override(policy: ResolvedPolicy) -> ResolvedPolicy:
         policy: The policy resolved from the override file.
 
     Returns:
-        An ``override`` resolution keeping the policy id and threshold, with the file's
-        ``certified_by`` moved to ``claimed_certified_by``; any other resolution unchanged.
+        An ``override`` resolution keeping the policy id, threshold and the entry's verifier,
+        with the file's ``certified_by`` moved to ``claimed_certified_by``; any other
+        resolution unchanged.
 
     """
     if policy.resolution != PolicyResolution.EXACT:
@@ -241,6 +245,7 @@ def as_override(policy: ResolvedPolicy) -> ResolvedPolicy:
         policy.policy_id,
         PolicyResolution.OVERRIDE,
         claimed_certified_by=policy.certified_by,
+        verifier_adopted=policy.verifier_adopted,
     )
 
 
@@ -310,7 +315,13 @@ def resolve_policy(config: PolicyConfig, query: PolicyQuery) -> ResolvedPolicy:
         why = f"no certified policy for ({query.model_id}, {query.library_sha256[:12]})"
         return _strictest(passes, PolicyResolution.FALLBACK_STRICTEST, why)
     threshold = _threshold_named(entry.policy_id, passes)
-    return ResolvedPolicy(threshold, entry.policy_id, PolicyResolution.EXACT, entry.certified_by)
+    return ResolvedPolicy(
+        threshold,
+        entry.policy_id,
+        PolicyResolution.EXACT,
+        entry.certified_by,
+        verifier_adopted=entry.verifier_adopted,
+    )
 
 
 @functools.cache
@@ -501,12 +512,21 @@ class ServiceResources:
             fallback_model=models.fallback,
         )
 
-    @property
-    def decision_profile(self) -> DecisionProfile:
-        """The decision table's flags, from the settings (A64, A65)."""
+    def decision_profile(self, policy: ResolvedPolicy) -> DecisionProfile:
+        """Return the decision table's flags for a run deciding under this policy (A64, A67).
+
+        Args:
+            policy: The run's resolved policy.
+
+        Returns:
+            ``drop_conflicting_votes`` from the settings; ``verifier_adopted`` from the
+            settings when they set it, else from the policy entry.
+
+        """
         settings = self.settings
+        verifier = settings.verifier_adopted
         return DecisionProfile(
-            verifier_adopted=settings.verifier_adopted,
+            verifier_adopted=policy.verifier_adopted if verifier is None else verifier,
             drop_conflicting_votes=settings.drop_conflicting_votes,
         )
 
@@ -1070,13 +1090,15 @@ class MatchService:
         requests go through the run's wrapper, so retries, the budget and its waits (A61), the
         breaker, recording, the cache and replay apply as to any call.
 
-        The stage always uses the primary wrapper, never the A33 fallback: E-08 is measured on
-        the primary model. After the fallback rescued the main passes the primary breaker is
-        open, so every flagged line fails closed as D1b ``partial_signal`` with
-        ``LLM_UNAVAILABLE`` and the run exits 3; the same holds when the verifier calls trip
-        the breaker themselves.
+        Whether the stage runs follows the policy the run decides under (A67): the primary's
+        entry, or the fallback's once the fallback rescued the main passes. The stage always
+        uses the primary wrapper, never the A33 fallback: E-08 is measured on the primary
+        model. When the settings force it on after the fallback rescued the main passes, the
+        primary breaker is open, so every flagged line fails closed as D1b ``partial_signal``
+        with ``LLM_UNAVAILABLE`` and the run exits 3; the same holds when the verifier calls
+        trip the breaker themselves.
         """
-        profile = self.resources.decision_profile
+        profile = self.resources.decision_profile(inputs.policy)
         if not plan.is_full or not profile.verifier_adopted:
             return NOT_VERIFIED
         flagged = self._flagged(plan, inputs, profile)
@@ -1263,8 +1285,10 @@ class _Assembly:
 
     @property
     def decision_profile(self) -> DecisionProfile:
-        """The profile that decides the run: the settings' for B3; B0 and B2 have none (A64)."""
-        return self.resources.decision_profile if self.plan.is_full else DEFAULT_PROFILE
+        """The profile that decides the run: B3 follows its deciding policy (A67); B0, B2 none."""
+        if not self.plan.is_full:
+            return DEFAULT_PROFILE
+        return self.resources.decision_profile(self.policy)
 
     def _decide(self, decision_input: DecisionInput) -> LineDecision:
         """Apply the profile's decision table."""

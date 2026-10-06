@@ -1,6 +1,7 @@
 """E-08 in MatchService: flagged lines, verifier calls, decisions, audit, budget (A65.2, A61)."""
 
 import asyncio
+import dataclasses
 import json
 from collections.abc import Mapping
 from typing import Any
@@ -64,7 +65,6 @@ from test_service import (
     answers_for,
 )
 
-ENV_FLAG = "ORIS_VERIFIER_ADOPTED"
 ITEMS = 40
 PARTIAL = "LLM_FAILURE:partial_signal"
 VERIFIER_KEYS = {
@@ -77,7 +77,13 @@ VERIFIER_KEYS = {
 
 
 def make_settings(**overrides: Any) -> Settings:
-    values: dict[str, Any] = {"config_dir": CONFIG, "libraries": LIBRARIES, **overrides}
+    """Settings on the shipped config, with the E-08 verifier off unless a test forces it (A67)."""
+    values: dict[str, Any] = {
+        "config_dir": CONFIG,
+        "libraries": LIBRARIES,
+        "verifier_adopted": False,
+        **overrides,
+    }
     return Settings(_env_file=None, **values)  # type: ignore[call-arg]
 
 
@@ -153,18 +159,11 @@ def test_the_fixture_has_flagged_and_unflagged_routed_lines() -> None:
 # The setting, the profile and the manifest fields
 
 
-def test_the_setting_defaults_off_and_reads_the_environment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv(ENV_FLAG, raising=False)
-    assert make_settings().verifier_adopted is False
-    monkeypatch.setenv(ENV_FLAG, "true")
-    assert make_settings().verifier_adopted is True
-
-
-def test_the_service_builds_its_profile_from_the_setting() -> None:
-    assert ON.resources.decision_profile == DecisionProfile(verifier_adopted=True)
-    assert OFF.resources.decision_profile == DecisionProfile()
+def test_the_service_builds_its_profile_from_a_forcing_setting() -> None:
+    for adopting in (False, True):
+        policy = dataclasses.replace(OFF_RESULT.policy, verifier_adopted=adopting)
+        assert ON.resources.decision_profile(policy) == DecisionProfile(verifier_adopted=True)
+        assert OFF.resources.decision_profile(policy) == DecisionProfile()
 
 
 def test_the_manifest_field_names_the_verifier_only_when_adopted() -> None:

@@ -66,11 +66,13 @@ runner = _load("oris_eval_run_experiment_e08", ROOT / "eval" / "run_experiment.p
 
 
 def make_settings(**overrides: Any) -> Settings:
+    """Settings on the shipped config, with the E-08 verifier off unless a test forces it (A67)."""
     values: dict[str, Any] = {
         "config_dir": CONFIG,
         "libraries": LIBRARIES,
         "anthropic_api_key": None,
         "openai_api_key": None,
+        "verifier_adopted": False,
         **overrides,
     }
     return Settings(_env_file=None, **values)  # type: ignore[call-arg]
@@ -118,6 +120,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
+    monkeypatch.setenv(ENV_FLAG, "false")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
