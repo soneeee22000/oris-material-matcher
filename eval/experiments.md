@@ -18,3 +18,5 @@ This ledger is append-only, and every attempt gets one row, whether it was kept 
 | R-10.9-evidence | 2026-10-06 00:06 UTC | O10: 14 correct answers rejected by the 12-word cap | — | EVIDENCE_MAX_WORDS 12→25 (A59.1); prompt unchanged; adopted under §10.9, the §7.2 verdict is informational | P FR 0.803 · C 0.763 · F_NM 0 · $0.092/100 | P FR 0.813 · C 0.813 · F_NM 0 · $0.092/100 | reverted (d=14, p=6.1e-05) | v1+79d291d0 |
 | B3-smoke-5 | 2026-10-06 00:10 UTC | B3 k=2 pipeline works live | — | first B3 call | — | P EN n/a · C 0.000 · F_NM 0 · $0.430/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
 | B3-smoke-5 | 2026-10-06 00:36 UTC | B3 k=2 pipeline works live | — | re-run after A61 (waiting reservations) | — | P EN n/a · C 0.000 · F_NM 0 · $0.793/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
+| B3-slice40 | 2026-10-06 00:38 UTC | B3 k=2 on the 40-item dev slice | — | first B3 slice run (A61) | — | P EN 1.000 · C 0.007 · F_NM 0 · $0.318/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
+| B3-slice40 | 2026-10-06 00:39 UTC | B3 k=2 on the 40-item dev slice | — | first B3 slice run (A61) | — | P FR n/a · C 0.000 · F_NM 0 · $0.326/100 | baseline | v1+d5e2bdb9, v1+a58f410e |
