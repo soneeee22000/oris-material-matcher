@@ -297,7 +297,8 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
     The rate-limit headers are null, with ``rate_limit_source: none``, when the run made no
     successful live call that carried them (a fake, replayed, fully cached or OpenAI run).
     ``enrichment_path`` names the arm C enrichment file the run rendered, portably, or is null;
-    its hash enters ``config_sha256`` beside the glossary's (A68.4).
+    its hash enters ``config_sha256`` beside the glossary's (A68.4). ``fallback_enrichment_path``
+    does the same for the file the A33 fallback's lines rendered once it rescued the run.
 
     Args:
         result: The run.
@@ -309,8 +310,8 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
     """
     root = context.root
     input_path, tier_source = context.input_path, context.rate_limit_tier_source
-    enrichment = result.enrichment_path
-    extra = () if enrichment is None else (enrichment,)
+    enrichment, fallback = result.enrichment_path, result.fallback_enrichment_path
+    extra = tuple(path for path in (enrichment, fallback) if path is not None)
     return {
         **result.manifest,
         "code_sha": context.code.sha,
@@ -328,6 +329,7 @@ def build_manifest(result: RunResult, context: ManifestContext) -> dict[str, Any
         "excel_bom": context.excel_bom,
         "input_path": portable_path(input_path, root) if input_path else None,
         "enrichment_path": portable_path(enrichment, root) if enrichment else None,
+        "fallback_enrichment_path": portable_path(fallback, root) if fallback else None,
     }
 
 

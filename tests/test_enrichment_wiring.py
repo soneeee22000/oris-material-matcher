@@ -15,9 +15,12 @@ from oris_matcher import cli
 from oris_matcher.doctor import LLMKind, LLMSpec, read_manifest
 from oris_matcher.domain.library import load_library
 from oris_matcher.enrichment import EnrichmentSources, dump_enrichment, generate
+from oris_matcher.io.writer import render_csv
 from oris_matcher.llm.base import LLMRequest
-from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM
+from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind
 from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM
+from oris_matcher.llm.wrapper import WrapperPolicy
 from oris_matcher.prompts.v1.render import CANONICAL_V1, REVERSE_V1
 from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.service import (
@@ -31,9 +34,11 @@ from oris_matcher.service import (
     resolve_policy,
 )
 from oris_matcher.settings import ConfigError, PolicyConfig, PolicyEntry, Settings
+from test_cli import TwoProviderFactory
 from test_run_experiment import Git, RecordingFactory
 from test_run_experiment import argv as experiment_argv
 from test_run_experiment import make_runtime as experiment_runtime
+from test_service import GPT, make_wrapper
 from test_verifier_service import BOQ, SELECT, _wrapper
 from test_verifier_wiring import (
     ALLOWLIST,
@@ -263,6 +268,127 @@ def test_a_forced_file_wins_over_the_entry(tmp_path: Path) -> None:
     assert result.manifest["enrichment_sha256"] == _sha(forced)
 
 
+# The A33 fallback renders the enrichment of the entry it decides under (A68.4, as in A67)
+
+
+def _always_down(call_no: int, req: LLMRequest) -> Fault:
+    del call_no, req
+    return Fault(FaultKind.SERVER_ERROR)
+
+
+def _backup() -> FakeLLM:
+    return FakeLLM(GPT, ALLOWLIST, FakeBehaviour(answers=MAIN_ANSWERS))
+
+
+def _rescued(service: MatchService, backup: Any, primary: Any = None) -> RunResult:
+    primary = primary or FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(rule=_always_down))
+    wrapper = make_wrapper(primary, policy=WrapperPolicy(max_retries=0, breaker_threshold=1))
+    options = RunOptions(select=SELECT, run_id="a68", fallback=backup)
+    return asyncio.run(
+        service.match(BOQ, "global", profile=RunProfile.B3, llm=wrapper, options=options)
+    )
+
+
+def _versions(sha: str | None = None) -> list[str]:
+    return [prompt_version(CANONICAL_V1, sha), prompt_version(REVERSE_V1, sha)]
+
+
+def _assert_rescued_versions(result: RunResult, primary: list[str], fallback: list[str]) -> None:
+    """Each pass of a rescued line carries the version of whichever model it was sent to."""
+    served = [item.prompt_version.split(";") for item in result.lines if item.model == GPT]
+    assert served
+    for versions in served:
+        assert all(
+            version in pair
+            for version, pair in zip(versions, zip(primary, fallback, strict=True), strict=True)
+        )
+    assert any(
+        version == fallback[index] != primary[index]
+        for versions in served
+        for index, version in enumerate(versions)
+    )
+
+
+def _replays_identically(service: MatchService, result: RunResult) -> None:
+    replay = ReplayLLM(RecordedRun.from_records(result.calls), HAIKU, ALLOWLIST, strict=True)
+    replayed = _rescued(service, replay, replay)
+    assert render_csv(replayed) == render_csv(result)
+
+
+def _fallback_bound_config(path: Path) -> PolicyConfig:
+    entry = PolicyEntry(
+        policy_id="T8",
+        certified_by="dev_selection",
+        enrichment="enrich/global.yaml",
+        enrichment_sha256=_sha(path),
+    )
+    return PolicyConfig(policies={GPT: {_sha(GLOBAL_LIBRARY): entry}})
+
+
+def test_a_fallback_without_an_entry_renders_no_enrichment(tmp_path: Path) -> None:
+    service = _bound(tmp_path)
+    backup = _backup()
+    result = _rescued(service, backup)
+    assert backup.calls
+    assert not any(ALSO_MARK in _library_text(request) for request in backup.calls)
+    manifest = result.manifest
+    assert manifest["fallback_engaged"] is True
+    assert manifest["fallback_policy_resolution"] == "fallback_strictest"
+    assert manifest["enrichment_sha256"] == _sha(tmp_path / "enrich" / "global.yaml")
+    assert manifest["fallback_enrichment_sha256"] is None
+    assert manifest["fallback_prompt_version"] == _versions()
+    assert result.fallback_enrichment_path is None
+    sha = _sha(tmp_path / "enrich" / "global.yaml")
+    _assert_rescued_versions(result, _versions(sha), _versions())
+    assert any(ALSO_MARK not in text for text in result.system_prompts.values())
+    _replays_identically(service, result)
+
+
+def test_a_fallback_renders_its_own_entry_enrichment(tmp_path: Path) -> None:
+    path = _generated(GLOBAL_LIBRARY, tmp_path / "enrich")
+    service = _service(root=tmp_path)
+    service.resources = dataclasses.replace(service.resources, policy=_fallback_bound_config(path))
+    backup = _backup()
+    result = _rescued(service, backup)
+    assert all(GLOBAL_ALSO in _library_text(request) for request in backup.calls)
+    manifest = result.manifest
+    assert manifest["enrichment_sha256"] is None
+    assert manifest["fallback_enrichment_sha256"] == _sha(path)
+    assert manifest["fallback_prompt_version"] == _versions(_sha(path))
+    assert result.fallback_enrichment_path == path
+    _assert_rescued_versions(result, _versions(), _versions(_sha(path)))
+    assert any(ALSO_MARK in text for text in result.system_prompts.values())
+    _replays_identically(service, result)
+
+
+def test_a_fallback_entry_whose_file_changed_is_refused_before_any_call(tmp_path: Path) -> None:
+    path = _generated(GLOBAL_LIBRARY, tmp_path / "enrich")
+    service = _service(root=tmp_path)
+    service.resources = dataclasses.replace(service.resources, policy=_fallback_bound_config(path))
+    path.write_bytes(path.read_bytes() + b"# edited\n")
+    primary = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(rule=_always_down))
+    with pytest.raises(ConfigError, match="sha256"):
+        _rescued(service, _backup(), primary)
+    assert primary.calls == []
+
+
+def test_a_forced_enrichment_renders_the_fallback_too(tmp_path: Path) -> None:
+    forced = _generated(GLOBAL_LIBRARY, tmp_path / "forced")
+    backup = _backup()
+    result = _rescued(_service(enrichment=forced), backup)
+    assert all(GLOBAL_ALSO in _library_text(request) for request in backup.calls)
+    assert result.manifest["fallback_enrichment_sha256"] == _sha(forced)
+    assert result.manifest["enrichment_sha256"] == _sha(forced)
+
+
+def test_a_run_the_fallback_never_rescued_records_no_fallback_enrichment(tmp_path: Path) -> None:
+    result = _rescued(_bound(tmp_path), _backup(), _fake())
+    assert result.manifest["fallback_engaged"] is False
+    assert result.manifest["fallback_enrichment_sha256"] is None
+    assert result.manifest["fallback_prompt_version"] is None
+    assert result.fallback_enrichment_path is None
+
+
 # The CLI and the runner
 
 
@@ -382,6 +508,46 @@ def test_a_policy_file_binding_resolves_against_the_repository_root(isolated: Pa
     assert manifest["enrichment_path"] == "enrich/global.yaml"
 
 
+def test_a_replay_re_renders_what_the_rescued_lines_rendered(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _generated(GLOBAL_LIBRARY, isolated / "enrich")
+    policy = isolated / "policy.yaml"
+    entry = {
+        "policy_id": "T8",
+        "certified_by": "dev_selection",
+        "enrichment": "enrich/global.yaml",
+        "enrichment_sha256": _sha(path),
+    }
+    policy.write_text(
+        json.dumps({"policies": {HAIKU: {_sha(GLOBAL_LIBRARY): entry}}}), encoding="utf-8"
+    )
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-test")
+    for name, value in (("BREAKER_CONSECUTIVE_FAILURES", "1"), ("MAX_RETRIES", "0")):
+        monkeypatch.setenv(f"ORIS_{name}", value)
+    factory = TwoProviderFactory()
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(isolated, factory))  # type: ignore[arg-type]
+    output = isolated / "out.csv"
+    small = ROOT / "tests" / "fixtures" / "cli" / "small_boq.csv"
+    args = ["match", "--input", str(small), "--library", str(GLOBAL_LIBRARY)]
+    result = CliRunner().invoke(
+        cli.app, [*args, "--output", str(output), "--policy", str(policy), "--no-cache"]
+    )
+    assert result.exit_code == 0, result.output
+    assert factory.calls(LLMKind.OPENAI) > 0
+    folder = next((isolated / "runs").iterdir())
+    manifest = read_manifest(folder)
+    assert manifest["fallback_engaged"] is True
+    assert manifest["enrichment_sha256"] == _sha(path)
+    assert manifest["fallback_enrichment_sha256"] is None
+    assert manifest["fallback_enrichment_path"] is None
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(isolated))
+    replayed = CliRunner().invoke(cli.app, ["replay", str(folder), "--check", str(output)])
+    assert replayed.exit_code == 0, replayed.output
+    assert "byte-identical" in replayed.stdout
+
+
 def test_the_runner_refuses_an_enrichment_of_another_library(isolated: Path) -> None:
     path = _generated(SMALL_LIBRARY, isolated / "enrich")
     port = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=MAIN_ANSWERS))
@@ -449,6 +615,25 @@ def test_a_committable_run_refuses_an_enrichment_outside_the_repository(tmp_path
         enrichment=Path("none"),
     )
     cli.require_committable_inputs(inside, ROOT)
+
+
+def test_a_committable_run_refuses_the_setting_naming_a_file_outside(isolated: Path) -> None:
+    small = ROOT / "tests" / "fixtures" / "cli" / "small_boq.csv"
+    shutil.copyfile(small, isolated / "boq.csv")
+    shutil.copyfile(GLOBAL_LIBRARY, isolated / "library.csv")
+    outside = _generated(GLOBAL_LIBRARY, isolated.parent / f"{isolated.name}-outside")
+    job = cli.MatchJob(
+        input_path=isolated / "boq.csv",
+        library_path=isolated / "library.csv",
+        llm=LLMSpec(LLMKind.FAKE),
+        runs_dir=Path("runs") / "submission",
+    )
+    runtime = make_runtime(isolated, _fake_factory())
+    with pytest.raises(ValueError, match="outside the repository"):
+        cli.prepare_run(job, make_settings(enrichment=outside), runtime)
+    inside = _generated(GLOBAL_LIBRARY, isolated / "enrich")
+    prepared = cli.prepare_run(job, make_settings(enrichment=inside), runtime)
+    assert prepared.service.resources.settings.enrichment == inside
 
 
 # The lockbox
