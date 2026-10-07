@@ -1,0 +1,123 @@
+# A68 §1 glossary supplement: the schema of src/oris_matcher/prompts/v1/glossary.yaml (§10.8).
+# General domain facts the default glossary lacks, never BoQ item text.
+# source is the provenance tag:
+#   library   - a fact read off the libraries' own vocabulary;
+#   standard  - a fact fixed by a public norm, named in ref (required);
+#   dev_error - a general fact added because dev error evidence showed the gap.
+# lockbox_obs and dev_obs are not used here. Entries are sorted by (lang, normalised term).
+entries:
+  - term: cable trough
+    meaning: a precast concrete channel with lids that carries cables, the same thing as a concrete cable duct
+    lang: en
+    source: dev_error
+  - term: CBGM
+    meaning: cement-bound granular mixture, one of the hydraulically bound mixtures (HBM) used in pavement layers
+    lang: en
+    source: standard
+    ref: EN 14227-1, cement bound granular mixtures
+  - term: CL 90-Q
+    meaning: quicklime, the calcium oxide class of building lime, whose Q suffix never denotes hydrated lime
+    lang: en
+    source: standard
+    ref: EN 459-1, building lime
+  - term: CL 90-S
+    meaning: hydrated (slaked) lime, the calcium hydroxide class of building lime, whose S suffix never denotes quicklime
+    lang: en
+    source: standard
+    ref: EN 459-1, building lime
+  - term: clay paver
+    meaning: a fired clay paving unit, a clay brick product rather than a tile
+    lang: en
+    source: dev_error
+    ref: EN 1344, clay pavers
+  - term: creosote
+    meaning: a coal-tar wood preservative, so creosoted timber counts as wood containing hazardous substances (17 02 04)
+    lang: en
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: manhole
+    meaning: a precast concrete chamber giving access to a buried drain or sewer, classed with precast concrete elements
+    lang: en
+    source: dev_error
+    ref: EN 1917, concrete manholes and inspection chambers
+  - term: RA (reclaimed asphalt)
+    meaning: reclaimed asphalt recovered from old pavements, the same material as RAP or the French AE
+    lang: en
+    source: standard
+    ref: EN 13108-8, reclaimed asphalt
+  - term: reduced temperature
+    meaning: in asphalt specifications, a production-temperature marker meaning warm mix (WMA) rather than hot mix (HMA)
+    lang: en
+    source: dev_error
+  - term: waling
+    meaning: a horizontal reinforced concrete or steel beam tying the piles or panels of an excavation support wall
+    lang: en
+    source: dev_error
+  - term: WMA
+    meaning: warm-mix asphalt, produced below hot-mix temperatures through a chemical, foaming or organic (wax) process
+    lang: en
+    source: library
+  - term: abaisseur de viscosité
+    meaning: viscosity-reducing additive, typically a wax, an organic warm-mix (WMA) technology
+    lang: fr
+    source: dev_error
+  - term: AE (agrégats d'enrobés)
+    meaning: reclaimed asphalt, called RAP or RA in English
+    lang: fr
+    source: standard
+    ref: NF EN 13108-8, reclaimed asphalt
+  - term: caniveau à câbles
+    meaning: cable trough, a precast concrete channel for cables, the same thing as a concrete cable duct
+    lang: fr
+    source: dev_error
+  - term: chaux vive
+    meaning: quicklime (calcium oxide, EN 459-1 class CL 90-Q), not hydrated lime
+    lang: fr
+    source: standard
+    ref: EN 459-1, building lime
+  - term: chaux éteinte
+    meaning: hydrated lime (calcium hydroxide, EN 459-1 class CL 90-S), not quicklime
+    lang: fr
+    source: standard
+    ref: EN 459-1, building lime
+  - term: enrobé tiède
+    meaning: warm-mix asphalt (WMA), as opposed to enrobé à chaud, hot-mix asphalt (HMA)
+    lang: fr
+    source: dev_error
+  - term: fraisats
+    meaning: asphalt planings milled off a pavement, a source of reclaimed asphalt (RAP, AE)
+    lang: fr
+    source: standard
+    ref: NF EN 13108-8, reclaimed asphalt
+  - term: grave-ciment
+    meaning: cement-bound granular mixture (CBGM), a hydraulically bound mixture for pavement base layers
+    lang: fr
+    source: standard
+    ref: EN 14227-1, cement bound granular mixtures
+  - term: GTLH
+    meaning: grave traitée aux liants hydrauliques, the French family name for hydraulically bound mixtures (HBM)
+    lang: fr
+    source: standard
+    ref: EN 14227 series, hydraulically bound mixtures
+  - term: lierne
+    meaning: waling, a horizontal beam along a secant-pile, diaphragm or sheet-pile excavation wall
+    lang: fr
+    source: dev_error
+  - term: pavé en terre cuite
+    meaning: fired clay paver, a clay brick product rather than a clay tile
+    lang: fr
+    source: dev_error
+    ref: NF EN 1344, clay pavers
+  - term: regard
+    meaning: manhole or inspection chamber, usually built from precast concrete units, so a precast concrete element
+    lang: fr
+    source: dev_error
+    ref: NF EN 1917, concrete manholes and inspection chambers
+  - term: température abaissée
+    meaning: in asphalt specifications, marks warm-mix (WMA) production, not hot mix
+    lang: fr
+    source: dev_error
+  - term: tensioactif
+    meaning: surfactant, an asphalt additive of the chemical-process warm-mix (WMA) technologies
+    lang: fr
+    source: dev_error
