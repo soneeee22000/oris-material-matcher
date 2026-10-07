@@ -108,7 +108,13 @@ DEV_FIELD = "item_ids_dev"
 REPLAY_MODE = "replay"
 CERTIFIED_BY = "dev_selection"
 REPLAY_MISS = llm_failure_reason(LLMFailureKind.REPLAY_MISS)
-UNANSWERED_VERIFIER = LLMFailureKind.REPLAY_MISS.value
+UNANSWERED_VERIFIER = frozenset(
+    {
+        LLMFailureKind.REPLAY_MISS.value,
+        ReasonCode.LLM_UNAVAILABLE.value,
+        ReasonCode.BUDGET_CAP.value,
+    }
+)
 VERIFIER_FAILURE_FIELD = "verifier_failure"
 INPUT_FIELD = "input_sha256"
 PROFILE_FIELD = "decision_profile"
@@ -355,8 +361,12 @@ def redecide(
 
 
 def unanswered_verifier_lines(result: RunResult) -> int:
-    """Count the flagged lines whose verifier request the replayed run never recorded."""
-    return sum(record.get(VERIFIER_FAILURE_FIELD) == UNANSWERED_VERIFIER for record in result.audit)
+    """Count the flagged lines whose verifier request never reached the model.
+
+    A request the recorded run never made (a replay miss) or declined (the breaker, the
+    budget) leaves its line without an answer; a malformed or invalid answer is an answer.
+    """
+    return sum(record.get(VERIFIER_FAILURE_FIELD) in UNANSWERED_VERIFIER for record in result.audit)
 
 
 def measure(

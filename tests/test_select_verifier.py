@@ -247,3 +247,24 @@ def test_a_further_run_with_another_decision_profile_is_refused(
 def test_no_threshold_measured_in_both_languages_is_refused() -> None:
     with pytest.raises(selector.RefusedError, match="T8"):
         selector.check_measured_table([], {"T8": 0})
+
+
+@pytest.mark.parametrize(
+    ("failure", "unanswered"),
+    [
+        ("replay_miss", True),
+        ("LLM_UNAVAILABLE", True),
+        ("BUDGET_CAP", True),
+        ("invalid_code", False),
+        ("malformed", False),
+        (None, False),
+    ],
+)
+def test_a_declined_verifier_request_is_unanswered_too(
+    failure: str | None, unanswered: bool
+) -> None:
+    """G2-T11 review: a request the recorded run declined never reached the model (A67.2)."""
+    from types import SimpleNamespace  # noqa: PLC0415
+
+    result = SimpleNamespace(audit=({"verifier_failure": failure},))
+    assert selector.unanswered_verifier_lines(result) == int(unanswered)
