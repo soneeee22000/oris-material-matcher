@@ -13,7 +13,7 @@ Start with [`DESIGN.md`](DESIGN.md), whose §0 is a one-page summary. The design
 | [`docs/ui-spec.md`](docs/ui-spec.md)                                     | Operator UI specification                                                                                   |
 | [`docs/exercise-brief.md`](docs/exercise-brief.md)                       | The exercise brief as received                                                                              |
 
-> **Status: v0.1, provisional, pre-freeze.** The numbers below are dev-only. They are not the lockbox claim, which is made once, after `eval-freeze` (gate G4).
+> **Status: v0.2, provisional, pre-freeze.** The numbers below are dev-only. They are not the lockbox claim, which is made once, after `eval-freeze` (gate G4).
 
 ## Quick start
 
@@ -52,18 +52,28 @@ Dev has 162 items per language, 139 of them labelled. FR input is scored against
 | B0 rules only | no matches | n/a | .000 | no matches | n/a | .000 | 0 |
 | B1 TF-IDF | .413 (43/104) | .332 | .309 | .429 (12/28) | .269 | .086 | 0 |
 | B2 one Haiku pass | .780 (103/132) | .713 | .741 | .803 (106/132) | .737 | .763 | 0 |
+| B2, 25-word evidence cap | .791 (110/139) | .727 | .791 | .813 (113/139) | .750 | .813 | 0 |
+| B3, k = 2, selected `T8` | .891 (90/101) | .826 | .647 | .913 (95/104) | .854 | .683 | 0 |
+| B3 + E-08 verifier | .988 (82/83) | .944 | .590 | .988 (81/82) | .943 | .583 | 0 |
+| **B3 + verifier + E-01 enrichment (shipped)** | **.979 (92/94)** | **.935** | **.662** | **.990 (102/103)** | **.955** | **.734** | **0** |
 
-B2 costs about $0.001 per line and about 0.25 s per routed line. It matches every valid answer, so it is not yet the shipped system. The target is precision with a lower bound of at least .90, which needs the abstention rule selected in G2. Live spend so far: $0.67 of the $3 G1 cap.
+The shipped configuration is the bold row (`config/policy.yaml`): Haiku with k = 2 passes over two renderings of the library, the threshold `T8`, the E-08 sibling verifier, and the E-01 bilingual library enrichment (`data/enrichment/global.yaml`). Every line it does not match goes to `needs_review` with a reason code.
+- **Dev bar:** it meets P ≥ .95 with at least 40 matched lines in both languages, and the CP lower bound is at least .90 in both.
+- **Cost and speed:** about $0.003 per line and 0.75–0.80 s of wall clock per routed line.
+- **Review load:** 39 (EN) and 32 (FR) lines per 100 go to review.
+- **B2** matches every valid answer, so it is a baseline, not the shipped system.
+- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, lines go to review rather than being matched by a weaker model.
+
+Live spend: $0.67 at G1, $3.46 at G2.
 
 The files in `output/` are B0 placeholders (rules only). They show the output format, not the results. See [`output/README.md`](output/README.md).
 
-Details: [`docs/gates/G1.md`](docs/gates/G1.md) (what was built, reviews, spend, results, observations) and [`eval/experiments.md`](eval/experiments.md) (the experiment ledger).
+Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/gates/G2.md) (what was built, reviews, spend, results, observations), and [`eval/experiments.md`](eval/experiments.md) (the experiment ledger).
 
 ## What is open
 
 | Gate | Cap | Work |
 |---|---|---|
-| G2 selection | Wed 7 Oct, 12:00 | B3 with k = 2 passes; threshold selection on dev; error taxonomy; the evidence-length fix (G1 observation O10) |
 | G3 hardening | Wed 7 Oct, 22:00 | Fault matrix including a 429 storm; FR smoke set on the FR library; CLI/API parity; one cold live dev run for cost and latency |
 | G4 freeze and lockbox | Thu 8 Oct, 12:00 | Tag `eval-freeze`; one lockbox session; final `output/` files; the claim |
 | G5 release | Thu 8 Oct, 18:00 | Clean clone on Windows and Linux; final README with weaknesses and what I would do with more time |

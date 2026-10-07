@@ -1665,3 +1665,23 @@ Dev only, before `eval-freeze`; 162 items per language, 139 labelled; FR input s
 - **B2 per level over matched** (type / type+usage / triple): EN .939 / .818 / .780; FR .947 / .856 / .803.
 - **B2 cost and latency:** mean attributed cost per line EN $0.00095, FR $0.00092; wall clock 40.9 s EN and 40.4 s FR for 162 routed lines; 40 calls per run.
 - **Live spend at G1:** $0.6713 billed, of the $3 G1 cap (`docs/gates/G1.md` §5).
+
+### 2026-10-08 · G2 (v0.2), dev only
+
+Dev only, before `eval-freeze`: 162 items per language, 139 labelled, FR input scored against the global library. Record: `docs/gates/G2.md` §4–§6.
+
+- **B2 under the 25-word evidence cap** (`R-10.9-evidence`): EN P .791 (110/139), CP-LB .727, C₂₅₂ .791; FR P .813 (113/139), CP-LB .750, C₂₅₂ .813; F_NM 0. The §10.9 remedy recovered 14 correct answers.
+- **B3, k = 2, at the §10.6 selection without arms** (`B3-dev-sel`, `T8`, below the dev bar): EN P .891 (90/101), CP-LB .826, C₂₅₂ .647; FR P .913 (95/104), CP-LB .854, C₂₅₂ .683; F_NM 0.
+- **E-08 sibling verifier, kept** (A65, A67; `B3-dev-e08`): EN P .988 (82/83), CP-LB .944, C₂₅₂ .590; FR P .988 (81/82), CP-LB .943, C₂₅₂ .583. It meets the dev bar.
+- **E-01 arm C enrichment, kept as E-01-C2** (A68; `B3-dev-e01`, `T8` with the verifier). This is **the configuration the policy ships**:
+  - EN P .979 (92/94), CP-LB .935, C₂₅₂ .662; FR P .990 (102/103), CP-LB .955, C₂₅₂ .734; F_NM 0.
+  - Mean cost $0.0030 (EN) and $0.0029 (FR) per line.
+  - Live wall clock 0.75 s and 0.80 s per routed line.
+  - Review load 38.9 and 32.1 per 100 lines.
+- **Sensitivity, never shipped:** the E-01-C2 votes without the verifier give EN .972 (103/106) and FR .958 (115/120), with 218 summed correct against 194 (O24).
+- **Arms:**
+  - `E-subtype-drop`: reverted, d = 0 (O19).
+  - `E-01-C`: reverted on the EN dev bar, P .936 (O23).
+  - `header_context`: triggered, not run before the freeze (O25).
+- **Fallback (G2-T10):** gpt-4o-mini is not certified; its best threshold is EN P .619 (13/21). The A33 fallback stays at the strictest threshold (O26).
+- **Live spend at G2:** $3.4622 billed, of a cap raised by owner decisions from $3.00 to $3.75 (O23) and then to $4.25 (O25).
