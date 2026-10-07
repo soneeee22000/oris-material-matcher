@@ -23,6 +23,7 @@ from oris_matcher.enrichment import (
     dump_enrichment,
     generate,
     is_enrichment_off,
+    label_also,
     load_term_map,
     parse_enrichment,
     phrase_occurs,
@@ -368,3 +369,24 @@ def test_the_generator_source_names_no_eval_input_or_ground_truth(path: Path) ->
     imported = _imported_modules(path)
     assert not any(name == "eval" or name.startswith("eval.") for name in imported)
     assert all(not name.startswith("oris_matcher.io") for name in imported)
+
+
+def _entry(term: str, *equivalents: str) -> TermMapEntry:
+    return TermMapEntry(term=term, lang="en", equivalents=equivalents, source="library")
+
+
+def test_a_term_inside_a_longer_matching_term_gives_way() -> None:
+    """A68 note: the longest match wins, so Concrete never tags an Asphalt Concrete row."""
+    term_map = TermMap(
+        entries=(_entry("Asphalt Concrete", "béton bitumineux"), _entry("Concrete", "béton"))
+    )
+    assert label_also("Asphalt Concrete (AC) - WMA 30% RAP", term_map) == ("béton bitumineux",)
+    assert label_also("Concrete", term_map) == ("béton",)
+
+
+def test_a_term_that_also_occurs_alone_keeps_its_equivalents() -> None:
+    term_map = TermMap(
+        entries=(_entry("Asphalt Concrete", "béton bitumineux"), _entry("Concrete", "béton"))
+    )
+    also = label_also("Asphalt Concrete over Concrete", term_map)
+    assert also == ("béton", "béton bitumineux")

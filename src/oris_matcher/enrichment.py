@@ -307,8 +307,28 @@ def phrase_occurs(term: str, label: str) -> bool:
     return bool(needle) and _phrase_pattern(needle).search(normalize(label)) is not None
 
 
+def phrase_spans(term: str, label: str) -> tuple[tuple[int, int], ...]:
+    """Return the (start, end) spans where a term occurs in a label as a whole phrase."""
+    needle = normalize(term)
+    if not needle:
+        return ()
+    return tuple(match.span() for match in _phrase_pattern(needle).finditer(normalize(label)))
+
+
+def _inside(span: tuple[int, int], longer: Iterable[tuple[int, int]]) -> bool:
+    """Tell whether a span lies within a strictly longer span."""
+    start, end = span
+    return any(
+        other[0] <= start and end <= other[1] and other[1] - other[0] > end - start
+        for other in longer
+    )
+
+
 def label_also(label: str, term_map: TermMap) -> tuple[str, ...]:
     """Return the canonical equivalents of every entry whose term occurs in a label.
+
+    The longest match wins (A68 note): an entry whose every occurrence lies inside a longer
+    matching term's occurrence is left out, so ``Concrete`` never tags ``Asphalt Concrete``.
 
     Args:
         label: A node's own label.
@@ -318,8 +338,14 @@ def label_also(label: str, term_map: TermMap) -> tuple[str, ...]:
         The node's ``also`` list.
 
     """
-    matching = (entry for entry in term_map.entries if phrase_occurs(entry.term, label))
-    return canonical_also(value for entry in matching for value in entry.equivalents)
+    spans = {entry.term: phrase_spans(entry.term, label) for entry in term_map.entries}
+    every = [span for found in spans.values() for span in found]
+    kept = (
+        entry
+        for entry in term_map.entries
+        if spans[entry.term] and not all(_inside(span, every) for span in spans[entry.term])
+    )
+    return canonical_also(value for entry in kept for value in entry.equivalents)
 
 
 def library_labels(library: Library) -> frozenset[str]:
