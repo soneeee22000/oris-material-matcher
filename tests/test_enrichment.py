@@ -44,11 +44,11 @@ REVIEWER = "builder, 2026-10-07"
 FORBIDDEN_DIRS = ("eval", "input")
 GROUND_TRUTH = "boq_dataset_matched_GT"
 AUDIT_PROBE = """
-import json, runpy, sys
+import json, os, runpy, sys
 opened = []
 def hook(event, args):
     if event == "open" and args and isinstance(args[0], (str, bytes)):
-        opened.append(str(args[0]))
+        opened.append(os.path.abspath(os.fsdecode(args[0])))
 sys.addaudithook(hook)
 sys.argv = sys.argv[1:]
 try:
@@ -299,7 +299,8 @@ def _probe_report(completed: subprocess.CompletedProcess[str]) -> dict[str, Any]
 
 
 def _forbidden(path: str) -> bool:
-    resolved = Path(path).resolve()
+    given = Path(path)
+    resolved = (given if given.is_absolute() else ROOT / given).resolve()
     under = any(resolved.is_relative_to(ROOT / name) for name in FORBIDDEN_DIRS)
     return under or GROUND_TRUTH in path
 
@@ -324,10 +325,17 @@ def test_a_run_of_the_generator_opens_nothing_under_eval_input_or_the_ground_tru
     assert [path for path in opened if _forbidden(path)] == []
 
 
-def test_the_audit_probe_sees_a_forbidden_open(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "target",
+    [str(ROOT / "input" / "boq_dataset_input_en.csv"), "input/boq_dataset_input_en.csv"],
+    ids=["absolute", "relative"],
+)
+def test_the_audit_probe_sees_a_forbidden_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str
+) -> None:
     planted = tmp_path / "planted.py"
-    target = ROOT / "input" / "boq_dataset_input_en.csv"
-    planted.write_text(f"open({str(target)!r}, encoding='utf-8').close()\n", encoding="utf-8")
+    planted.write_text(f"open({target!r}, encoding='utf-8').close()\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
     completed = subprocess.run(
         [sys.executable, "-c", AUDIT_PROBE, str(planted)],
         capture_output=True,
@@ -337,6 +345,7 @@ def test_the_audit_probe_sees_a_forbidden_open(tmp_path: Path) -> None:
         cwd=ROOT,
     )
     opened = _probe_report(completed)["opened"]
+    assert all(Path(path).is_absolute() for path in opened)
     assert [path for path in opened if _forbidden(path)]
 
 
