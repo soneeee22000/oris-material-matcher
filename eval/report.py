@@ -1055,9 +1055,11 @@ def bar_figure(title: str, groups: Sequence[str], levels: Mapping[str, Any]) -> 
 
 
 def save_svg(figure: Figure, path: Path) -> None:
-    """Save a figure as an SVG with no date and stable ids, so reruns are byte-identical."""
+    """Save a figure as an SVG with no date, stable ids and LF line ends, on every OS."""
+    buffer = io.StringIO()
     with matplotlib.rc_context({"svg.hashsalt": SVG_SALT}):
-        figure.savefig(path, format="svg", metadata={"Date": None}, facecolor=SURFACE)
+        figure.savefig(buffer, format="svg", metadata={"Date": None}, facecolor=SURFACE)
+    path.write_bytes(buffer.getvalue().encode("utf-8"))
 
 
 # --- outputs ----------------------------------------------------------------------------

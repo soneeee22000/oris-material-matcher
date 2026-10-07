@@ -397,6 +397,16 @@ def test_outputs_are_byte_identical_on_a_second_run(
     assert "<dc:date>" not in svg
 
 
+CARRIAGE_RETURN = bytes([13])
+
+
+def test_svgs_have_lf_line_ends_on_every_os(produced: tuple[Path, dict[str, Any]]) -> None:
+    """G2-T11: a figure written on Windows is byte-identical to one written on Linux."""
+    first, _ = produced
+    for svg in (first / "assets").glob("*.svg"):
+        assert CARRIAGE_RETURN not in svg.read_bytes(), svg.name
+
+
 def test_help_exits_zero() -> None:
     completed = subprocess.run(
         [sys.executable, str(SCRIPT), "--help"], capture_output=True, check=False, timeout=60
