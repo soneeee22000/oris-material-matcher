@@ -23,6 +23,8 @@ setting. The row records the profile used as ``decision_profile``, whatever ``--
 ``--llm replay:<run>`` of a run recorded without it, the run is mixed: the main passes are
 served from that run at $0 and only the verifier requests reach ``--llm-verifier`` (the live
 primary when absent; ``fake`` offline), so its ``spend_usd`` is the verifier's alone.
+``--no-verifier-adopted`` forces it off: a replay of a run recorded with the verifier then
+re-decides without it at $0, the source a mixed run needs to measure another threshold (A67.2).
 ``--policy`` replaces ``config/policy.yaml`` for the run, as ``oris match --policy`` does: the
 run decides at that file's entry, recorded as ``policy_resolution: override``. It measures a
 threshold other than the certified one (A67); a lockbox session refuses it.
@@ -57,7 +59,7 @@ Usage::
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
         [--policy policy.yaml] [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
-        [--verifier-adopted [--llm-verifier fake]] [--enrichment FILE|none] --change "..."
+        [--[no-]verifier-adopted [--llm-verifier fake]] [--enrichment FILE|none] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
 A mixed E-08 run whose source lacks a main-pass record exits 2 with no ledger row: the
@@ -1156,7 +1158,7 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         split_sha256=file_sha256(args.split),
         budget_usd=_budget(args),
         drop_conflicting_votes=True if args.drop_conflicting_votes else None,
-        verifier_adopted=True if args.verifier_adopted else None,
+        verifier_adopted=args.verifier_adopted,
         llm_verifier=parse_llm_spec(args.llm_verifier) if args.llm_verifier else None,
         enrichment=Path(args.enrichment) if args.enrichment is not None else None,
     )
@@ -1341,7 +1343,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--drop-conflicting-votes", action="store_true")
-    parser.add_argument("--verifier-adopted", action="store_true")
+    parser.add_argument("--verifier-adopted", action=argparse.BooleanOptionalAction)
     parser.add_argument("--llm-verifier")
     parser.add_argument("--enrichment")
     parser.set_defaults(profile=RunProfile.B3.value)

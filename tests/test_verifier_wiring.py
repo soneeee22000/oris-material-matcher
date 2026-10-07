@@ -6,8 +6,10 @@ requests to an adapter: ``--llm replay:<run> --verifier-adopted`` (the live prim
 records and the new verifier records, so a plain replay of it reproduces it byte for byte.
 """
 
+import csv
 import dataclasses
 import importlib.util
+import io
 import json
 import sys
 from collections.abc import Sequence
@@ -682,3 +684,39 @@ def test_a_main_pass_the_source_never_recorded_exits_2_without_a_verifier_call(
     assert "no recorded response" in err
     assert fake.calls == []
     assert ledger_rows(isolated) == rows
+
+
+def test_no_verifier_adopted_replays_a_verifier_run_without_it_at_zero(isolated: Path) -> None:
+    """A67.2/A68.6: a verifier-off replay of an E-08 run is the source for measuring T7 live."""
+    source = _source(isolated)
+    arm = _run(
+        isolated,
+        f"replay:{source.as_posix()}",
+        "E-08",
+        "--verifier-adopted",
+        "--llm-verifier",
+        "fake",
+    )
+    off = _run(isolated, f"replay:{arm.as_posix()}", "E-08-off", "--no-verifier-adopted")
+    manifest = read_manifest(off)
+    assert manifest[DECISION_PROFILE_KEY] == OFF_PROFILE
+    assert manifest["mode"] == "replay"
+    assert manifest["spend_usd"] == 0
+    assert _rows_without_call_ids(off) == _rows_without_call_ids(source)
+    assert not any(_is_verifier(record) for record in _calls(off))
+    mixed = _run(
+        isolated,
+        f"replay:{off.as_posix()}",
+        "E-08-again",
+        "--verifier-adopted",
+        "--llm-verifier",
+        "fake",
+    )
+    assert _rows_without_call_ids(mixed) == _rows_without_call_ids(arm)
+
+
+def _rows_without_call_ids(folder: Path) -> list[dict[str, str]]:
+    """Output rows minus call_ids: a mixed run's copied records get new call ids."""
+    text = (folder / "output.csv").read_text(encoding="utf-8")
+    rows = csv.DictReader(io.StringIO(text))
+    return [{key: value for key, value in row.items() if key != "call_ids"} for row in rows]
