@@ -3,6 +3,8 @@
 import csv
 import hashlib
 import json
+import re
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -49,7 +51,12 @@ LABELS = ("decision", "reason", "material_type", "material_usage", "material_sub
 
 @pytest.fixture(autouse=True)
 def in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Run every test from a temporary folder, so API run folders never land in the repo."""
+    """Run every test from a temporary folder, so API run folders never land in the repo.
+
+    The folder mirrors data/enrichment/, which the shipped policy entry names by a
+    repository-relative path (A68.4).
+    """
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -493,3 +500,18 @@ def test_a_live_non_anthropic_api_run_ignores_a_measurement_for_its_model(in_tmp
 
     assert response["decisions"][0]["reason"] != "BUDGET_CAP"
     assert sum(len(port.calls) for port in ports.ports) > 0
+
+
+def test_ready_is_503_when_the_certified_enrichment_does_not_load(tmp_path: Path) -> None:
+    """G2-T11 review: /ready must fail when every B3 match would fail on the enrichment."""
+    config = tmp_path / "config"
+    shutil.copytree(CONFIG, config)
+    policy = (config / "policy.yaml").read_text(encoding="utf-8")
+    sha = re.search(r"enrichment_sha256: '([0-9a-f]{64})'", policy)
+    assert sha is not None
+    (config / "policy.yaml").write_text(policy.replace(sha.group(1), "0" * 64), encoding="utf-8")
+    settings = make_settings(config_dir=config, anthropic_api_key=SecretStr("sk-test"))
+    response = TestClient(create_app(settings)).get("/ready")
+    assert response.status_code == 503
+    assert response.json()["libraries"]["global"] is False
+    assert response.json()["libraries"]["fr"] is True

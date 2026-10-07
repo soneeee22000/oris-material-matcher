@@ -491,9 +491,10 @@ class ApiState:
             return None
 
     def _loaded(self, library_id: str) -> bool:
-        """Tell whether a configured library loads."""
+        """Tell whether a configured library loads, with the enrichment it is certified with."""
         try:
             self.service.library(library_id)
+            self.service.check_enrichment(library_id)
         except (OSError, ValueError, KeyError, ConfigError):
             return False
         return True

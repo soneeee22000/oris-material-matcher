@@ -1002,6 +1002,25 @@ class MatchService:
         """
         return cls(ServiceResources.from_settings(settings))
 
+    def check_enrichment(self, library_id: str) -> None:
+        """Load the enrichment a default B3 run on this library would render (A68.4).
+
+        Args:
+            library_id: A configured library id.
+
+        Raises:
+            ConfigError: The enrichment the setting or the primary's entry names cannot be
+                read, has another SHA-256 than the entry certifies, or is another library's.
+
+        """
+        library = self.library(library_id)
+        resources = self.resources
+        query = PolicyQuery(resources.requested_model, library.sha256, resources.settings.passes_k)
+        policy = resolve_policy(resources.policy, query, warn=False)
+        if resources.policy_override:
+            policy = as_override(policy)
+        resolve_enrichment(resources.settings.enrichment, policy, library, resources.root)
+
     def library(self, library_id: str) -> Library:
         """Return a configured library, loading it once with ``load_catalogue``.
 
