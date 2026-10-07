@@ -21,6 +21,7 @@ from typer.testing import CliRunner, Result
 
 from oris_matcher import cli
 from oris_matcher.doctor import LLMKind, LLMSpec, Runtime, WiringError, parse_llm_spec
+from oris_matcher.domain.library import load_library
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind, default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
@@ -1072,3 +1073,31 @@ def test_a_breaker_trip_is_recorded_and_replayed_from_the_manifest(
     assert again.exit_code == 3
     newest = max((workdir / "runs").iterdir(), key=lambda path: path.name != folder.name)
     assert manifest_of(newest)["declined_attempts"] == declined
+
+
+def _recorded(resolution: str, policy_id: str) -> dict[str, Any]:
+    library = load_library((ROOT / "data" / "oris_materials_global.csv").read_bytes())
+    return {
+        "requested_model": "claude-haiku-4-5-20251001",
+        "library_sha256": library.sha256,
+        "policy_resolution": resolution,
+        "policy_id": policy_id,
+        "profile": "b3",
+    }
+
+
+def test_a_replay_refuses_when_the_current_policy_would_re_decide_the_run() -> None:
+    """G2-T11 review: a run decided at T1 is never silently replayed at today's T8 (§11.5)."""
+    settings = Settings(_env_file=None, config_dir=CONFIG)  # type: ignore[call-arg]
+    with pytest.raises(cli.WiringError, match="--policy"):
+        cli.require_recorded_policy(_recorded("fallback_strictest", "T1"), settings)
+    with pytest.raises(cli.WiringError, match="T7"):
+        cli.require_recorded_policy(_recorded("exact", "T7"), settings)
+
+
+def test_a_replay_under_the_policy_it_was_decided_with_passes() -> None:
+    settings = Settings(_env_file=None, config_dir=CONFIG)  # type: ignore[call-arg]
+    cli.require_recorded_policy(_recorded("exact", "T8"), settings)
+    cli.require_recorded_policy(_recorded("no_path_strictest", "T1"), settings)
+    cli.require_recorded_policy(_recorded("override", "T3"), settings)
+    cli.require_recorded_policy({**_recorded("b2_match_all", "B2"), "profile": "b2"}, settings)

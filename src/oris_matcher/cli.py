@@ -117,6 +117,7 @@ from oris_matcher.service import (
 )
 from oris_matcher.settings import (
     MODELS_FILE,
+    POLICY_FILE,
     PRICING_FILE,
     ConfigError,
     PricingTable,
@@ -1450,6 +1451,42 @@ def _audit_line_ids(run_dir: Path) -> list[str]:
     return [json.loads(line)["line_id"] for line in text.splitlines() if line.strip()]
 
 
+RE_RESOLVED = frozenset({"exact", "fallback_strictest"})
+
+
+def require_recorded_policy(manifest: Mapping[str, Any], settings: Settings) -> None:
+    """Refuse a replay that today's ``policy.yaml`` would decide at another threshold (§11.5).
+
+    A run resolved through ``config/policy.yaml`` (``exact`` or ``fallback_strictest``)
+    records no policy file, so a replay resolves the current one. When that entry now names
+    another threshold, the replay would silently re-decide the run instead of reproducing
+    it. Overrides, path-less runs and B0/B2 resolve as they did whatever the file says.
+
+    Args:
+        manifest: The recorded run's manifest.
+        settings: The settings the replay runs with.
+
+    Raises:
+        WiringError: The current entry differs from the recorded resolution or threshold.
+
+    """
+    recorded = manifest.get("policy_resolution")
+    if recorded not in RE_RESOLVED:
+        return
+    entry = load_policy(settings.config_file(POLICY_FILE)).lookup(
+        str(manifest["requested_model"]), str(manifest["library_sha256"])
+    )
+    now = ("exact", entry.policy_id) if entry else ("fallback_strictest", None)
+    then = (recorded, manifest.get("policy_id") if recorded == "exact" else None)
+    if now != then:
+        raise WiringError(
+            f"this run was decided at {manifest.get('policy_id')} ({recorded}), but "
+            f"{POLICY_FILE} now resolves {now[1] or 'the strictest threshold'} ({now[0]}); "
+            "replay with --policy naming a policy file that reproduces it (an empty "
+            "'policies: {}' file for a fallback_strictest run)"
+        )
+
+
 def replay_job(run_dir: Path, settings: Settings, policy: Path | None, root: Path) -> MatchJob:
     """Describe a replay of a recorded run as a match job.
 
@@ -1467,6 +1504,8 @@ def replay_job(run_dir: Path, settings: Settings, policy: Path | None, root: Pat
     manifest = read_manifest(run_dir)
     if policy is None:
         policy = _recorded_file(manifest.get("policy_path"), POLICY_ROLE, run_dir, root)
+    if policy is None:
+        require_recorded_policy(manifest, settings)
     select = _audit_line_ids(run_dir) if manifest.get("select_count") is not None else None
     input_path = _recorded_file(manifest.get("input_path"), INPUT_ROLE, run_dir, root)
     if input_path is None:
