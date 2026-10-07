@@ -3,6 +3,7 @@
 import asyncio
 import importlib.util
 import json
+import shutil
 import sys
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -286,6 +287,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
     monkeypatch.setenv("ORIS_VERIFIER_ADOPTED", "false")
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 

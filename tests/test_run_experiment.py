@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import shutil
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -101,6 +102,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
     libraries = {"global": str(LIBRARIES["en"]), "fr": str(LIBRARIES["fr"])}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 

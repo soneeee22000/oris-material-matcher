@@ -258,6 +258,8 @@ def _environment(patch: pytest.MonkeyPatch, root: Path) -> None:
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     patch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
     patch.setenv("ORIS_VERIFIER_ADOPTED", "false")
+    if not (root / "data" / "enrichment").exists():
+        shutil.copytree(ROOT / "data" / "enrichment", root / "data" / "enrichment")
     patch.chdir(root)
 
 

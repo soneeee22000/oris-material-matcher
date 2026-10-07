@@ -203,7 +203,7 @@ def test_a_forced_enrichment_renders_every_pass_and_is_recorded(tmp_path: Path) 
 
 def test_without_enrichment_nothing_changes() -> None:
     fake = _fake()
-    result = _match(_service(), fake)
+    result = _match(_service(enrichment=Path("none")), fake)
     assert not any(ALSO_MARK in _library_text(request) for request in fake.calls)
     assert result.manifest["enrichment_sha256"] is None
     assert result.enrichment_path is None
@@ -398,6 +398,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
     monkeypatch.setenv("ORIS_VERIFIER_ADOPTED", "false")
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -453,6 +454,7 @@ def test_a_replay_re_renders_the_recorded_enrichment(
 def test_a_replay_of_a_run_without_enrichment_stays_unenriched(
     isolated: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("ORIS_ENRICHMENT", "none")
     folder = _run(isolated, "fake", "B3-src")
     manifest = read_manifest(folder)
     assert manifest["enrichment_sha256"] is None
@@ -468,6 +470,7 @@ def test_a_replay_of_a_run_without_enrichment_stays_unenriched(
 def test_a_legacy_manifest_without_the_keys_replays_unenriched(
     isolated: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("ORIS_ENRICHMENT", "none")
     folder = _run(isolated, "fake", "B3-src")
     manifest = read_manifest(folder)
     for key in ("enrichment_sha256", "enrichment_path"):

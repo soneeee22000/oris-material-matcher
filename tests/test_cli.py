@@ -70,6 +70,8 @@ def workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for name in ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
+    shutil.copytree(CONFIG.parent / "data" / "enrichment", tmp_path / "data" / "enrichment")
+
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
     monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: tmp_path))

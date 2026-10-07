@@ -4,6 +4,7 @@ import asyncio
 import dataclasses
 import json
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -77,11 +78,12 @@ VERIFIER_KEYS = {
 
 
 def make_settings(**overrides: Any) -> Settings:
-    """Settings on the shipped config, with the E-08 verifier off unless a test forces it (A67)."""
+    """Shipped config, verifier (A67) and enrichment (A68) off unless a test forces them."""
     values: dict[str, Any] = {
         "config_dir": CONFIG,
         "libraries": LIBRARIES,
         "verifier_adopted": False,
+        "enrichment": Path("none"),
         **overrides,
     }
     return Settings(_env_file=None, **values)  # type: ignore[call-arg]

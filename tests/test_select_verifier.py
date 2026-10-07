@@ -68,6 +68,7 @@ def world(tmp_path_factory: pytest.TempPathFactory) -> Iterator[VerifierWorld]:
     forced = ("--policy", str(policy_file(root, STRICT)))
     with pytest.MonkeyPatch.context() as patch:
         _environment(patch, root)
+        patch.setenv("ORIS_ENRICHMENT", "none")
         t8 = {
             lang: _run(root, split, lang, "--id", E08_ID, "--verifier-adopted")
             for lang in LANGUAGES
@@ -83,6 +84,7 @@ def world(tmp_path_factory: pytest.TempPathFactory) -> Iterator[VerifierWorld]:
 @pytest.fixture
 def env(world: VerifierWorld, monkeypatch: pytest.MonkeyPatch) -> VerifierWorld:
     _environment(monkeypatch, world.root)
+    monkeypatch.setenv("ORIS_ENRICHMENT", "none")
     return world
 
 
