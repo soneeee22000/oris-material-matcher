@@ -310,6 +310,76 @@ def test_lockbox_session_refuses_a_policy_override(isolated: Path) -> None:
 SESSION = ("--side", "all", "--lockbox-session", "--llm", "anthropic")
 
 
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ("--no-verifier-adopted",),
+        ("--verifier-adopted",),
+        ("--drop-conflicting-votes",),
+        ("--llm-verifier", "fake"),
+    ],
+)
+def test_lockbox_session_refuses_a_forced_decision_profile(
+    isolated: Path, extra: tuple[str, ...]
+) -> None:
+    """G2-T11 review: the lockbox decides under the shipped entry only (A67, A68.4)."""
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION, *extra),
+        make_runtime(isolated, factory, Git("eval-freeze\n")),
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("ORIS_VERIFIER_ADOPTED", "false"),
+        ("ORIS_DROP_CONFLICTING_VOTES", "true"),
+        ("ORIS_PRIMARY_MODEL", "claude-haiku-4-5-20251001"),
+        ("ORIS_FALLBACK_MODEL", "gpt-4o-mini-2024-07-18"),
+        ("ORIS_PASSES_K", "1"),
+        ("ORIS_BATCH_SIZE", "5"),
+    ],
+)
+def test_lockbox_session_refuses_a_setting_that_changes_the_configuration(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch, name: str, value: str
+) -> None:
+    """A setting from the environment or .env cannot change the frozen configuration."""
+    monkeypatch.setenv(name, value)
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION), make_runtime(isolated, factory, Git("eval-freeze\n"))
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+@pytest.mark.parametrize("llm", ["anthropic:claude-haiku-4-5-20251001", "openai"])
+def test_lockbox_session_refuses_any_llm_but_the_pinned_primary(isolated: Path, llm: str) -> None:
+    factory = RecordingFactory()
+    args = argv(isolated, "en", "--side", "all", "--lockbox-session", "--llm", llm)
+    code = runner.main(args, make_runtime(isolated, factory, Git("eval-freeze\n")))
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+def test_lockbox_session_refuses_a_config_dir_with_another_policy(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = isolated / "elsewhere"
+    shutil.copytree(CONFIG, other)
+    (other / "policy.yaml").write_text("policies: {}\n", encoding="utf-8")
+    monkeypatch.setenv("ORIS_CONFIG_DIR", str(other))
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION), make_runtime(isolated, factory, Git("eval-freeze\n"))
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
 def lockbox_log(root: Path) -> Path:
     return root / "eval" / "lockbox_log.md"
 

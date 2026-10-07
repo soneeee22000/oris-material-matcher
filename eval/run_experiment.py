@@ -88,7 +88,7 @@ from types import ModuleType
 from typing import Any
 
 from oris_matcher.cli import MatchJob, MatchOutcome, execute_match
-from oris_matcher.doctor import LIVE_KINDS, Runtime, WiringError, parse_llm_spec
+from oris_matcher.doctor import LIVE_KINDS, LLMKind, Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
@@ -97,6 +97,17 @@ from oris_matcher.service import DECISION_PROFILE_KEY, RunProfile
 from oris_matcher.settings import ConfigError, Settings
 
 ROOT = Path(__file__).resolve().parents[1]
+FROZEN_SETTINGS = (
+    "verifier_adopted",
+    "drop_conflicting_votes",
+    "enrichment",
+    "primary_model",
+    "fallback_model",
+    "passes_k",
+    "batch_size",
+)
+FROZEN_CONFIG_FILES = ("policy.yaml", "models.toml")
+SHIPPED_CONFIG_DIR = ROOT / "config"
 ENCODING = "utf-8"
 LEDGER_NEWLINE = "\n"
 SCORER_PATH = Path(__file__).resolve().parent / "score.py"
@@ -313,14 +324,50 @@ def _refuse_partial_lockbox(args: argparse.Namespace) -> None:
         raise RefusedError(
             "a lockbox session renders the shipped entry's enrichment: no --enrichment"
         )
+    _refuse_forced_profile(args)
 
 
-def _refuse_forced_enrichment() -> None:
-    """Refuse a lockbox session while ``ORIS_ENRICHMENT`` forces an enrichment (A68.4)."""
-    if Settings().enrichment is not None:
-        raise RefusedError(
-            "a lockbox session renders the shipped entry's enrichment: unset ORIS_ENRICHMENT"
+def _refuse_forced_profile(args: argparse.Namespace) -> None:
+    """Refuse a lockbox session whose flags force a decision profile (A67, A68.4)."""
+    forced = [
+        flag
+        for flag, given in (
+            ("--verifier-adopted/--no-verifier-adopted", args.verifier_adopted is not None),
+            ("--drop-conflicting-votes", bool(args.drop_conflicting_votes)),
+            ("--llm-verifier", args.llm_verifier is not None),
         )
+        if given
+    ]
+    if forced:
+        raise RefusedError(
+            f"a lockbox session decides under the shipped entry only: no {', '.join(forced)}"
+        )
+
+
+def _refuse_forced_settings() -> None:
+    """Refuse a lockbox session whose environment or ``.env`` changes the frozen configuration.
+
+    Every decision-relevant setting must keep its default, and the config directory must
+    hold the repository's own ``policy.yaml`` and ``models.toml``, so the session decides
+    under exactly what ``eval-freeze`` pins (A67, A68.4).
+    """
+    settings = Settings()
+    changed = [
+        name
+        for name in FROZEN_SETTINGS
+        if getattr(settings, name)
+        != Settings.model_fields[name].get_default(call_default_factory=True)
+    ]
+    if changed:
+        names = ", ".join(f"ORIS_{name.upper()}" for name in changed)
+        raise RefusedError(f"a lockbox session runs the frozen configuration: unset {names}")
+    for name in FROZEN_CONFIG_FILES:
+        used = settings.config_file(name)
+        if not used.is_file() or used.read_bytes() != (SHIPPED_CONFIG_DIR / name).read_bytes():
+            raise RefusedError(
+                f"a lockbox session runs the frozen configuration: {used} is not the "
+                f"repository's config/{name}"
+            )
 
 
 def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
@@ -332,13 +379,15 @@ def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
 
     Raises:
         RefusedError: A partial lockbox route, a session narrowed by slice, limit or baseline,
-            a non-live ``--llm``, ``eval-freeze`` not at HEAD, or a dirty working tree.
+            a forced policy, enrichment or decision profile, a setting or config file that
+            differs from the frozen one, any ``--llm`` but the pinned primary, ``eval-freeze``
+            not at HEAD, or a dirty working tree.
 
     """
     if args.side == SIDE_DEV and not args.lockbox_session:
         return
     _refuse_partial_lockbox(args)
-    _refuse_forced_enrichment()
+    _refuse_forced_settings()
     if FREEZE_TAG not in _git_output(runtime, GIT_TAGS_AT_HEAD).split():
         raise RefusedError(f"--lockbox-session is refused: the tag {FREEZE_TAG} is not at HEAD")
     _refuse_non_live(args)
@@ -359,6 +408,10 @@ def _refuse_non_live(args: argparse.Namespace) -> None:
     if kind not in LIVE_KINDS:
         live = ", ".join(sorted(kind.value for kind in LIVE_KINDS))
         raise RefusedError(f"--lockbox-session needs a live --llm ({live}), not {args.llm!r}")
+    if kind != LLMKind.ANTHROPIC or parse_llm_spec(args.llm).model is not None:
+        raise RefusedError(
+            f"--lockbox-session runs the pinned primary only: --llm anthropic, not {args.llm!r}"
+        )
 
 
 def _git_output(runtime: Runtime, command: Sequence[str]) -> str:
