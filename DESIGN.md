@@ -1639,6 +1639,12 @@ A second test fails if the generator imports or opens anything under `eval/` or 
 
 Changed: §6 (arm C made concrete), §9.3 (prompt version), §10.6 (policy entry), §10.8 (the overlap check covers enrichment), §11.10 (manifest).
 
+**A68 note, 2026-10-07: what the build changed.** These are found while building and reviewing arm C. No rule above changes; they say how the rules are applied.
+- **The longest match wins.** A term-map entry whose every occurrence in a node label lies inside a longer matching term's occurrence is left out of that node. So `Concrete` gives way to `Asphalt Concrete` and never tags an asphalt row with *béton*.
+- **The fallback renders its own entry's enrichment.** Lines the A33 fallback rescues render the enrichment of the fallback's own policy entry, as A67 binds the verifier. The manifest records it as `fallback_enrichment_sha256` and `fallback_enrichment_path`, and a replay re-renders it.
+- **A committable run checks the effective enrichment,** `--enrichment` or `ORIS_ENRICHMENT`, against host paths.
+- **`reviewed_by`.** The shipped sources were reviewed by the builder and an agent panel with two lenses, terminology and leakage. `reviewed_by` records that, not an owner review.
+
 ---
 
 ## 17. Results
