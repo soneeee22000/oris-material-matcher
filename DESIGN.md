@@ -1677,11 +1677,11 @@ Dev only, before `eval-freeze`: 162 items per language, 139 labelled, FR input s
   - EN P .979 (92/94), CP-LB .935, C₂₅₂ .662; FR P .990 (102/103), CP-LB .955, C₂₅₂ .734; F_NM 0.
   - Mean cost $0.0030 (EN) and $0.0029 (FR) per line.
   - Live wall clock 0.75 s and 0.80 s per routed line.
-  - Review load 38.9 and 32.1 per 100 lines.
+  - Review load 31.7 (EN) and 26.1 (FR) needs_review per 100 output lines.
 - **Sensitivity, never shipped:** the E-01-C2 votes without the verifier give EN .972 (103/106) and FR .958 (115/120), with 218 summed correct against 194 (O24).
 - **Arms:**
   - `E-subtype-drop`: reverted, d = 0 (O19).
   - `E-01-C`: reverted on the EN dev bar, P .936 (O23).
   - `header_context`: triggered, not run before the freeze (O25).
-- **Fallback (G2-T10):** gpt-4o-mini is not certified; its best threshold is EN P .619 (13/21). The A33 fallback stays at the strictest threshold (O26).
-- **Live spend at G2:** $3.4622 billed, of a cap raised by owner decisions from $3.00 to $3.75 (O23) and then to $4.25 (O25).
+- **Fallback (G2-T10):** gpt-4o-mini is not certified; at its best threshold, `T5`, EN P .714 (10/14) and FR P .619 (13/21). The A33 fallback stays at the strictest threshold (O26).
+- **Live spend at G2:** $3.4621 billed, of a cap raised by owner decisions from $3.00 to $3.75 (O23) and then to $4.25 (O25).

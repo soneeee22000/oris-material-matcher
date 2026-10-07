@@ -7,7 +7,7 @@
 # arm C enrichment file, so a run deciding under this entry renders it unless ORIS_ENRICHMENT
 # forces another or none.
 # Haiku on the global library: T8 with the E-08 verifier and the E-01 arm C enrichment. E-08 was
-# kept under A65.1 (eval/selection_v1_e08.json) and E-01-C2 under the §7.2 keep rule (O23); the
+# kept under A65.1 (eval/selection_v1_e08.json) and E-01-C2 under the §7.2 keep rule (O24); the
 # re-selection over the E-01-C2 and E-01-C2-T7 dev runs meets the dev bar at T8 (A67.2,
 # eval/selection_v1_e01.json). T8 alone was below the bar (eval/selection_v1.json, G2.md §5).
 policies:

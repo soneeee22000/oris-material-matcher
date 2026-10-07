@@ -60,9 +60,9 @@ Dev has 162 items per language, 139 of them labelled. FR input is scored against
 The shipped configuration is the bold row (`config/policy.yaml`): Haiku with k = 2 passes over two renderings of the library, the threshold `T8`, the E-08 sibling verifier, and the E-01 bilingual library enrichment (`data/enrichment/global.yaml`). Every line it does not match goes to `needs_review` with a reason code.
 - **Dev bar:** it meets P ≥ .95 with at least 40 matched lines in both languages, and the CP lower bound is at least .90 in both.
 - **Cost and speed:** about $0.003 per line and 0.75–0.80 s of wall clock per routed line.
-- **Review load:** 39 (EN) and 32 (FR) lines per 100 go to review.
+- **Review load:** 32 (EN) and 26 (FR) of every 100 output lines go to review.
 - **B2** matches every valid answer, so it is a baseline, not the shipped system.
-- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, lines go to review rather than being matched by a weaker model.
+- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, the fallback decides at the strictest threshold, where almost every line goes to review (1 match in 324 dev lines when measured).
 
 Live spend: $0.67 at G1, $3.46 at G2.
 
