@@ -46,6 +46,12 @@ glossary:
   term: manhole
 - false_friend: ''
   lang: en
+  meaning: concrete laid as the trafficked surface of a road, yard, hardstanding or plaza, which is wearing-course concrete and not general ready-mixed concrete
+  ref: EN 13877-1, concrete pavements, materials
+  source: dev_error
+  term: pavement quality concrete
+- false_friend: ''
+  lang: en
   meaning: reclaimed asphalt recovered from old pavements, the same material as RAP or the French AE
   ref: EN 13108-8, reclaimed asphalt
   source: standard
@@ -152,7 +158,7 @@ glossary:
   ref: ''
   source: dev_error
   term: tensioactif
-glossary_supplement_sha256: dada7ff1c44a925a9f45f54a14e615a38dbd6a034a89ef36f2bf063ffe84b278
+glossary_supplement_sha256: cd3ec8da03510680fbff9f51d15330dc741d24a9589445bd4466856c94c9bce9
 library_sha256: 6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2
 reviewed_by: builder, with a terminology and a leakage review (agent panel), 2026-10-07
 subtypes:
@@ -701,7 +707,7 @@ subtypes:
   subtype: Mat de candélabre composite - 6 à 12 m
   type: Équipements électriques
   usage: Éclairage extérieur
-term_map_sha256: 2d80c8f9c62ea183b56058ab97081643fd251d5df830085abdb4c0425c0e55b7
+term_map_sha256: 1b38e998356cfaf363d602a79a8874ada1957de168591c9f8bf2d10af3ce2047
 types:
 - also:
   - additive

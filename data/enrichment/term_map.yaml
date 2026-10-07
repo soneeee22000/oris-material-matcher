@@ -403,6 +403,23 @@ entries:
       - béton pour pieux
     source: library
     ref: ''
+  - term: Concrete mixture for wearing course
+    lang: en
+    equivalents:
+      - couche de roulement
+      - couche de roulement en béton
+      - béton de chaussée
+      - béton routier
+      - chaussée en béton
+      - dalle de chaussée
+      - pavement quality concrete
+      - PQC
+      - concrete pavement
+      - rigid pavement
+      - JPCP
+      - CRCP
+    source: dev_error
+    ref: EN 13877-1, concrete pavements, materials
   - term: concrete mixtures
     lang: en
     equivalents:

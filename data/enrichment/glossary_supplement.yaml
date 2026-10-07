@@ -40,6 +40,11 @@ entries:
     lang: en
     source: dev_error
     ref: EN 1917, concrete manholes and inspection chambers
+  - term: pavement quality concrete
+    meaning: concrete laid as the trafficked surface of a road, yard, hardstanding or plaza, which is wearing-course concrete and not general ready-mixed concrete
+    lang: en
+    source: dev_error
+    ref: EN 13877-1, concrete pavements, materials
   - term: RA (reclaimed asphalt)
     meaning: reclaimed asphalt recovered from old pavements, the same material as RAP or the French AE
     lang: en
