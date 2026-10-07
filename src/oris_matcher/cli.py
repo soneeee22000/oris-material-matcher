@@ -18,6 +18,12 @@ the adapter by request kind. The run is ``cached`` (``fake`` with a fake verifie
 replayed run as its source; its ``calls.jsonl`` holds both kinds, so a plain replay of it is
 byte-identical. Only a B3 run is mixed, only over a source the cache serves exactly as a replay
 would, and a live verifier only over answers first recorded live (A65 note, 2026-10-07).
+
+``--enrichment <file>`` (or ``ORIS_ENRICHMENT``) renders an arm C enrichment in a B3 run, and
+``none`` forces it off; without either, the deciding policy entry's file is used (A68.4). Any
+replay renders the replayed run's recorded enrichment (none for a run recorded without one),
+whatever the policy says now; the manifest records its path and SHA-256, and a file outside
+the repository is copied into the run folder like an external ``--policy`` file.
 """
 
 import asyncio
@@ -66,6 +72,7 @@ from oris_matcher.doctor import (
 )
 from oris_matcher.domain.boq import BoqFile
 from oris_matcher.domain.decision import DecisionProfile
+from oris_matcher.enrichment import ENRICHMENT_OFF, is_enrichment_off
 from oris_matcher.io.audit import (
     AUDIT_FILE,
     CALLS_FILE,
@@ -148,6 +155,8 @@ MAX_REPLAY_CHAIN = 64
 INPUT_ROLE = "input"
 POLICY_ROLE = "policy"
 LIBRARY_ROLE = "library"
+ENRICHMENT_ROLE = "enrichment"
+FALLBACK_PREFIX = "fallback_"
 FREEZE_TAG = "eval-freeze"
 GIT_TAGS_AT_HEAD = ("git", "tag", "--points-at", "HEAD")
 SHA256_HEX_RE = re.compile(r"[0-9a-f]{64}")
@@ -160,6 +169,10 @@ EXERCISE_INPUTS_SHA256 = frozenset(
 LLM_HELP = (
     "anthropic:<model> (default: the pinned primary), openai:<model> (e.g. gpt-4o-mini), "
     "fake, or replay:<run_dir>"
+)
+ENRICHMENT_HELP = (
+    "Arm C enrichment file a B3 run renders, or 'none'; default: ORIS_ENRICHMENT, else the "
+    "policy entry's file."
 )
 
 Selector = Callable[[BoqFile], Collection[str]]
@@ -246,6 +259,9 @@ class MatchJob:
             recorded value for a replay, else the setting.
         llm_verifier: Who answers the verifier requests of a mixed E-08 run; None means the
             live primary. Only a mixed run (see the module docstring) may name one.
+        enrichment: Forces the arm C enrichment file of a B3 run, or ``none`` to force it off
+            (A68.4); None keeps a replay's recorded enrichment, else follows the setting and
+            then the policy entry.
 
     """
 
@@ -264,6 +280,7 @@ class MatchJob:
     drop_conflicting_votes: bool | None = None
     verifier_adopted: bool | None = None
     llm_verifier: LLMSpec | None = None
+    enrichment: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -374,9 +391,16 @@ def settings_for_library(base: Settings, library_path: Path, root: Path) -> tupl
     return base.model_copy(update={"libraries": libraries}), CUSTOM_LIBRARY_ID
 
 
-def _service(settings: Settings, policy_path: Path | None) -> MatchService:
-    """Build the service; a ``--policy`` file replaces ``policy.yaml`` and is an override."""
+def _service(
+    settings: Settings, policy_path: Path | None, root: Path, fallback: Path | None = None
+) -> MatchService:
+    """Build the service; a ``--policy`` file replaces ``policy.yaml`` and is an override.
+
+    A policy entry's enrichment path is repository-relative, so it resolves against ``root``;
+    ``fallback`` forces the enrichment the A33 fallback's lines render (a replay's).
+    """
     resources = ServiceResources.from_settings(settings)
+    resources = dataclasses.replace(resources, root=root, fallback_enrichment=fallback)
     if policy_path is not None:
         policy = load_policy(policy_path)
         resources = dataclasses.replace(resources, policy=policy, policy_override=True)
@@ -403,21 +427,26 @@ def effective_spec(spec: LLMSpec, settings: Settings) -> LLMSpec:
     return LLMSpec(LLMKind.OPENAI)
 
 
-def require_committable_inputs(job: MatchJob, root: Path) -> None:
+def require_committable_inputs(job: MatchJob, root: Path, enrichment: Path | None = None) -> None:
     """Refuse host paths in a run that lands under ``runs/submission/`` (§9.6).
 
     Args:
         job: The run's inputs.
         root: The repository root.
+        enrichment: The run's effective forced enrichment: the job's, else ``ORIS_ENRICHMENT``,
+            else a replay's recorded one (A68.4); None checks the job's alone.
 
     Raises:
-        ValueError: The run folder is committable and an input, library, policy or replayed
-            run lies outside the repository.
+        ValueError: The run folder is committable and an input, library, policy, forced
+            enrichment or replayed run lies outside the repository.
 
     """
     if not is_committable(job.runs_dir, root):
         return
     paths = [job.input_path, job.library_path, job.policy_path, job.llm.run_dir]
+    forced = job.enrichment if enrichment is None else enrichment
+    if forced is not None and not is_enrichment_off(forced):
+        paths.append(forced)
     require_inside_root([path for path in paths if path is not None], root)
 
 
@@ -553,6 +582,96 @@ def decision_settings(job: MatchJob, settings: Settings) -> Settings:
     values = {"drop_conflicting_votes": drop, "verifier_adopted": verify}
     update = {name: value for name, value in values.items() if value is not None}
     return settings.model_copy(update=update) if update else settings
+
+
+def recorded_enrichment(run_dir: Path, root: Path, prefix: str = "") -> Path:
+    """Return the enrichment a recorded run rendered: its file, or ``none`` (A68.4).
+
+    A run recorded before A68, or without an enrichment, records no ``enrichment_sha256``,
+    so its replay renders none whatever the setting or the policy says now.
+
+    Args:
+        run_dir: The recorded run folder.
+        root: The repository root a recorded path is relative to.
+        prefix: ``fallback_`` reads what the A33 fallback's lines rendered instead.
+
+    Returns:
+        ``none``, or the recorded file: repository-relative, or the run folder's copy of an
+        external one.
+
+    Raises:
+        WiringError: The recorded file is missing, or its bytes changed.
+
+    """
+    manifest = read_manifest(run_dir)
+    recorded = manifest.get(f"{prefix}enrichment_sha256")
+    if not recorded:
+        return Path(ENRICHMENT_OFF)
+    value = manifest.get(f"{prefix}enrichment_path")
+    path = _recorded_file(value, ENRICHMENT_ROLE, run_dir, root)
+    if path is None or not path.is_file():
+        raise WiringError(f"{run_dir.as_posix()}: the enrichment file it rendered is not found")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != recorded:
+        raise WiringError(
+            f"enrichment {path.as_posix()} is not the one {run_dir.as_posix()} rendered "
+            f"({str(recorded)[:12]})"
+        )
+    return path
+
+
+def enrichment_settings(job: MatchJob, settings: Settings, root: Path) -> Settings:
+    """Apply the run's enrichment: the job's value, else a replay's recorded one (A68.4).
+
+    Args:
+        job: The run's inputs.
+        settings: The effective settings.
+        root: The repository root a relative path resolves against.
+
+    Returns:
+        The settings with ``enrichment`` forced by the job, or read back from the replayed
+        run (``none`` for a run recorded without one); otherwise unchanged, so the setting and
+        then the policy entry decide. A forced file is made absolute against the root.
+
+    Raises:
+        WiringError: A replayed run's enrichment file is missing or changed.
+
+    """
+    forced = job.enrichment
+    replayed = _replayed_dir(job, job.llm)
+    if forced is None and replayed is not None:
+        forced = recorded_enrichment(replayed, root)
+    if forced is None:
+        return settings
+    if not is_enrichment_off(forced):
+        forced = _resolved(forced, root)
+    return settings.model_copy(update={"enrichment": forced})
+
+
+def fallback_enrichment(job: MatchJob, root: Path) -> Path | None:
+    """Return the enrichment a replay's fallback re-renders: what the recorded one rendered.
+
+    A forced ``--enrichment`` applies to the fallback too, so it leaves this None, as does a
+    run that replays nothing, or one whose recorded fallback never took over or was recorded
+    before the fallback rendered its own entry's enrichment (it then rendered the primary's).
+
+    Args:
+        job: The run's inputs.
+        root: The repository root a recorded path is relative to.
+
+    Returns:
+        ``none`` or the recorded file, else None to follow the setting and the policy entry.
+
+    Raises:
+        WiringError: The recorded file is missing, or its bytes changed.
+
+    """
+    replayed = _replayed_dir(job, job.llm)
+    if job.enrichment is not None or replayed is None:
+        return None
+    manifest = read_manifest(replayed)
+    if not manifest.get("fallback_engaged") or "fallback_enrichment_sha256" not in manifest:
+        return None
+    return recorded_enrichment(replayed, root, FALLBACK_PREFIX)
 
 
 def mixed_verifier_spec(job: MatchJob, settings: Settings) -> LLMSpec | None:
@@ -772,6 +891,8 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     boq = read_boq(data)
     settings, library_id = settings_for_library(base, job.library_path, runtime.root())
     settings = decision_settings(job, settings)
+    settings = enrichment_settings(job, settings, runtime.root())
+    require_committable_inputs(job, runtime.root(), settings.enrichment)
     spec = job.llm if job.profile == RunProfile.B0 else effective_spec(job.llm, settings)
     digest = hashlib.sha256(data).hexdigest()
     check_exercise_input(job, spec, digest, runtime)
@@ -785,7 +906,8 @@ def prepare_run(job: MatchJob, base: Settings, runtime: Runtime) -> PreparedRun:
     else:
         check_exercise_input(job, verifier_spec, digest, runtime)
         adapter, fallback = mixed_adapter(job, verifier_spec, model, settings, runtime), None
-    service = _service(settings, job.policy_path)
+    rescued = fallback_enrichment(job, runtime.root())
+    service = _service(settings, job.policy_path, runtime.root(), rescued)
     return PreparedRun(
         settings, library_id, pricing, service, adapter, boq, digest, spec, fallback, verifier_spec
     )
@@ -1043,8 +1165,10 @@ def external_copy(folder: Path, role: str, name: str) -> Path:
     return folder / EXTERNAL_DIR / role / name
 
 
-def keep_external_inputs(job: MatchJob, folder: Path, root: Path) -> None:
-    """Copy an input, library or policy file outside the repository into the run folder.
+def keep_external_inputs(
+    job: MatchJob, folder: Path, root: Path, enrichment: Path | None = None
+) -> None:
+    """Copy an input, library, policy or enrichment file outside the repository into the run.
 
     The manifest records such a file by its name only (§9.6), so the copy is what a replay
     reads when the environment has no such file. Committable runs never get here with an
@@ -1054,12 +1178,14 @@ def keep_external_inputs(job: MatchJob, folder: Path, root: Path) -> None:
         job: The run's inputs.
         folder: The run folder.
         root: The repository root.
+        enrichment: The enrichment file the run rendered, or None (A68.4).
 
     """
     roles = (
         (INPUT_ROLE, job.input_path),
         (LIBRARY_ROLE, job.library_path),
         (POLICY_ROLE, job.policy_path),
+        (ENRICHMENT_ROLE, enrichment),
     )
     for role, path in roles:
         if path is None or not is_external(portable_path(path, root)):
@@ -1089,7 +1215,7 @@ def execute_match(job: MatchJob, base: Settings, runtime: Runtime) -> MatchOutco
         root = runtime.root()
         manifest = with_measured_tokens(manifest, root / DEFAULT_EVIDENCE_DIR, root)
     folder = write_run(result, job.runs_dir, manifest)
-    keep_external_inputs(job, folder, runtime.root())
+    keep_external_inputs(job, folder, runtime.root(), result.enrichment_path)
     output_path = job.output_path or folder / OUTPUT_FILE
     output_path.write_bytes(render_csv(result, excel_bom=job.excel_bom))
     return MatchOutcome(result, folder, output_path, manifest)
@@ -1221,10 +1347,12 @@ def match_command(  # noqa: PLR0913, PLR0917
     split_sha256: Annotated[
         str | None, typer.Option("--split-sha256", help="SHA-256 of the split, recorded only.")
     ] = None,
+    enrichment: Annotated[str | None, typer.Option("--enrichment", help=ENRICHMENT_HELP)] = None,
 ) -> None:
     """Match every line of a BoQ (the default command)."""
     try:
         job = MatchJob(
+            enrichment=Path(enrichment) if enrichment is not None else None,
             split_sha256=_split_sha256(split_sha256),
             input_path=input_path,
             library_path=library,

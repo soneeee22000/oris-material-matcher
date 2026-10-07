@@ -1,0 +1,13 @@
+T01 Aggregates
+  T01.U01 Unbound mixtures [also: GNT; grave non traitée]
+    T01.U01.S01 0/31.5
+T02 Concrete [also: BPE; béton]
+  T02.U01 for footings [also: semelles]
+    T02.U01.S00 (no subtype)
+    T02.U01.S01 C25/30
+    T02.U01.S02 C30/37 [also: classe C30/37]
+  T02.U02 for walls
+    T02.U02.S01 C30/37 [also: classe C30/37]
+T03 Steel
+  T03.U01 Rebar [also: aciers HA; Armatures]
+    T03.U01.S01 B500B

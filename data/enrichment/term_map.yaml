@@ -1,0 +1,2110 @@
+# A68 §1 term map (DESIGN.md §6 arm C, §10.8). General domain vocabulary only, never BoQ item text.
+# term: a phrase exactly as one library writes it in a type, usage or subtype label (whole phrase,
+#   case-insensitive after the §6 normaliser); lang: the term's language (en | fr).
+# equivalents: the other language's terms, plus abbreviations and standard designations.
+# source is the provenance tag:
+#   library   - a translation of the library's own vocabulary;
+#   standard  - a designation fixed by a public norm, named in ref (required);
+#   dev_error - a general fact added because dev error evidence showed the gap (still no item text).
+# Entries are sorted by (lang, normalised term); keys are in the order term, lang, equivalents,
+# source, ref. Reviewed before use: see data/enrichment/README.md.
+entries:
+  - term: '- WMA'
+    lang: en
+    equivalents:
+      - enrobé tiède
+      - enrobés tièdes
+      - tiède
+      - température abaissée
+      - basse température
+      - warm mix
+      - warm mix asphalt
+      - reduced temperature
+    source: dev_error
+    ref: ''
+  - term: abutment
+    lang: en
+    equivalents:
+      - culée
+      - culées
+    source: library
+    ref: ''
+  - term: Additives
+    lang: en
+    equivalents:
+      - additifs
+    source: library
+    ref: ''
+  - term: Additives for asphalt
+    lang: en
+    equivalents:
+      - additifs pour enrobés
+      - additifs pour mélange bitumineux
+    source: library
+    ref: ''
+  - term: Admixture
+    lang: en
+    equivalents:
+      - adjuvant
+      - adjuvants
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: admixtures
+    lang: en
+    equivalents:
+      - adjuvants
+      - adjuvants pour béton
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: Aggregates
+    lang: en
+    equivalents:
+      - granulats
+      - matériaux granulaires
+    source: standard
+    ref: EN 13242, aggregates for unbound and hydraulically bound materials
+  - term: Air entrainer
+    lang: en
+    equivalents:
+      - entraîneur d'air
+      - agent entraîneur d'air
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: annular gap filling
+    lang: en
+    equivalents:
+      - bourrage annulaire
+      - comblement du vide annulaire
+      - mortier de bourrage
+    source: library
+    ref: ''
+  - term: asbestos
+    lang: en
+    equivalents:
+      - amiante
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Asphalt
+    lang: en
+    equivalents:
+      - enrobé
+      - enrobés
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
+  - term: Asphalt Concrete
+    lang: en
+    equivalents:
+      - béton bitumineux
+      - BB
+      - BBSG
+      - BBME
+      - BBM
+      - grave-bitume
+      - GB
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-130, NF P 98-138
+  - term: asphalt mixture
+    lang: en
+    equivalents:
+      - enrobé
+      - enrobés
+      - enrobés bitumineux
+      - mélanges bitumineux
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
+  - term: asphalt mixtures
+    lang: en
+    equivalents:
+      - pour enrobés
+      - pour enrobés bitumineux
+      - pour mélanges bitumineux
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
+  - term: Ballast
+    lang: en
+    equivalents:
+      - ballast ferroviaire
+      - ballast de voie
+    source: standard
+    ref: EN 13450, aggregates for railway ballast
+  - term: base course
+    lang: en
+    equivalents:
+      - couche de base
+      - assise de chaussée
+    source: library
+    ref: ''
+  - term: base layer
+    lang: en
+    equivalents:
+      - couche de base
+    source: library
+    ref: ''
+  - term: base slab
+    lang: en
+    equivalents:
+      - radier
+      - dalle de fond
+    source: library
+    ref: ''
+  - term: beam
+    lang: en
+    equivalents:
+      - poutre
+      - poutres
+    source: library
+    ref: ''
+  - term: binder course
+    lang: en
+    equivalents:
+      - couche de liaison
+      - couche intermédiaire
+    source: library
+    ref: ''
+  - term: Bitumen
+    lang: en
+    equivalents:
+      - bitume
+      - liant bitumineux
+      - liants bitumineux
+    source: standard
+    ref: EN 12591, paving grade bitumens
+  - term: Bitumen emulsion
+    lang: en
+    equivalents:
+      - émulsion de bitume
+      - émulsion bitumineuse
+      - émulsion
+    source: standard
+    ref: EN 13808, cationic bitumen emulsions
+  - term: Bituminous mixtures
+    lang: en
+    equivalents:
+      - mélanges bitumineux
+      - déchets d'enrobés
+      - déchets de mélanges bitumineux
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Blast furnace slag
+    lang: en
+    equivalents:
+      - laitier de haut fourneau
+      - laitier moulu
+      - GGBS
+      - GGBFS
+    source: standard
+    ref: EN 15167-1, ground granulated blast furnace slag
+  - term: brass
+    lang: en
+    equivalents:
+      - laiton
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Brick
+    lang: en
+    equivalents:
+      - brique
+      - briques
+      - brique en terre cuite
+    source: standard
+    ref: EN 771-1, clay masonry units
+  - term: Brick (clay)
+    lang: en
+    equivalents:
+      - pavé en terre cuite
+      - pavés en terre cuite
+      - clay paver
+      - clay pavers
+    source: dev_error
+    ref: ''
+  - term: Bricks
+    lang: en
+    equivalents:
+      - briques
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: bridge deck
+    lang: en
+    equivalents:
+      - tablier
+      - tablier de pont
+    source: library
+    ref: ''
+  - term: Cables
+    lang: en
+    equivalents:
+      - câbles
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Cabling
+    lang: en
+    equivalents:
+      - câblage
+      - câbles
+    source: library
+    ref: ''
+  - term: capping
+    lang: en
+    equivalents:
+      - couche de forme
+    source: library
+    ref: ''
+  - term: Cellular concrete mortar
+    lang: en
+    equivalents:
+      - mortier cellulaire
+      - béton mousse
+    source: library
+    ref: ''
+  - term: CEM I
+    lang: en
+    equivalents:
+      - ciment Portland
+      - CPA
+      - CPA-CEM I
+    source: standard
+    ref: EN 197-1, common cements; NF P 15-301 (1994) for the former French names
+  - term: CEM II
+    lang: en
+    equivalents:
+      - ciment Portland composé
+      - CPJ
+      - CPJ-CEM II
+    source: standard
+    ref: EN 197-1, common cements; NF P 15-301 (1994) for the former French names
+  - term: CEM III
+    lang: en
+    equivalents:
+      - ciment de haut fourneau
+      - ciment au laitier
+      - CHF
+      - CLK
+    source: standard
+    ref: EN 197-1, common cements; NF P 15-301 (1994) for the former French names
+  - term: CEM IV
+    lang: en
+    equivalents:
+      - ciment pouzzolanique
+      - CPZ
+    source: standard
+    ref: EN 197-1, common cements; NF P 15-301 (1994) for the former French names
+  - term: CEM V
+    lang: en
+    equivalents:
+      - ciment composé
+      - CLC
+    source: standard
+    ref: EN 197-1, common cements; NF P 15-301 (1994) for the former French names
+  - term: Cement
+    lang: en
+    equivalents:
+      - ciment
+    source: standard
+    ref: EN 197-1, common cements
+  - term: Cement bound granular mixture
+    lang: en
+    equivalents:
+      - grave-ciment
+      - grave ciment
+      - CBGM
+      - grave traitée au ciment
+      - HBM
+    source: standard
+    ref: EN 14227-1, cement bound granular mixtures
+  - term: ceramics
+    lang: en
+    equivalents:
+      - céramiques
+      - céramique
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: chemical process
+    lang: en
+    equivalents:
+      - procédé chimique
+      - additif chimique
+      - tensioactif
+      - additif tensioactif
+      - surfactant
+    source: dev_error
+    ref: ''
+  - term: Chip Seal
+    lang: en
+    equivalents:
+      - enduit superficiel
+      - ESU
+    source: standard
+    ref: EN 12271, surface dressing
+  - term: cladding
+    lang: en
+    equivalents:
+      - parement
+      - parements
+    source: library
+    ref: ''
+  - term: clay
+    lang: en
+    equivalents:
+      - terre cuite
+      - argile
+    source: library
+    ref: ''
+  - term: coal tar
+    lang: en
+    equivalents:
+      - goudron
+      - goudron de houille
+      - brai de houille
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: coating
+    lang: en
+    equivalents:
+      - enrobage
+    source: library
+    ref: ''
+  - term: Cold Recycled
+    lang: en
+    equivalents:
+      - recyclage à froid
+      - retraitement à froid
+      - retraitement en place
+    source: library
+    ref: ''
+  - term: Concrete
+    lang: en
+    equivalents:
+      - béton
+      - bétons
+    source: standard
+    ref: EN 206, concrete
+  - term: Concrete arisings
+    lang: en
+    equivalents:
+      - béton de démolition
+      - bétons concassés
+      - granulats de béton recyclé
+    source: library
+    ref: ''
+  - term: Concrete cable ducts
+    lang: en
+    equivalents:
+      - caniveau à câbles
+      - caniveaux à câbles
+      - cable trough
+      - cable troughs
+    source: dev_error
+    ref: ''
+  - term: Concrete for piles
+    lang: en
+    equivalents:
+      - pieu
+      - pieux
+      - béton pour pieux
+    source: library
+    ref: ''
+  - term: concrete mixtures
+    lang: en
+    equivalents:
+      - bétons
+      - béton hydraulique
+    source: standard
+    ref: EN 206, concrete
+  - term: Concrete paving blocks
+    lang: en
+    equivalents:
+      - pavés béton
+      - pavés en béton
+      - pavé béton
+    source: standard
+    ref: EN 1338, concrete paving blocks
+  - term: concrete reinforcement
+    lang: en
+    equivalents:
+      - armatures
+      - armatures pour béton armé
+      - acier pour béton armé
+      - ferraillage
+      - rebar
+    source: standard
+    ref: EN 10080, steel for the reinforcement of concrete
+  - term: Construction and demolition
+    lang: en
+    equivalents:
+      - déchets de construction et démolition
+      - déchets du BTP
+      - déchets de chantier
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Copper
+    lang: en
+    equivalents:
+      - cuivre
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Crushed rock
+    lang: en
+    equivalents:
+      - roche concassée
+      - matériaux concassés
+      - concassé
+    source: library
+    ref: ''
+  - term: curbs
+    lang: en
+    equivalents:
+      - bordures
+      - bordures de trottoir
+      - kerbs
+    source: standard
+    ref: EN 1340, concrete kerb units
+  - term: Cut back
+    lang: en
+    equivalents:
+      - bitume fluidifié
+      - cut-back
+      - cutback
+    source: standard
+    ref: EN 15322, cut-back and fluxed bituminous binders
+  - term: Drainage
+    lang: en
+    equivalents:
+      - assainissement
+      - drainage pluvial
+    source: library
+    ref: ''
+  - term: dredging spoil
+    lang: en
+    equivalents:
+      - boues de dragage
+      - produits de dragage
+      - sédiments de dragage
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: earthworks
+    lang: en
+    equivalents:
+      - terrassements
+      - terrassement
+    source: library
+    ref: ''
+  - term: edges
+    lang: en
+    equivalents:
+      - bordurette
+      - bordurettes
+    source: library
+    ref: ''
+  - term: embankment
+    lang: en
+    equivalents:
+      - remblai
+      - remblais
+    source: library
+    ref: ''
+  - term: excavated soil
+    lang: en
+    equivalents:
+      - terres excavées
+      - déblais
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: excavation beam
+    lang: en
+    equivalents:
+      - lierne
+      - liernes
+      - waling
+      - walings
+    source: dev_error
+    ref: ''
+  - term: Excavations
+    lang: en
+    equivalents:
+      - déblais
+      - fouilles
+      - terrassements
+    source: library
+    ref: ''
+  - term: fence
+    lang: en
+    equivalents:
+      - clôture
+      - clôtures
+    source: library
+    ref: ''
+  - term: Filler
+    lang: en
+    equivalents:
+      - filler d'apport
+      - fines d'apport
+    source: standard
+    ref: EN 13043, aggregates for bituminous mixtures
+  - term: Filtration layer
+    lang: en
+    equivalents:
+      - couche filtrante
+      - couche drainante
+    source: library
+    ref: ''
+  - term: Fly Ash
+    lang: en
+    equivalents:
+      - cendres volantes
+      - PFA
+    source: standard
+    ref: EN 450-1, fly ash for concrete
+  - term: Foamed bitumen
+    lang: en
+    equivalents:
+      - mousse de bitume
+      - bitume moussé
+      - grave-mousse
+    source: library
+    ref: ''
+  - term: foaming systems
+    lang: en
+    equivalents:
+      - moussage
+      - procédé par moussage
+      - zéolithe
+      - zéolithes
+    source: library
+    ref: ''
+  - term: footings
+    lang: en
+    equivalents:
+      - semelles
+      - semelles de fondation
+      - fondations superficielles
+    source: library
+    ref: ''
+  - term: Gabion
+    lang: en
+    equivalents:
+      - gabions
+      - mur en gabions
+    source: library
+    ref: ''
+  - term: General Ready mixed concrete
+    lang: en
+    equivalents:
+      - BPE
+      - béton prêt à l'emploi
+      - béton de centrale
+    source: standard
+    ref: EN 206, concrete
+  - term: Geotextile
+    lang: en
+    equivalents:
+      - géotextile
+      - géotextiles
+    source: standard
+    ref: EN 13249, geotextiles for roads
+  - term: girder
+    lang: en
+    equivalents:
+      - poutre
+      - poutre principale
+    source: library
+    ref: ''
+  - term: Glass
+    lang: en
+    equivalents:
+      - verre
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Gravel
+    lang: en
+    equivalents:
+      - gravillons
+      - gravier
+      - graviers
+    source: library
+    ref: ''
+  - term: Guardrail
+    lang: en
+    equivalents:
+      - glissière de sécurité
+      - glissières de sécurité
+      - glissière métallique
+    source: standard
+    ref: EN 1317-2, road restraint systems
+  - term: Gypsum-based
+    lang: en
+    equivalents:
+      - à base de plâtre
+      - à base de gypse
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Handrail
+    lang: en
+    equivalents:
+      - main courante
+      - garde-corps
+    source: library
+    ref: ''
+  - term: harderning accelerator
+    lang: en
+    equivalents:
+      - accélérateur de durcissement
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: hazardous substances
+    lang: en
+    equivalents:
+      - substances dangereuses
+      - déchets dangereux
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: HDPE
+    lang: en
+    equivalents:
+      - PEHD
+      - polyéthylène haute densité
+    source: library
+    ref: ''
+  - term: High Modulus Asphalt
+    lang: en
+    equivalents:
+      - enrobé à module élevé
+      - EME
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-140, EME
+  - term: HMA
+    lang: en
+    equivalents:
+      - enrobé à chaud
+      - enrobé chaud
+      - enrobés à chaud
+      - hot mix asphalt
+      - hot mix
+    source: library
+    ref: ''
+  - term: Hydrated lime
+    lang: en
+    equivalents:
+      - chaux éteinte
+      - chaux hydratée
+      - chaux aérienne éteinte
+      - CL 90-S
+      - CL 80-S
+      - Ca(OH)2
+    source: standard
+    ref: EN 459-1, building lime
+  - term: hydraulically bound mixtures
+    lang: en
+    equivalents:
+      - HBM
+      - CBGM
+      - grave-ciment
+      - grave ciment
+      - grave traitée aux liants hydrauliques
+      - GTLH
+      - matériaux traités aux liants hydrauliques
+      - MTLH
+      - sol traité
+      - traitement de sols
+    source: standard
+    ref: EN 14227-1, cement bound granular mixtures; EN 14227-15, hydraulically stabilised soils
+  - term: Insulation materials
+    lang: en
+    equivalents:
+      - matériaux isolants
+      - isolants
+      - matériaux d'isolation
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Iron and steel
+    lang: en
+    equivalents:
+      - fer et acier
+      - ferraille
+      - ferrailles
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: landfill
+    lang: en
+    equivalents:
+      - mise en décharge
+      - décharge
+      - ISDI
+      - stockage de déchets
+    source: library
+    ref: ''
+  - term: Lead
+    lang: en
+    equivalents:
+      - plomb
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Lean concrete
+    lang: en
+    equivalents:
+      - béton maigre
+      - béton de propreté
+    source: library
+    ref: ''
+  - term: Limestone
+    lang: en
+    equivalents:
+      - calcaire
+      - pierre calcaire
+    source: library
+    ref: ''
+  - term: Mastic Asphalt (MA)
+    lang: en
+    equivalents:
+      - asphalte coulé
+      - asphalte
+      - asphalte d'étanchéité
+    source: standard
+    ref: EN 13108-6, mastic asphalt
+  - term: mattress
+    lang: en
+    equivalents:
+      - matelas
+      - matelas gabion
+    source: library
+    ref: ''
+  - term: mercury
+    lang: en
+    equivalents:
+      - mercure
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Metallic fibers
+    lang: en
+    equivalents:
+      - fibres métalliques
+      - fibres d'acier
+    source: library
+    ref: ''
+  - term: Metals
+    lang: en
+    equivalents:
+      - métaux
+      - métal
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Micropiles
+    lang: en
+    equivalents:
+      - micropieux
+      - micropieu
+    source: library
+    ref: ''
+  - term: Mixed metals
+    lang: en
+    equivalents:
+      - métaux en mélange
+      - métaux mélangés
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: MSE walls
+    lang: en
+    equivalents:
+      - terre armée
+      - mur en terre armée
+      - sol renforcé
+      - massif en sol renforcé
+    source: standard
+    ref: EN 14475, reinforced fill
+  - term: Normal Bitumen
+    lang: en
+    equivalents:
+      - bitume pur
+      - bitumes purs
+      - bitume routier
+      - bitume de grade
+    source: standard
+    ref: EN 12591, paving grade bitumens
+  - term: organic additives
+    lang: en
+    equivalents:
+      - additif organique
+      - cire
+      - cires
+      - abaisseur de viscosité
+    source: dev_error
+    ref: ''
+  - term: Organic fibers
+    lang: en
+    equivalents:
+      - fibres organiques
+      - fibres de cellulose
+    source: library
+    ref: ''
+  - term: Other prefabricated concrete elements
+    lang: en
+    equivalents:
+      - éléments préfabriqués en béton
+      - regard
+      - regards
+      - regard de visite
+      - chambre de visite
+      - manhole
+      - manholes
+      - inspection chamber
+    source: dev_error
+    ref: ''
+  - term: pavement
+    lang: en
+    equivalents:
+      - chaussée
+      - chaussées
+    source: library
+    ref: ''
+  - term: PCB
+    lang: en
+    equivalents:
+      - polychlorobiphényles
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: piers
+    lang: en
+    equivalents:
+      - pile de pont
+      - piles de pont
+      - appui intermédiaire
+      - appuis intermédiaires
+    source: library
+    ref: ''
+  - term: Plastic
+    lang: en
+    equivalents:
+      - plastique
+      - plastiques
+      - matières plastiques
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Plasticiser
+    lang: en
+    equivalents:
+      - plastifiant
+      - plastifiant réducteur d'eau
+      - réducteur d'eau
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: Polymer Modified Bitumen
+    lang: en
+    equivalents:
+      - bitume modifié
+      - bitumes modifiés
+      - bitume polymère
+      - PmB
+    source: standard
+    ref: EN 14023, polymer modified bitumens
+  - term: Porous Asphalt
+    lang: en
+    equivalents:
+      - béton bitumineux drainant
+      - BBDr
+      - enrobé drainant
+    source: standard
+    ref: EN 13108-7, porous asphalt; NF P 98-134, BBDr
+  - term: Porous concrete
+    lang: en
+    equivalents:
+      - béton drainant
+      - béton poreux
+    source: library
+    ref: ''
+  - term: Precast
+    lang: en
+    equivalents:
+      - préfabriqué
+      - préfabriqués
+      - en éléments préfabriqués
+    source: library
+    ref: ''
+  - term: Prefab
+    lang: en
+    equivalents:
+      - préfabriqué
+      - élément préfabriqué
+      - éléments préfabriqués
+    source: library
+    ref: ''
+  - term: prestressed concrete
+    lang: en
+    equivalents:
+      - béton précontraint
+      - BP
+    source: library
+    ref: ''
+  - term: PVC-U
+    lang: en
+    equivalents:
+      - PVC rigide
+      - PVC non plastifié
+    source: library
+    ref: ''
+  - term: Quicklime
+    lang: en
+    equivalents:
+      - chaux vive
+      - CL 90-Q
+      - CL 80-Q
+      - CaO
+    source: standard
+    ref: EN 459-1, building lime
+  - term: railway
+    lang: en
+    equivalents:
+      - ferroviaire
+      - voie ferrée
+      - chemin de fer
+    source: library
+    ref: ''
+  - term: railway track
+    lang: en
+    equivalents:
+      - voie ferrée
+      - rails
+      - voie
+    source: library
+    ref: ''
+  - term: Rain gutter
+    lang: en
+    equivalents:
+      - gouttière
+      - gouttières
+      - chéneau
+    source: library
+    ref: ''
+  - term: RAP
+    lang: en
+    equivalents:
+      - agrégats d'enrobés
+      - AE
+      - reclaimed asphalt
+      - RA
+    source: standard
+    ref: EN 13108-8, reclaimed asphalt
+  - term: Reclaimed Asphalt
+    lang: en
+    equivalents:
+      - agrégats d'enrobés
+      - AE
+      - RAP
+      - RA
+      - fraisats d'enrobés
+    source: standard
+    ref: EN 13108-8, reclaimed asphalt
+  - term: Reclaimed Asphalt Planings
+    lang: en
+    equivalents:
+      - fraisats
+      - fraisats d'enrobés
+      - agrégats d'enrobés
+      - AE
+      - RA
+    source: standard
+    ref: EN 13108-8, reclaimed asphalt
+  - term: Recycled Aggregates
+    lang: en
+    equivalents:
+      - granulats recyclés
+      - granulats de recyclage
+      - matériaux recyclés
+    source: standard
+    ref: EN 13242, aggregates for unbound and hydraulically bound materials
+  - term: Recycled Plastic
+    lang: en
+    equivalents:
+      - plastique recyclé
+      - plastiques recyclés
+    source: library
+    ref: ''
+  - term: reinforced concrete
+    lang: en
+    equivalents:
+      - béton armé
+      - BA
+    source: library
+    ref: ''
+  - term: retaining wall
+    lang: en
+    equivalents:
+      - mur de soutènement
+      - murs de soutènement
+    source: library
+    ref: ''
+  - term: Retarder
+    lang: en
+    equivalents:
+      - retardateur
+      - retardateur de prise
+      - retardateurs
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: rock
+    lang: en
+    equivalents:
+      - roche
+      - rocher
+      - matériaux rocheux
+    source: library
+    ref: ''
+  - term: Rock Cutting
+    lang: en
+    equivalents:
+      - déblai rocheux
+      - déblais rocheux
+      - abattage de roche
+    source: library
+    ref: ''
+  - term: Sand
+    lang: en
+    equivalents:
+      - sable
+      - sables
+    source: library
+    ref: ''
+  - term: Set accelerator
+    lang: en
+    equivalents:
+      - accélérateur de prise
+      - accélérateurs de prise
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: Sheet piles
+    lang: en
+    equivalents:
+      - palplanches
+      - palplanche
+      - rideau de palplanches
+    source: standard
+    ref: EN 10248, hot rolled sheet piling
+  - term: Silica Fume
+    lang: en
+    equivalents:
+      - fumée de silice
+      - fumées de silice
+      - microsilice
+    source: standard
+    ref: EN 13263-1, silica fume for concrete
+  - term: sleeper
+    lang: en
+    equivalents:
+      - traverse
+      - traverses
+      - traverse béton
+      - traverses béton
+    source: standard
+    ref: EN 13230, concrete sleepers and bearers
+  - term: Soil
+    lang: en
+    equivalents:
+      - sol
+      - sols
+      - terre
+      - terres
+    source: library
+    ref: ''
+  - term: Soil Excavation
+    lang: en
+    equivalents:
+      - déblais de terre
+      - terres excavées
+    source: library
+    ref: ''
+  - term: Soil-Mix wall
+    lang: en
+    equivalents:
+      - paroi soil-mix
+      - sol-ciment
+    source: library
+    ref: ''
+  - term: Steel
+    lang: en
+    equivalents:
+      - acier
+      - aciers
+    source: library
+    ref: ''
+  - term: Stone Mastic Asphalt
+    lang: en
+    equivalents:
+      - SMA
+      - enrobé SMA
+    source: standard
+    ref: EN 13108-5, stone mastic asphalt
+  - term: stones
+    lang: en
+    equivalents:
+      - pierres
+      - cailloux
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Structural steel
+    lang: en
+    equivalents:
+      - acier de construction
+      - charpente métallique
+      - acier de charpente
+    source: library
+    ref: ''
+  - term: subbase
+    lang: en
+    equivalents:
+      - couche de fondation
+    source: standard
+    ref: SETRA-LCPC (1994), Conception et dimensionnement des structures de chaussées
+  - term: Sulphur pellets
+    lang: en
+    equivalents:
+      - granulés de soufre
+      - soufre
+    source: library
+    ref: ''
+  - term: surface course
+    lang: en
+    equivalents:
+      - couche de roulement
+      - couche de surface
+    source: library
+    ref: ''
+  - term: Surface dressing
+    lang: en
+    equivalents:
+      - enduit superficiel
+      - enduit superficiel d'usure
+      - ESU
+    source: standard
+    ref: EN 12271, surface dressing
+  - term: tarred products
+    lang: en
+    equivalents:
+      - produits goudronnés
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: technologies (WMA)
+    lang: en
+    equivalents:
+      - additif WMA
+      - additifs WMA
+      - additif pour WMA
+      - warm mix additive
+    source: library
+    ref: ''
+  - term: Tile
+    lang: en
+    equivalents:
+      - tuile
+      - carreau
+      - carrelage
+    source: library
+    ref: ''
+  - term: Tiles
+    lang: en
+    equivalents:
+      - tuiles
+      - carreaux
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: timber
+    lang: en
+    equivalents:
+      - bois
+      - bois de construction
+    source: library
+    ref: ''
+  - term: Tin
+    lang: en
+    equivalents:
+      - étain
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Track ballast
+    lang: en
+    equivalents:
+      - ballast de voie
+      - ballast ferroviaire
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: transition slabs
+    lang: en
+    equivalents:
+      - dalle de transition
+      - dalles de transition
+    source: library
+    ref: ''
+  - term: trenches
+    lang: en
+    equivalents:
+      - caniveau
+      - caniveaux
+    source: library
+    ref: ''
+  - term: tunnel blasting
+    lang: en
+    equivalents:
+      - marin
+      - marins
+      - déblais de tunnel
+      - abattage à l'explosif
+    source: library
+    ref: ''
+  - term: tunnel collar
+    lang: en
+    equivalents:
+      - tête de tunnel
+    source: library
+    ref: ''
+  - term: tunnel lining
+    lang: en
+    equivalents:
+      - revêtement de tunnel
+      - cintres
+      - cintres métalliques
+    source: library
+    ref: ''
+  - term: unbound aggregates
+    lang: en
+    equivalents:
+      - grave non traitée
+      - GNT
+      - granulats non liés
+      - matériaux non traités
+    source: standard
+    ref: EN 13285, unbound mixtures
+  - term: Virgin Aggregates
+    lang: en
+    equivalents:
+      - granulats naturels
+      - granulats neufs
+      - matériaux neufs
+      - granulats de carrière
+    source: library
+    ref: ''
+  - term: Waste
+    lang: en
+    equivalents:
+      - déchets
+      - déchet
+    source: library
+    ref: ''
+  - term: Water
+    lang: en
+    equivalents:
+      - eau
+    source: library
+    ref: ''
+  - term: Water resisting admixtures
+    lang: en
+    equivalents:
+      - hydrofuge
+      - hydrofuge de masse
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: wearing course
+    lang: en
+    equivalents:
+      - couche de roulement
+    source: library
+    ref: ''
+  - term: Wet Shotcrete
+    lang: en
+    equivalents:
+      - béton projeté
+      - béton projeté par voie humide
+    source: standard
+    ref: EN 14487-1, sprayed concrete
+  - term: Wood
+    lang: en
+    equivalents:
+      - bois
+    source: library
+    ref: ''
+  - term: Accélérateurs de prise
+    lang: fr
+    equivalents:
+      - set accelerator
+      - set accelerators
+      - accelerator
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: acier
+    lang: fr
+    equivalents:
+      - steel
+    source: library
+    ref: ''
+  - term: Additif pour WMA
+    lang: fr
+    equivalents:
+      - WMA additive
+      - warm mix additive
+      - warm-mix additive
+    source: library
+    ref: ''
+  - term: Additifs
+    lang: fr
+    equivalents:
+      - additives
+      - additive
+    source: library
+    ref: ''
+  - term: Additifs pour mélange bitumineux
+    lang: fr
+    equivalents:
+      - additives for asphalt
+      - asphalt additives
+    source: library
+    ref: ''
+  - term: Adjuvants
+    lang: fr
+    equivalents:
+      - admixtures
+      - admixture
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: Adjuvants pour bétons
+    lang: fr
+    equivalents:
+      - admixtures for concrete
+      - concrete admixtures
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: AE
+    lang: fr
+    equivalents:
+      - RAP
+      - reclaimed asphalt
+      - RA
+      - reclaimed asphalt planings
+    source: standard
+    ref: EN 13108-8, reclaimed asphalt
+  - term: Aluminium neuf
+    lang: fr
+    equivalents:
+      - primary aluminium
+      - virgin aluminium
+    source: library
+    ref: ''
+  - term: Appareil d'appui
+    lang: fr
+    equivalents:
+      - bridge bearing
+      - bearing
+      - structural bearing
+    source: standard
+    ref: EN 1337, structural bearings
+  - term: Appareil d'appui à pot
+    lang: fr
+    equivalents:
+      - pot bearing
+      - pot bearings
+    source: standard
+    ref: EN 1337-5, pot bearings
+  - term: Appareil d'appui élastomère
+    lang: fr
+    equivalents:
+      - elastomeric bearing
+      - laminated elastomeric bearing
+    source: standard
+    ref: EN 1337-3, elastomeric bearings
+  - term: Appareils d'appui
+    lang: fr
+    equivalents:
+      - bridge bearings
+      - bearings
+      - structural bearings
+    source: standard
+    ref: EN 1337, structural bearings
+  - term: Armatures
+    lang: fr
+    equivalents:
+      - reinforcement
+      - reinforcing steel
+      - rebar
+    source: standard
+    ref: EN 10080, steel for the reinforcement of concrete
+  - term: Asphalte d'étanchéité
+    lang: fr
+    equivalents:
+      - mastic asphalt
+      - waterproofing mastic asphalt
+      - MA
+    source: standard
+    ref: EN 13108-6, mastic asphalt
+  - term: BBDr
+    lang: fr
+    equivalents:
+      - porous asphalt
+      - PA
+    source: standard
+    ref: EN 13108-7, porous asphalt; NF P 98-134, BBDr
+  - term: BBMa
+    lang: fr
+    equivalents:
+      - thin asphalt concrete
+      - asphalt concrete
+      - AC
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-132, BBM
+  - term: BBME
+    lang: fr
+    equivalents:
+      - high modulus asphalt concrete
+      - asphalt concrete
+      - AC
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-141, BBME
+  - term: BBSG
+    lang: fr
+    equivalents:
+      - asphalt concrete
+      - dense asphalt concrete
+      - AC
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-130, BBSG
+  - term: Bitume polymère
+    lang: fr
+    equivalents:
+      - polymer modified bitumen
+      - PMB
+    source: standard
+    ref: EN 14023, polymer modified bitumens
+  - term: Bitume pur
+    lang: fr
+    equivalents:
+      - paving grade bitumen
+      - normal bitumen
+      - straight-run bitumen
+    source: standard
+    ref: EN 12591, paving grade bitumens
+  - term: Bitumes modifiés
+    lang: fr
+    equivalents:
+      - modified bitumen
+      - polymer modified bitumen
+      - PMB
+    source: standard
+    ref: EN 14023, polymer modified bitumens
+  - term: Bitumes purs
+    lang: fr
+    equivalents:
+      - paving grade bitumen
+      - normal bitumen
+      - straight-run bitumen
+    source: standard
+    ref: EN 12591, paving grade bitumens
+  - term: Bois
+    lang: fr
+    equivalents:
+      - wood
+      - timber
+    source: library
+    ref: ''
+  - term: Bollard
+    lang: fr
+    equivalents:
+      - mooring bollard
+    source: library
+    ref: ''
+  - term: boue de forage
+    lang: fr
+    equivalents:
+      - drilling mud
+      - drilling fluid
+    source: library
+    ref: ''
+  - term: Béton
+    lang: fr
+    equivalents:
+      - concrete
+    source: standard
+    ref: EN 206, concrete
+  - term: béton armé
+    lang: fr
+    equivalents:
+      - reinforced concrete
+      - steel reinforced concrete
+    source: library
+    ref: ''
+  - term: béton précontraint
+    lang: fr
+    equivalents:
+      - prestressed concrete
+    source: library
+    ref: ''
+  - term: Bétons
+    lang: fr
+    equivalents:
+      - concrete
+      - concretes
+    source: standard
+    ref: EN 206, concrete
+  - term: Canalisations
+    lang: fr
+    equivalents:
+      - pipes
+      - pipework
+      - pipelines
+    source: library
+    ref: ''
+  - term: candélabre
+    lang: fr
+    equivalents:
+      - lighting column
+      - street light
+      - lamp post
+    source: library
+    ref: ''
+  - term: Carbonates de sodium
+    lang: fr
+    equivalents:
+      - sodium carbonate
+      - soda ash
+    source: library
+    ref: ''
+  - term: Carboxyméthylcellulose
+    lang: fr
+    equivalents:
+      - carboxymethyl cellulose
+      - CMC
+    source: library
+    ref: ''
+  - term: Coffrage
+    lang: fr
+    equivalents:
+      - formwork
+      - shuttering
+    source: library
+    ref: ''
+  - term: Cordeau
+    lang: fr
+    equivalents:
+      - detonating cord
+    source: library
+    ref: ''
+  - term: Cordeaux
+    lang: fr
+    equivalents:
+      - detonating cords
+      - detonating cord
+    source: library
+    ref: ''
+  - term: Câble haute tension
+    lang: fr
+    equivalents:
+      - high-voltage cable
+      - HV cable
+    source: library
+    ref: ''
+  - term: Câbles pose souterraine
+    lang: fr
+    equivalents:
+      - underground cables
+      - buried cables
+    source: library
+    ref: ''
+  - term: Déblais
+    lang: fr
+    equivalents:
+      - excavated material
+      - spoil
+      - excavation
+    source: library
+    ref: ''
+  - term: Déchets
+    lang: fr
+    equivalents:
+      - waste
+      - wastes
+    source: library
+    ref: ''
+  - term: Déchets dangereux
+    lang: fr
+    equivalents:
+      - hazardous waste
+      - hazardous substances
+    source: standard
+    ref: European Waste Catalogue, Commission Decision 2000/532/EC (List of Waste)
+  - term: Défense
+    lang: fr
+    equivalents:
+      - fender
+      - marine fender
+    source: library
+    ref: ''
+  - term: EME1
+    lang: fr
+    equivalents:
+      - high modulus asphalt
+      - EME
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-140, EME
+  - term: EME2
+    lang: fr
+    equivalents:
+      - high modulus asphalt
+      - EME
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-140, EME
+  - term: Emulsion d'enrobage
+    lang: fr
+    equivalents:
+      - coating emulsion
+      - bitumen emulsion for coating
+    source: library
+    ref: ''
+  - term: Emulsions
+    lang: fr
+    equivalents:
+      - bitumen emulsions
+      - bitumen emulsion
+    source: standard
+    ref: EN 13808, cationic bitumen emulsions
+  - term: enrobé chaud
+    lang: fr
+    equivalents:
+      - HMA
+      - hot mix asphalt
+      - hot mix
+    source: library
+    ref: ''
+  - term: enrobé tiède
+    lang: fr
+    equivalents:
+      - WMA
+      - warm mix asphalt
+      - warm mix
+      - reduced temperature
+    source: dev_error
+    ref: ''
+  - term: Enrobés bitumineux
+    lang: fr
+    equivalents:
+      - asphalt mixtures
+      - asphalt mixture
+      - asphalt
+      - bituminous mixtures
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
+  - term: Feuille EPDM
+    lang: fr
+    equivalents:
+      - EPDM membrane
+      - EPDM sheet
+    source: library
+    ref: ''
+  - term: Feuilles d'étanchéité
+    lang: fr
+    equivalents:
+      - waterproofing membranes
+      - waterproofing sheets
+    source: library
+    ref: ''
+  - term: Fillers calcaire
+    lang: fr
+    equivalents:
+      - limestone filler
+      - limestone fillers
+    source: standard
+    ref: EN 13043, aggregates for bituminous mixtures
+  - term: fonte ductile
+    lang: fr
+    equivalents:
+      - ductile iron
+      - ductile iron pipe
+      - DI pipe
+    source: standard
+    ref: EN 545, ductile iron pipes
+  - term: Fourreaux
+    lang: fr
+    equivalents:
+      - ducts
+      - cable ducts
+      - conduits
+    source: library
+    ref: ''
+  - term: Garde-corps
+    lang: fr
+    equivalents:
+      - parapet
+      - pedestrian parapet
+      - railing
+      - handrail
+    source: library
+    ref: ''
+  - term: GB1
+    lang: fr
+    equivalents:
+      - asphalt concrete for base course
+      - AC base
+      - bituminous base
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-138, GB
+  - term: GB2
+    lang: fr
+    equivalents:
+      - asphalt concrete for base course
+      - AC base
+      - bituminous base
+    source: standard
+    ref: EN 13108-1, asphalt concrete; NF P 98-138, GB
+  - term: Granulats
+    lang: fr
+    equivalents:
+      - aggregates
+      - aggregate
+    source: standard
+    ref: EN 13242, aggregates for unbound and hydraulically bound materials
+  - term: Granulats naturels
+    lang: fr
+    equivalents:
+      - virgin aggregates
+      - natural aggregates
+      - primary aggregates
+    source: library
+    ref: ''
+  - term: Grave ciment
+    lang: fr
+    equivalents:
+      - CBGM
+      - cement bound granular mixture
+      - hydraulically bound mixture
+      - HBM
+    source: standard
+    ref: EN 14227-1, cement bound granular mixtures
+  - term: Gravillons
+    lang: fr
+    equivalents:
+      - chippings
+      - gravel
+      - coarse aggregate
+    source: library
+    ref: ''
+  - term: Géotextile
+    lang: fr
+    equivalents:
+      - geotextile
+    source: standard
+    ref: EN 13249, geotextiles for roads
+  - term: Géotextiles
+    lang: fr
+    equivalents:
+      - geotextiles
+      - geotextile
+    source: standard
+    ref: EN 13249, geotextiles for roads
+  - term: Joint bitumineux
+    lang: fr
+    equivalents:
+      - bituminous joint
+      - bituminous joint sealant
+    source: library
+    ref: ''
+  - term: Joints
+    lang: fr
+    equivalents:
+      - expansion joints
+      - sealing joints
+    source: library
+    ref: ''
+  - term: Laitier de haut fourneau
+    lang: fr
+    equivalents:
+      - blast furnace slag
+      - GGBS
+      - GGBFS
+    source: standard
+    ref: EN 15167-1, ground granulated blast furnace slag
+  - term: Liant hydraulique
+    lang: fr
+    equivalents:
+      - hydraulic binder
+      - hydraulic binders
+    source: library
+    ref: ''
+  - term: Liants bitumineux
+    lang: fr
+    equivalents:
+      - bituminous binders
+      - bitumen
+      - bituminous binder
+    source: standard
+    ref: EN 12591, paving grade bitumens
+  - term: Matériaux Sortants
+    lang: fr
+    equivalents:
+      - outgoing materials
+      - exported materials
+      - site waste
+    source: library
+    ref: ''
+  - term: Matériaux traités aux Liant hydraulique
+    lang: fr
+    equivalents:
+      - hydraulically bound mixtures
+      - HBM
+      - CBGM
+      - hydraulically bound materials
+    source: standard
+    ref: EN 14227 series, hydraulically bound mixtures
+  - term: Mélanges Bitumineux
+    lang: fr
+    equivalents:
+      - asphalt mixtures
+      - bituminous mixtures
+      - asphalt
+    source: standard
+    ref: EN 13108-1, bituminous mixtures
+  - term: Métakaloin flashé
+    lang: fr
+    equivalents:
+      - metakaolin
+      - flash calcined metakaolin
+    source: library
+    ref: ''
+  - term: non-ferreux
+    lang: fr
+    equivalents:
+      - non-ferrous
+    source: library
+    ref: ''
+  - term: ouvrage d'art
+    lang: fr
+    equivalents:
+      - bridge
+      - civil engineering structure
+      - bridges and structures
+    source: library
+    ref: ''
+  - term: PEHD
+    lang: fr
+    equivalents:
+      - HDPE
+      - high-density polyethylene
+    source: library
+    ref: ''
+  - term: Pieux
+    lang: fr
+    equivalents:
+      - piles
+      - pile foundations
+    source: library
+    ref: ''
+  - term: Pigment rouge
+    lang: fr
+    equivalents:
+      - red pigment
+      - iron oxide pigment
+    source: library
+    ref: ''
+  - term: Plastiques
+    lang: fr
+    equivalents:
+      - plastics
+      - plastic
+    source: library
+    ref: ''
+  - term: pneu usagé
+    lang: fr
+    equivalents:
+      - used tyre
+      - scrap tyre
+      - end-of-life tyre
+    source: library
+    ref: ''
+  - term: Polystyrène
+    lang: fr
+    equivalents:
+      - polystyrene
+    source: library
+    ref: ''
+  - term: Polystyrène expansé
+    lang: fr
+    equivalents:
+      - expanded polystyrene
+      - EPS
+    source: standard
+    ref: EN 13163, expanded polystyrene
+  - term: Poutrelle
+    lang: fr
+    equivalents:
+      - joist
+      - precast joist
+      - beam
+    source: library
+    ref: ''
+  - term: Poutrelles
+    lang: fr
+    equivalents:
+      - joists
+      - precast joists
+      - beams
+    source: library
+    ref: ''
+  - term: Produits métalliques
+    lang: fr
+    equivalents:
+      - metal products
+      - steel products
+      - metalwork
+    source: library
+    ref: ''
+  - term: Profilé à froid
+    lang: fr
+    equivalents:
+      - cold-formed section
+      - cold-formed steel section
+    source: library
+    ref: ''
+  - term: Profilés
+    lang: fr
+    equivalents:
+      - sections
+      - steel sections
+      - profiles
+    source: library
+    ref: ''
+  - term: Retardateurs
+    lang: fr
+    equivalents:
+      - retarders
+      - retarder
+      - set retarder
+    source: standard
+    ref: EN 934-2, concrete admixtures
+  - term: SMA
+    lang: fr
+    equivalents:
+      - Stone Mastic Asphalt
+      - stone matrix asphalt
+    source: standard
+    ref: EN 13108-5, stone mastic asphalt
+  - term: stockage
+    lang: fr
+    equivalents:
+      - landfill
+      - disposal
+    source: library
+    ref: ''
+  - term: Traitement des déchets
+    lang: fr
+    equivalents:
+      - waste treatment
+      - waste management
+      - waste disposal
+    source: library
+    ref: ''
+  - term: Travaux Ferroviaires
+    lang: fr
+    equivalents:
+      - railway works
+      - track works
+      - railway
+    source: library
+    ref: ''
+  - term: Travaux Maritimes
+    lang: fr
+    equivalents:
+      - marine works
+      - maritime works
+    source: library
+    ref: ''
+  - term: Travaux à l'explosif
+    lang: fr
+    equivalents:
+      - blasting works
+      - blasting
+      - drill and blast
+    source: library
+    ref: ''
+  - term: Traverse
+    lang: fr
+    equivalents:
+      - sleeper
+      - railway sleeper
+    source: library
+    ref: ''
+  - term: Traverses
+    lang: fr
+    equivalents:
+      - sleepers
+      - railway sleepers
+    source: library
+    ref: ''
+  - term: Tube
+    lang: fr
+    equivalents:
+      - pipe
+      - tubing
+    source: library
+    ref: ''
+  - term: Tubes
+    lang: fr
+    equivalents:
+      - pipes
+      - tubing
+    source: library
+    ref: ''
+  - term: Tuyau
+    lang: fr
+    equivalents:
+      - pipe
+    source: library
+    ref: ''
+  - term: Tuyau acier nu
+    lang: fr
+    equivalents:
+      - bare steel pipe
+      - uncoated steel pipe
+    source: library
+    ref: ''
+  - term: Tuyaux
+    lang: fr
+    equivalents:
+      - pipes
+      - pipework
+    source: library
+    ref: ''
+  - term: tête de pieu
+    lang: fr
+    equivalents:
+      - pile head
+      - pile top
+    source: library
+    ref: ''
+  - term: Éclairage extérieur
+    lang: fr
+    equivalents:
+      - outdoor lighting
+      - street lighting
+      - exterior lighting
+    source: library
+    ref: ''
+  - term: Éléments préfabriqués
+    lang: fr
+    equivalents:
+      - precast elements
+      - precast concrete elements
+      - prefab
+    source: library
+    ref: ''
+  - term: Équipement maritime
+    lang: fr
+    equivalents:
+      - marine equipment
+      - port equipment
+    source: library
+    ref: ''
+  - term: Équipements métalliques
+    lang: fr
+    equivalents:
+      - metalwork
+      - metal equipment
+      - steel fittings
+    source: library
+    ref: ''
+  - term: Équipements électriques
+    lang: fr
+    equivalents:
+      - electrical equipment
+    source: library
+    ref: ''
