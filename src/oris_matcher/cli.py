@@ -1,14 +1,20 @@
-"""Command-line entry point: ``match`` (the default), ``score``, ``select``, ``replay``, ``doctor``.
+"""Command-line entry point: ``match`` (the default) and the other ``oris`` commands.
+
+The commands are ``match``, ``score``, ``select``, ``replay``, ``doctor``, ``explain`` and
+``demo``.
 
 ``oris --input X --library Y --output Z`` is the brief's literal form of ``oris match``. A run
 reads the BoQ, maps the library path to its ``Settings.libraries`` id (``custom`` otherwise),
 calls ``MatchService``, writes ``runs/<run_id>/`` and the output CSV, and prints the §11.6
 summary. ``--profile b0`` is the rules-only floor: it never builds a live adapter, needs no key
 and may run over a whole exercise input before the freeze, because it sends nothing to a model.
-Exit codes: 0 ok, 1 a ``replay --check`` mismatch or a failed doctor check, 2 a usage
-or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss (§11.3). In a mixed
-E-08 run a main pass the replayed run never recorded is not a line failure: it raises
-``ReplayMissError``, nothing is written and the exit code is 2 (A65 note).
+``explain`` and ``demo`` are the read-only, $0 views of the live session (§12): ``explain``
+prints why one line of a recorded run got its decision, from the run folder and the files its
+manifest names; ``demo`` replays the committed lockbox B3 runs and byte-compares them with
+``output/``. Exit codes: 0 ok, 1 a ``replay --check`` or ``demo`` mismatch or a failed doctor
+check, 2 a usage or input error, 3 when any line is ``LLM_UNAVAILABLE`` or a replay miss
+(§11.3). In a mixed E-08 run a main pass the replayed run never recorded is not a line
+failure: it raises ``ReplayMissError``, nothing is written and the exit code is 2 (A65 note).
 
 E-08 (A65.2) is measured as a mixed run: ``--llm replay:<run>`` with the verifier adopted, over a
 run recorded without it, serves the main passes from that run's ``calls.jsonl`` through the
@@ -40,7 +46,9 @@ import sys
 from collections import Counter
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 from typing import Annotated, Any, NoReturn
 
 import typer
@@ -72,7 +80,9 @@ from oris_matcher.doctor import (
 )
 from oris_matcher.domain.boq import BoqFile
 from oris_matcher.domain.decision import DecisionProfile
+from oris_matcher.domain.library import load_library
 from oris_matcher.enrichment import ENRICHMENT_OFF, is_enrichment_off
+from oris_matcher.explain import RunRecords, explain_item, render_json, render_text
 from oris_matcher.io.audit import (
     AUDIT_FILE,
     CALLS_FILE,
@@ -1543,6 +1553,24 @@ def _check_output(rendered: bytes, check: Path) -> int:
     return EXIT_FAILED_CHECK
 
 
+def replay_run(run_dir: Path, policy: Path | None, runtime: Runtime) -> tuple[RunResult, bytes]:
+    """Replay a recorded run at $0 and render its output CSV, writing nothing.
+
+    Args:
+        run_dir: The recorded run folder.
+        policy: A ``policy.yaml`` to re-decide with; the run's own when None.
+        runtime: The environment.
+
+    Returns:
+        The replayed run and its rendered CSV bytes.
+
+    """
+    settings = settings_from_manifest(read_manifest(run_dir))
+    job = replay_job(run_dir, settings, policy, runtime.root())
+    result, _ = run_match(job, prepare_run(job, settings, runtime), runtime)
+    return result, render_csv(result, excel_bom=job.excel_bom)
+
+
 @app.command("replay")
 def replay_command(
     run_dir: Annotated[Path, typer.Argument(help="A recorded run folder, runs/<run_id>.")],
@@ -1551,12 +1579,8 @@ def replay_command(
     output: Annotated[Path | None, typer.Option("--output", help="Write the CSV.")] = None,
 ) -> None:
     """Replay a recorded run at $0; with --check, exit 1 unless the CSV is byte-identical."""
-    runtime = _runtime()
     try:
-        settings = settings_from_manifest(read_manifest(run_dir))
-        job = replay_job(run_dir, settings, policy, runtime.root())
-        result, _ = run_match(job, prepare_run(job, settings, runtime), runtime)
-        rendered = render_csv(result, excel_bom=job.excel_bom)
+        result, rendered = replay_run(run_dir, policy, _runtime())
         if output is not None:
             output.write_bytes(rendered)
         verdict = _check_output(rendered, check) if check is not None else EXIT_OK
@@ -1564,6 +1588,167 @@ def replay_command(
         _fail(error)
     typer.echo(render_summary(run_summary(result)))
     raise typer.Exit(verdict or result.exit_code)
+
+
+def _recorded_input(run_dir: Path, manifest: Mapping[str, Any], root: Path) -> BoqFile:
+    """Read the input a run's manifest names, refusing one whose bytes changed."""
+    path = _recorded_file(manifest.get("input_path"), INPUT_ROLE, run_dir, root)
+    if path is None:
+        raise WiringError(f"{run_dir.as_posix()}: the manifest records no input file")
+    data = path.read_bytes()
+    recorded = manifest.get("input_sha256")
+    if recorded and hashlib.sha256(data).hexdigest() != recorded:
+        raise WiringError(f"input {path.as_posix()} is not the one the run used ({recorded})")
+    return read_boq(data)
+
+
+def run_records(run_dir: Path, root: Path) -> RunRecords:
+    """Gather what ``explain`` reads of a recorded run, without replaying or calling anything.
+
+    Args:
+        run_dir: The recorded run folder.
+        root: The repository root the manifest's paths are relative to.
+
+    Returns:
+        The manifest, with the input and library it names, both hash-checked.
+
+    """
+    manifest = read_manifest(run_dir)
+    settings = settings_from_manifest(manifest)
+    library_path = _replay_library(settings, manifest, run_dir)
+    library = load_library(library_path.read_bytes(), catalogue=str(manifest["library_id"]))
+    boq = _recorded_input(run_dir, manifest, root)
+    return RunRecords(run_dir=run_dir, manifest=manifest, boq=boq, library=library)
+
+
+@app.command("explain")
+def explain_command(
+    run_dir: Annotated[Path, typer.Option("--run", help="A recorded run folder.")],
+    item: Annotated[str, typer.Option("--item", help="The line's Item No. (or line id).")],
+    as_json: Annotated[bool, typer.Option("--json", help="One JSON object, sorted keys.")] = False,
+    full: Annotated[
+        bool, typer.Option("--full", help="Also print each call's user message and raw response.")
+    ] = False,
+) -> None:
+    """Explain why one line of a recorded run got its decision; reads only, calls nothing."""
+    try:
+        explanation = explain_item(run_records(run_dir, _runtime().root()), item)
+    except USAGE_ERRORS as error:
+        _fail(error)
+    typer.echo(render_json(explanation) if as_json else render_text(explanation, full=full))
+
+
+class DemoLang(StrEnum):
+    """Which committed lockbox run ``oris demo`` replays."""
+
+    EN = "en"
+    FR = "fr"
+    BOTH = "both"
+
+
+@dataclass(frozen=True)
+class DemoRun:
+    """One committed lockbox B3 run and the output it must reproduce byte for byte.
+
+    Attributes:
+        run_dir: The run folder, repository-relative.
+        expected: The committed output CSV, repository-relative.
+
+    """
+
+    run_dir: Path
+    expected: Path
+
+
+DEMO_RUNS: Mapping[str, DemoRun] = MappingProxyType(
+    {
+        DemoLang.EN.value: DemoRun(
+            Path("runs/submission/20261008T023928Z-56f85fb8"),
+            Path("output/improved_output_en.csv"),
+        ),
+        DemoLang.FR.value: DemoRun(
+            Path("runs/submission/20261008T024244Z-de394c39"),
+            Path("output/improved_output_fr.csv"),
+        ),
+    }
+)
+DEMO_DECISIONS = ("matched", "needs_review", "not_a_material")
+FLIP_RATE_NOTE = (
+    "note: this is a $0 replay of recorded answers; a live run of the same input can differ "
+    "from it by up to the measured decision flip rate (temperature 0 is not bit-deterministic "
+    "on hosted APIs, D-11); measured on dev: 0 decision flips in 199 lines per language "
+    "(G3 cold live rerun, docs/gates/G3.md §5)"
+)
+
+
+def demo_languages(lang: DemoLang) -> tuple[str, ...]:
+    """Return the languages ``--lang`` selects, in a fixed order.
+
+    Args:
+        lang: The option.
+
+    Returns:
+        ``("en", "fr")`` for both, else the one language.
+
+    """
+    if lang == DemoLang.BOTH:
+        return (DemoLang.EN.value, DemoLang.FR.value)
+    return (lang.value,)
+
+
+def demo_summary(lang: str, result: RunResult, verdict: int) -> str:
+    """Render one language's demo line.
+
+    Args:
+        lang: The language.
+        result: The replayed run.
+        verdict: 0 when the replay is byte-identical, else 1.
+
+    Returns:
+        Rows, decisions, the three decision counts and the replay verdict.
+
+    """
+    counts = Counter(item.decision.decision.value for item in result.lines)
+    decisions = ", ".join(f"{name} {counts.get(name, 0)}" for name in DEMO_DECISIONS)
+    replay = "byte-identical" if verdict == EXIT_OK else "NOT byte-identical"
+    return (
+        f"{lang}: {len(result.lines)} rows, {sum(counts.values())} decisions ({decisions}); "
+        f"replay {replay}"
+    )
+
+
+def demo_one(lang: str, runtime: Runtime) -> int:
+    """Replay one committed run, byte-compare it and print its summary.
+
+    Args:
+        lang: ``en`` or ``fr``.
+        runtime: The environment; paths are relative to its root.
+
+    Returns:
+        0 when the replay is byte-identical, else 1.
+
+    """
+    demo = DEMO_RUNS[lang]
+    root = runtime.root()
+    typer.echo(f"demo {lang}: replaying {demo.run_dir.as_posix()} at $0")
+    result, rendered = replay_run(root / demo.run_dir, None, runtime)
+    verdict = _check_output(rendered, root / demo.expected)
+    typer.echo(demo_summary(lang, result, verdict))
+    return verdict
+
+
+@app.command("demo")
+def demo_command(
+    lang: Annotated[DemoLang, typer.Option("--lang", help="en, fr or both.")] = DemoLang.BOTH,
+) -> None:
+    """Replay the committed lockbox B3 runs at $0; exit 1 unless each output is byte-identical."""
+    runtime = _runtime()
+    try:
+        verdicts = [demo_one(language, runtime) for language in demo_languages(lang)]
+    except USAGE_ERRORS as error:
+        _fail(error)
+    typer.echo(FLIP_RATE_NOTE)
+    raise typer.Exit(EXIT_FAILED_CHECK if any(verdicts) else EXIT_OK)
 
 
 @app.command(
