@@ -55,6 +55,29 @@ uv run python eval/run_experiment.py --lang en --input input/boq_dataset_input_e
 
 Each run writes `runs/<run_id>/` (`calls.jsonl`, `audit.jsonl`, `manifest.json`, `score.json`, `prompts/`) and its output CSV, to `--output` when given (the G1 runs used `runs/<ledger-id>.csv`), else to `runs/<run_id>/output.csv`. It appends one row to the experiment ledger, a `failed` row when the run cannot be scored. `uv run oris replay` re-runs a recorded run at $0.
 
+### Live session
+
+Both commands are read-only and cost $0: they never call a model, never read the ground truth and write nothing.
+
+Replay the committed lockbox B3 runs (EN `runs/submission/20261008T023928Z-56f85fb8`, FR `runs/submission/20261008T024244Z-de394c39`) and check them byte for byte against `output/improved_output_{en,fr}.csv`:
+
+```bash
+uv run oris demo
+uv run oris demo --lang en
+uv run oris demo --lang fr
+```
+
+It prints, per language, the rows, the decisions (matched / needs_review / not_a_material) and the replay verdict, and exits 1 if a replay is not byte-identical. A live run of the same input can differ from the replay by up to the measured decision flip rate, because temperature 0 is not bit-deterministic on hosted APIs.
+
+"Why did line X get this?":
+
+```bash
+uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02.0010.
+uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02.0010. --json
+```
+
+For that item it prints the input text and section path, the decision, the reason code and the decision-table rule that fired, each pass's top1 / confidence / evidence, the policy and threshold the run decided at, the E-08 verifier fields, the matched library row and the top-2 suggestions, the attributed cost and latency, and every call id with its request SHA-256, its stored system prompt under `prompts/` and the provider request id. A header line says that no model call was made. `--item` also takes a line id; an unknown item exits 2. `--json` prints the same as one JSON object with sorted keys. It reads the run folder and the input and library files the manifest names, and refuses either if its bytes changed.
+
 ## Development results (dev only, before the freeze)
 
 Dev has 162 items per language, 139 of them labelled. FR input is scored against the global library, because the ground truth uses global-library strings. P is the precision of matched lines. CP-LB is its one-sided 95% Clopper–Pearson lower bound. C₂₅₂ is correct matches over labelled lines.
