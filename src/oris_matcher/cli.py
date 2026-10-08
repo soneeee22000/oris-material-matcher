@@ -1676,7 +1676,8 @@ DEMO_DECISIONS = ("matched", "needs_review", "not_a_material")
 FLIP_RATE_NOTE = (
     "note: this is a $0 replay of recorded answers; a live run of the same input can differ "
     "from it by up to the measured decision flip rate (temperature 0 is not bit-deterministic "
-    "on hosted APIs, D-11)"
+    "on hosted APIs, D-11); measured on dev: 0 decision flips in 199 lines per language "
+    "(G3 cold live rerun, docs/gates/G3.md §5)"
 )
 
 

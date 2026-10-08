@@ -1665,6 +1665,16 @@ Changed: §6 (arm C made concrete), §9.3 (prompt version), §10.6 (policy entry
 - **A committable run checks the effective enrichment,** `--enrichment` or `ORIS_ENRICHMENT`, against host paths.
 - **`reviewed_by`.** The shipped sources were reviewed by the builder and an agent panel with two lenses, terminology and leakage. `reviewed_by` records that, not an owner review.
 
+### A69 · 2026-10-08 · `oris demo` replays only
+
+**Results existing at the time:** the G4 lockbox scores (eval/lockbox_log.md) and the G3 noise floor (docs/gates/G3.md §5: 0 decision flips in 199 dev lines per language).
+
+**What changes:** §11 had `oris demo` replay the committed runs, then run `eval/score.py` and `eval/check_requirements.py`, and offer `--live`. The shipped `oris demo` only replays the committed lockbox runs and byte-compares them with `output/`. It reads no ground truth and writes nothing. Scoring stays with `uv run oris score`, and a cold paid run is the brief's literal command. The demo's note and the README give the measured flip rate and where it is recorded.
+
+**Why:** a demo that reads the lockbox ground truth or makes paid calls is no longer a $0, read-only check, and both steps already have their own commands.
+
+Changed: §11 (the demo bullet), §12 (README requirement on the flip rate).
+
 ---
 
 ## 17. Results
