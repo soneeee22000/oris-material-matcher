@@ -1,0 +1,207 @@
+"""`eval/smoke_a10.py`: the A10 smoke verdict for a library without labels (DESIGN §6, A70)."""
+
+import csv
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+from types import ModuleType
+from typing import Any
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+LABEL_COLUMNS = [
+    "item_no",
+    "subset",
+    "expected",
+    "material_type",
+    "material_usage",
+    "material_subtype",
+    "is_material",
+    "is_concrete",
+    "decoy_close",
+    "source_item_no",
+    "drafted_by",
+    "labelled_by",
+    "note",
+]
+OUTPUT_COLUMNS = ["Item No.", "decision", "material_type", "material_usage", "material_subtype"]
+LIBRARY = [("Bétons", "Béton prêt à l'emploi", "C25/30"), ("Granulats", "Couche de forme", "")]
+
+
+def _load() -> ModuleType:
+    name = "oris_eval_smoke_a10"
+    spec = importlib.util.spec_from_file_location(name, ROOT / "eval" / "smoke_a10.py")
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+smoke = _load()
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_csv(path: Path, header: list[str], rows: list[list[str]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def _label(
+    item: str, subset: str, expected: str, triple: tuple[str, ...] = ("", "", "")
+) -> list[str]:
+    material = "false" if subset == "service" else "true"
+    concrete = "true" if triple and triple[0] == "Bétons" else "false"
+    real_subset = "handwritten" if subset == "service" else subset
+    return [
+        item,
+        real_subset,
+        expected,
+        *triple,
+        material,
+        concrete,
+        "false",
+        "",
+        "agent",
+        "owner",
+        "",
+    ]
+
+
+def _positives() -> list[list[str]]:
+    exact = [_label(f"01.01.{i:04d}.", "base_exact", "match", LIBRARY[0]) for i in range(10)]
+    fr_only = [_label(f"01.02.{i:04d}.", "base_fr_only", "match", LIBRARY[1]) for i in range(8)]
+    return exact + fr_only
+
+
+def _world(tmp_path: Path, decisions: dict[str, tuple[str, tuple[str, ...]]]) -> dict[str, Path]:
+    """Write a frozen smoke set, a library and a run whose output carries the given decisions."""
+    smoke_dir = tmp_path / "smoke"
+    smoke_dir.mkdir(parents=True)
+    labels = [
+        *_positives(),
+        _label("01.03.0001.", "base_decoy", "no_match"),
+        _label("01.03.0002.", "service", "no_match"),
+    ]
+    _write_csv(smoke_dir / "labels.csv", LABEL_COLUMNS, labels)
+    (smoke_dir / "input.csv").write_text("Item No.,Short Description\n", encoding="utf-8")
+    library = tmp_path / "library.csv"
+    _write_csv(
+        library, ["material_type", "material_usage", "material_subtype"], [list(r) for r in LIBRARY]
+    )
+    freeze = {
+        "input_sha256": _sha(smoke_dir / "input.csv"),
+        "labels_sha256": _sha(smoke_dir / "labels.csv"),
+        "library_sha256": _sha(library),
+    }
+    (smoke_dir / "freeze.json").write_text(json.dumps(freeze), encoding="utf-8")
+    run = tmp_path / "run"
+    run.mkdir()
+    rows = []
+    for label in labels:
+        item = label[0]
+        decision, triple = decisions.get(item, _default(label))
+        rows.append([item, decision, *triple])
+    _write_csv(run / "output.csv", OUTPUT_COLUMNS, rows)
+    audit = [
+        {"item_no": row[0], "signals": {"b": "agree" if row[2] == "Bétons" else "none"}}
+        for row in rows
+    ]
+    (run / "audit.jsonl").write_text("".join(json.dumps(a) + "\n" for a in audit), encoding="utf-8")
+    manifest = {
+        "input_sha256": freeze["input_sha256"],
+        "library_sha256": freeze["library_sha256"],
+        "spend_usd": 0.01,
+        "run_id": "smoke-run",
+    }
+    (run / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return {"smoke": smoke_dir, "library": library, "run": run}
+
+
+def _default(label: list[str]) -> tuple[str, tuple[str, ...]]:
+    """Every positive matched right, every no-match line sent to review."""
+    if label[2] == "match":
+        return "matched", tuple(label[3:6])
+    return "needs_review", ("", "", "")
+
+
+def _verdict(world: dict[str, Path]) -> dict[str, Any]:
+    result: dict[str, Any] = smoke.evaluate(world["smoke"], world["library"], world["run"])
+    return result
+
+
+def test_a_clean_run_passes(tmp_path: Path) -> None:
+    result = _verdict(_world(tmp_path, {}))
+    assert result["verdict"] == "pass"
+    assert result["base_positives_correct"] == {"k": 18, "n": 18}
+    assert result["closed_world_violations"] == 0
+    assert result["false_not_a_material"] == 0
+    assert result["decoy_matches"] == 0
+    assert result["signal_b_agree_on_a_concrete_positive"] is True
+
+
+def test_nine_of_eighteen_base_positives_is_the_bar(tmp_path: Path) -> None:
+    review = ("needs_review", ("", "", ""))
+    nine_missed = {f"01.01.{i:04d}.": review for i in range(9)}
+    assert _verdict(_world(tmp_path / "a", nine_missed))["verdict"] == "pass"
+    ten_missed = {f"01.01.{i:04d}.": review for i in range(10)}
+    assert _verdict(_world(tmp_path / "b", ten_missed))["verdict"] == "fail"
+
+
+@pytest.mark.parametrize(
+    ("item", "decision", "condition"),
+    [
+        ("01.03.0001.", ("matched", LIBRARY[0]), "decoy_matches"),
+        ("01.01.0000.", ("not_a_material", ("", "", "")), "false_not_a_material"),
+        ("01.01.0000.", ("matched", ("Bétons", "Inventé", "X")), "closed_world_violations"),
+    ],
+)
+def test_each_zero_condition_fails_the_verdict(
+    tmp_path: Path, item: str, decision: tuple[str, tuple[str, ...]], condition: str
+) -> None:
+    result = _verdict(_world(tmp_path, {item: decision}))
+    assert result[condition] == 1
+    assert result["verdict"] == "fail"
+
+
+def test_a_service_line_sent_to_not_a_material_is_not_a_false_skip(tmp_path: Path) -> None:
+    result = _verdict(_world(tmp_path, {"01.03.0002.": ("not_a_material", ("", "", ""))}))
+    assert result["false_not_a_material"] == 0
+    assert result["verdict"] == "pass"
+
+
+def test_a_run_of_another_input_or_library_is_refused(tmp_path: Path) -> None:
+    world = _world(tmp_path, {})
+    manifest = json.loads((world["run"] / "manifest.json").read_text(encoding="utf-8"))
+    manifest["input_sha256"] = "0" * 64
+    (world["run"] / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(smoke.RefusedError, match="input"):
+        _verdict(world)
+
+
+def test_edited_labels_are_refused(tmp_path: Path) -> None:
+    world = _world(tmp_path, {})
+    with (world["smoke"] / "labels.csv").open("a", encoding="utf-8") as handle:
+        handle.write("01.09.0001.,handwritten,no_match,,,,true,false,false,,agent,owner,\n")
+    with pytest.raises(smoke.RefusedError, match="labels"):
+        _verdict(world)
+
+
+def test_main_writes_the_result_files(tmp_path: Path) -> None:
+    world = _world(tmp_path, {})
+    out = tmp_path / "result"
+    argv = ["--smoke", str(world["smoke"]), "--library", str(world["library"])]
+    argv += ["--run", str(world["run"]), "--output", str(out)]
+    assert smoke.main(argv) == 0
+    payload = json.loads((out.with_suffix(".json")).read_text(encoding="utf-8"))
+    assert payload["verdict"] == "pass"
+    assert "verdict: **pass**" in out.with_suffix(".md").read_text(encoding="utf-8")
