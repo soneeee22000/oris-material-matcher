@@ -45,7 +45,7 @@ The brief's command, run offline with the rules-only profile (no key, no model c
 uv run oris --input input/boq_dataset_input_fr.csv --library data/oris_materials_global.csv --output improved_output_fr.csv --profile b0
 ```
 
-Without `--profile b0`, a live run over a whole exercise file is refused until the `eval-freeze` tag. The files hold lockbox items, and they are scored only once, after the freeze.
+Without `--profile b0`, a live run over a whole exercise file is refused unless the `eval-freeze` tag is at HEAD. The files hold lockbox items, and they are scored only once, after the freeze.
 
 Live runs before the freeze go through the dev experiment runner, on dev items only:
 
@@ -57,7 +57,22 @@ Each run writes `runs/<run_id>/` (`calls.jsonl`, `audit.jsonl`, `manifest.json`,
 
 ### Live session
 
-Both commands are read-only and cost $0: they never call a model, never read the ground truth and write nothing.
+Run an unseen BoQ on the FR library with the brief's literal command (`match` is the default command; it needs `ANTHROPIC_API_KEY` and makes paid calls):
+
+```bash
+uv run oris --input new.csv --library data/oris_materials_fr.csv --output out.csv
+```
+
+The policy is resolved per (model, library). The FR smoke certification (A10, G3-T24) has not run, so `config/policy.yaml` has no entry for the pinned model on the FR library, and the run decides at the strictest threshold, `T1`. It logs this warning and prints this summary line:
+
+```text
+policy_resolution=fallback_strictest: no certified policy for (claude-haiku-4-5-20251001, 6bfe1857fd36); deciding at the strictest threshold T1
+policy_resolution: fallback_strictest (policy T1)
+```
+
+Expect most lines to go to `needs_review`. Once a smoke-certified FR entry exists, the line reads `policy_resolution: exact (policy <id>)`. The `eval-freeze` refusal does not apply to this run: it only covers live runs over the two exercise input files, which are refused unless the `eval-freeze` tag is at HEAD. An unseen BoQ is never refused.
+
+The next commands are read-only and cost $0: they never call a model, never read the ground truth and write nothing.
 
 Replay the committed lockbox B3 runs (EN `runs/submission/20261008T023928Z-56f85fb8`, FR `runs/submission/20261008T024244Z-de394c39`) and check them byte for byte against `output/improved_output_{en,fr}.csv`:
 
@@ -67,7 +82,7 @@ uv run oris demo --lang en
 uv run oris demo --lang fr
 ```
 
-It prints, per language, the rows, the decisions (matched / needs_review / not_a_material) and the replay verdict, and exits 1 if a replay is not byte-identical. A live run of the same input can differ from the replay by up to the measured decision flip rate, because temperature 0 is not bit-deterministic on hosted APIs.
+It prints, per language, the rows, the decisions (matched / needs_review / not_a_material) and the replay verdict, and exits 1 if a replay is not byte-identical. A live run of the same input can differ from the replay by up to the measured decision flip rate, because temperature 0 is not bit-deterministic on hosted APIs. On dev, the G3 cold live rerun of the shipped configuration measured 0 decision flips in 199 lines per language (and 0 row flips; [`docs/gates/G3.md`](docs/gates/G3.md) §5). The demo only replays: it does not score the outputs (use `uv run oris score`) and has no `--live` option (run the brief's command instead). DESIGN.md A69 records this narrowing of §11.
 
 "Why did line X get this?":
 
@@ -76,7 +91,7 @@ uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02
 uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02.0010. --json
 ```
 
-For that item it prints the input text and section path, the decision, the reason code and the decision-table rule that fired, each pass's top1 / confidence / evidence, the policy and threshold the run decided at, the E-08 verifier fields, the matched library row and the top-2 suggestions, the attributed cost and latency, and every call id with its request SHA-256, its stored system prompt under `prompts/` and the provider request id. A header line says that no model call was made. `--item` also takes a line id; an unknown item exits 2. `--json` prints the same as one JSON object with sorted keys. It reads the run folder and the input and library files the manifest names, and refuses either if its bytes changed.
+For that item it prints the input text and section path, the decision, the reason code and the decision-table rule that fired, each pass's top1 / confidence / evidence, the policy and threshold the run decided at, the E-08 verifier fields, the matched library row and the top-2 suggestions, the attributed cost and latency, and every call id with its request SHA-256, its stored system prompt under `prompts/` and the provider request id. Each call line also gives its attempt number and HTTP status or error class, and a line with no valid answer says so. `--full` adds each call's user message and raw response. A header line says that no model call was made. `--item` also takes a line id; an unknown item exits 2. `--json` prints the same as one JSON object with sorted keys. It reads the run folder and the input and library files the manifest names, and refuses either if its bytes changed.
 
 ## Development results (dev only, before the freeze)
 
