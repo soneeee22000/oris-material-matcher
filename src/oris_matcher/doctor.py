@@ -10,7 +10,8 @@ keys are present (never their values) and that every library loads. With ``live`
 two synthetic lines (never lines of a BoQ input) with the production schema through the real
 wrapper, recorded in a doctor run folder; ``count_tokens`` of each library's rendered prompt;
 the ``anthropic-ratelimit-*`` headers and the tier they imply; and the fallback adapter, only
-when its key is present. The report goes to ``evidence/doctor_<YYYY-MM-DD>.json``.
+when its key is present. The report goes to ``evidence/doctor_<YYYY-MM-DD>.json``, or
+``_02``, ``_03``... on a later run that day, so earlier evidence is never overwritten.
 """
 
 import asyncio
@@ -100,6 +101,7 @@ DOCTOR_BUDGET_USD = 0.25
 DOCTOR_PASSES = 1
 DOCTOR_RETRIES = 0
 EVIDENCE_PREFIX = "doctor_"
+FIRST_REPEAT = 2
 EVIDENCE_SUFFIX = ".json"
 DEFAULT_EVIDENCE_DIR = Path("evidence")
 DEFAULT_RUNS_DIR = Path("runs")
@@ -1162,7 +1164,10 @@ async def live_checks(
 
 
 def evidence_path(evidence_dir: Path, moment: datetime) -> Path:
-    """Return ``evidence_dir/doctor_<YYYY-MM-DD>.json`` for a moment.
+    """Return the first free ``doctor_<YYYY-MM-DD>[_NN].json`` for a moment; never overwrite.
+
+    A second run on the same day writes ``_02``, then ``_03``: the zero-padded counter keeps
+    reverse name order newest first, as the evidence readers expect.
 
     Args:
         evidence_dir: The evidence folder.
@@ -1173,7 +1178,12 @@ def evidence_path(evidence_dir: Path, moment: datetime) -> Path:
 
     """
     stamp = moment.astimezone(UTC).date().isoformat()
-    return evidence_dir / f"{EVIDENCE_PREFIX}{stamp}{EVIDENCE_SUFFIX}"
+    path = evidence_dir / f"{EVIDENCE_PREFIX}{stamp}{EVIDENCE_SUFFIX}"
+    counter = FIRST_REPEAT
+    while path.exists():
+        path = evidence_dir / f"{EVIDENCE_PREFIX}{stamp}_{counter:02d}{EVIDENCE_SUFFIX}"
+        counter += 1
+    return path
 
 
 def write_evidence(report: DoctorReport) -> None:

@@ -45,7 +45,7 @@ The brief's command, run offline with the rules-only profile (no key, no model c
 uv run oris --input input/boq_dataset_input_fr.csv --library data/oris_materials_global.csv --output improved_output_fr.csv --profile b0
 ```
 
-Without `--profile b0`, a live run over a whole exercise file is refused until the `eval-freeze` tag. The files hold lockbox items, and they are scored only once, after the freeze.
+Without `--profile b0`, a live run over a whole exercise file is refused unless the `eval-freeze` tag is at HEAD. The files hold lockbox items, and they are scored only once, after the freeze.
 
 Live runs before the freeze go through the dev experiment runner, on dev items only:
 
@@ -54,6 +54,44 @@ uv run python eval/run_experiment.py --lang en --input input/boq_dataset_input_e
 ```
 
 Each run writes `runs/<run_id>/` (`calls.jsonl`, `audit.jsonl`, `manifest.json`, `score.json`, `prompts/`) and its output CSV, to `--output` when given (the G1 runs used `runs/<ledger-id>.csv`), else to `runs/<run_id>/output.csv`. It appends one row to the experiment ledger, a `failed` row when the run cannot be scored. `uv run oris replay` re-runs a recorded run at $0.
+
+### Live session
+
+Run an unseen BoQ on the FR library with the brief's literal command (`match` is the default command; it needs `ANTHROPIC_API_KEY` and makes paid calls):
+
+```bash
+uv run oris --input new.csv --library data/oris_materials_fr.csv --output out.csv
+```
+
+The policy is resolved per (model, library). The FR smoke certification (A10, G3-T24) has not run, so `config/policy.yaml` has no entry for the pinned model on the FR library, and the run decides at the strictest threshold, `T1`. It logs this warning and prints this summary line:
+
+```text
+policy_resolution=fallback_strictest: no certified policy for (claude-haiku-4-5-20251001, 6bfe1857fd36); deciding at the strictest threshold T1
+policy_resolution: fallback_strictest (policy T1)
+```
+
+Expect most lines to go to `needs_review`. Once a smoke-certified FR entry exists, the line reads `policy_resolution: exact (policy <id>)`. The `eval-freeze` refusal does not apply to this run: it only covers live runs over the two exercise input files, which are refused unless the `eval-freeze` tag is at HEAD. An unseen BoQ is never refused.
+
+The next commands are read-only and cost $0: they never call a model, never read the ground truth and write nothing.
+
+Replay the committed lockbox B3 runs (EN `runs/submission/20261008T023928Z-56f85fb8`, FR `runs/submission/20261008T024244Z-de394c39`) and check them byte for byte against `output/improved_output_{en,fr}.csv`:
+
+```bash
+uv run oris demo
+uv run oris demo --lang en
+uv run oris demo --lang fr
+```
+
+It prints, per language, the rows, the decisions (matched / needs_review / not_a_material) and the replay verdict, and exits 1 if a replay is not byte-identical. A live run of the same input can differ from the replay by up to the measured decision flip rate, because temperature 0 is not bit-deterministic on hosted APIs. On dev, the G3 cold live rerun of the shipped configuration measured 0 decision flips in 199 lines per language (and 0 row flips; [`docs/gates/G3.md`](docs/gates/G3.md) §5). The demo only replays: it does not score the outputs (use `uv run oris score`) and has no `--live` option (run the brief's command instead). DESIGN.md A69 records this narrowing of §11.
+
+"Why did line X get this?":
+
+```bash
+uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02.0010.
+uv run oris explain --run runs/submission/20261008T023928Z-56f85fb8 --item 01.02.0010. --json
+```
+
+For that item it prints the input text and section path, the decision, the reason code and the decision-table rule that fired, each pass's top1 / confidence / evidence, the policy and threshold the run decided at, the E-08 verifier fields, the matched library row and the top-2 suggestions, the attributed cost and latency, and every call id with its request SHA-256, its stored system prompt under `prompts/` and the provider request id. Each call line also gives its attempt number and HTTP status or error class, and a line with no valid answer says so. `--full` adds each call's user message and raw response. A header line says that no model call was made. `--item` also takes a line id; an unknown item exits 2. `--json` prints the same as one JSON object with sorted keys. It reads the run folder and the input and library files the manifest names, and refuses either if its bytes changed.
 
 ## Development results (dev only, before the freeze)
 
@@ -74,18 +112,57 @@ The shipped configuration is the bold row (`config/policy.yaml`): Haiku with k =
 - **Cost and speed:** about $0.003 per line and 0.75–0.80 s of wall clock per routed line.
 - **Review load:** 32 (EN) and 26 (FR) of every 100 output lines go to review.
 - **B2** matches every valid answer, so it is a baseline, not the shipped system.
-- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, the fallback decides at the strictest threshold, where almost every line goes to review (1 match in 324 dev lines when measured).
+- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, the fallback decides at the strictest threshold, where almost every line goes to review (1 match over the 324 dev items when measured).
 
 Live spend: $0.67 at G1, $3.46 at G2.
 
-The files in `output/` are B0 placeholders (rules only). They show the output format, not the results. See [`output/README.md`](output/README.md).
+The files in `output/` are the B3 lockbox outputs, the system's results. See [`output/README.md`](output/README.md).
 
 Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/gates/G2.md) (what was built, reviews, spend, results, observations), and [`eval/experiments.md`](eval/experiments.md) (the experiment ledger).
 
-## What is open
+## Traced cases
 
-| Gate | Cap | Work |
-|---|---|---|
-| G3 hardening | Wed 7 Oct, 22:00 | Fault matrix including a 429 storm; FR smoke set on the FR library; CLI/API parity; one cold live dev run for cost and latency |
-| G4 freeze and lockbox | Thu 8 Oct, 12:00 | Tag `eval-freeze`; one lockbox session; final `output/` files; the claim |
-| G5 release | Thu 8 Oct, 18:00 | Clean clone on Windows and Linux; final README with weaknesses and what I would do with more time |
+[`docs/traced-cases.md`](docs/traced-cases.md) walks four lines end to end with `oris explain`: a correct match, a plausible wrong match, an abstention, and a failed call that ends in review (a budget refusal; a provider error takes the same path and is covered by a test).
+
+
+## Known weaknesses
+
+- **French coverage pays for French precision.** On the lockbox, B3 matches 79 of 113 labelled French lines correctly, against 99 for the single-pass baseline (McNemar p = .0002). Every line it declines goes to `needs_review` with a reason code and a top-2 suggestion; none is matched wrongly. In English, B3 keeps the baseline's coverage (p = 1.0).
+- **Usage confusions inside the right material type survive.** Both lockbox errors are of this kind:
+  - railway sub-ballast was matched to ballast aggregates;
+  - French _couche de fondation_, the sub-base, was matched to the base layer, although the glossary states the meaning.
+
+  The E-08 verifier reduces this error class but does not remove it.
+
+- **The verifier costs coverage once the enrichment is in place.** On dev, the same enriched votes without the verifier give 218 correct matches against 194, at P .972 and .958. The verifier was kept because that comparison was not registered before its result was seen (`docs/gates/G2.md` O24).
+- **The FR library has no certified threshold.** Unseen BoQs on `data/oris_materials_fr.csv` run at the strictest threshold, which is safe but matches little. The FR smoke set that would certify it (A10) was moved after the freeze.
+- **The fallback model is not certified.** If the primary model is unreachable, gpt-4o-mini decides at the strictest threshold, so almost every line goes to review (G2 O26).
+- **The lockbox is a same-project holdout.** It is section-held-out and blind to tuning, but it was explored before the split (§10.8). The unseen live BoQ is the only fully blind test.
+- **One triggered arm was not run.** `header_context` (6 English errors) did not run before the freeze (G2 O25).
+
+## Scaling to large libraries
+
+The whole library is shown to the model (D-01), because lexical recall@20 is only .869 in English and .690 in French: a shortlist would cap accuracy before the model is called.
+
+- **Size handling:** a run applies the D-01 tiers to a character-based estimate of each rendered library's tokens, and `oris doctor --live` measures them with `count_tokens`. The tiers are:
+  - up to 30k tokens: the whole library;
+  - 30k–150k: the whole library, with a warning and a cache check;
+  - above 150k: an explicit error that names the retrieval switch.
+- **Retrieval:** candidate selection sits behind a `CandidateProvider` port, with one implementation, `WholeLibrary`. A `HybridRetriever` (BM25 plus dense retrieval) for libraries above 30k tokens is designed (§10.5) but not built, so the error above 150k tokens names a switch that is not yet available.
+
+## Models, memory and provenance
+
+- **Model:** pinned to `claude-haiku-4-5-20251001`, whose published retirement floor is not before 2026-10-15 (A26). The latency numbers were measured at the account's custom rate-limit tier, above tier 4 (`evidence/doctor_2026-10-08.json`).
+- **Local models:** the model allowlist admits local ≤ 8B model ids, but no local adapter is built or benchmarked.
+- **Memory:** no conversational or correction memory is used. The classifier is stateless and closed-world; memory derived from labels would leak (D-02). Reviewer-correction memory keyed by library hash is a production next step.
+- **Labelled-data disclosure:** all 252 labelled lines, lockbox included, were profiled during data analysis before the split was frozen. Glossary and enrichment entries carry provenance tags (`standard`, `library`, `dev_error`). The lockbox claim also holds without the lines touched by `dev_error` entries: EN .989, FR .987 (`docs/evaluation.md`). The error-cause labels were produced by a panel of two blind labeller agents and an adjudicator, reviewed by me (κ .844).
+- **Replays:** `oris demo` replays the committed lockbox runs at $0. Live numbers can differ from a replay by the run-to-run flip rate. On dev, two independent live samples of the shipped configuration gave 0 flips in 199 lines per language (`docs/gates/G3.md` §5).
+
+## With more time
+
+- Run the triggered `header_context` arm and the FR-library smoke set (A10), so French BoQs on the French library get a certified threshold.
+- Register and measure "verifier off, given the enrichment" blind, on fresh votes. It may recover about 24 correct dev matches.
+- A carbon-weighted error metric, once ORIS CO₂ factors are available, so that a wrong match is weighted by the size of the carbon mistake.
+- The deferred G3 hardening: the full fault matrix with a 429 storm, CLI/API parity over whole files, and the doctor measuring the enriched prompt for budget reservations.
+- Build the `HybridRetriever` and measure its recall@k for libraries above 30k tokens, and add and benchmark a local ≤ 8B adapter.
+- The operator UI with asynchronous jobs (`docs/ui-spec.md`).
