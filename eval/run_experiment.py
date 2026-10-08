@@ -14,7 +14,25 @@ twins are one observation), the exact one-sided sign-test p over per-item net de
 keep verdict; without it those fields are null and kept is ``baseline``. A comparison made
 while the other language's compared row of the experiment is missing is ``pending``: the §7.2
 verdict needs both languages, so the second row decides it and names the first in
-``pooled_with``.
+``pooled_with``. ``--cause-targeted`` names the §10.7 cause an arm targets; the row records it
+as ``cause_targeted`` (null when absent), and any other cause is refused.
+``--drop-conflicting-votes`` turns on arm ``E-subtype-drop`` (A64) for the run; without it a
+``replay:<run>`` re-decides with the replayed run's recorded value and any other run with the
+setting. The row records the profile used as ``decision_profile``, whatever ``--change`` says.
+``--verifier-adopted`` turns on the E-08 sibling verifier (A65.2) the same way. With
+``--llm replay:<run>`` of a run recorded without it, the run is mixed: the main passes are
+served from that run at $0 and only the verifier requests reach ``--llm-verifier`` (the live
+primary when absent; ``fake`` offline), so its ``spend_usd`` is the verifier's alone.
+``--no-verifier-adopted`` forces it off: a replay of a run recorded with the verifier then
+re-decides without it at $0, the source a mixed run needs to measure another threshold (A67.2).
+``--policy`` replaces ``config/policy.yaml`` for the run, as ``oris match --policy`` does: the
+run decides at that file's entry, recorded as ``policy_resolution: override``. It measures a
+threshold other than the certified one (A67); a lockbox session refuses it.
+``--enrichment <file>`` renders that arm C enrichment in a B3 run, and ``--enrichment none``
+renders none (A68.4); without it, ``ORIS_ENRICHMENT`` and then the deciding policy entry
+decide, and a ``replay:<run>`` renders the replayed run's recorded enrichment. The file must
+have been generated from the run's library, or the run is refused before any call (exit 2). A
+lockbox session refuses both the flag and the setting: it renders the shipped entry's file.
 
 Every attempt gets its row. ``--baseline-id`` is checked before any call; a failure after the
 calls (the scorer, the comparison) still appends a ``failed`` ledger row, or a ``FAILED``
@@ -23,7 +41,8 @@ lockbox row that uses up the rung's slot, before the error is reported.
 The lockbox (§10.3) is reached only by the post-freeze session: ``--side all
 --lockbox-session``, refused unless the git tag ``eval-freeze`` points at HEAD, the working
 tree is clean (``git status --porcelain`` lists nothing outside ``runs/`` and the log) and
-``--llm`` names a live provider, with neither ``--slice``, ``--limit`` nor ``--baseline-id``.
+``--llm`` names a live provider, with none of ``--slice``, ``--limit``, ``--baseline-id``,
+``--policy`` or ``--enrichment``.
 It runs the full file once per frozen rung (profile, language, code SHA), never reads the
 response cache, scores the lockbox side and appends its row, with the run's mode, llm and
 dirty flag, to the pinned ``<repo>/eval/lockbox_log.md``; a second session of the same rung
@@ -39,9 +58,12 @@ Usage::
         --library data/oris_materials_global.csv --split eval/split_v1.json --side dev \
         [--slice eval/slice_v1.json] [--limit 5] [--profile b2|b3] [--llm fake] \
         [--budget-usd 1.00] [--baseline-id E-00] --id E-00 --hypothesis "..." \
-        --change "..."
+        [--policy policy.yaml] [--cause-targeted lexical_gap] [--drop-conflicting-votes] \
+        [--[no-]verifier-adopted [--llm-verifier fake]] [--enrichment FILE|none] --change "..."
 
 Exit codes: 0 ok, 2 bad input, 3 a line was ``LLM_UNAVAILABLE`` or a replay miss, 4 refused.
+A mixed E-08 run whose source lacks a main-pass record exits 2 with no ledger row: the
+strict replay behind its cache raises ``ReplayMissError`` before anything is written.
 """
 
 from __future__ import annotations
@@ -66,14 +88,26 @@ from types import ModuleType
 from typing import Any
 
 from oris_matcher.cli import MatchJob, MatchOutcome, execute_match
-from oris_matcher.doctor import LIVE_KINDS, Runtime, WiringError, parse_llm_spec
+from oris_matcher.doctor import LIVE_KINDS, LLMKind, Runtime, WiringError, parse_llm_spec
 from oris_matcher.domain.boq import BoqFile, LineKind
 from oris_matcher.domain.library import load_library
 from oris_matcher.io.audit import code_version, portable_path
-from oris_matcher.service import RunProfile
+from oris_matcher.llm.replay_llm import ReplayMissError
+from oris_matcher.service import DECISION_PROFILE_KEY, RunProfile
 from oris_matcher.settings import ConfigError, Settings
 
 ROOT = Path(__file__).resolve().parents[1]
+FROZEN_SETTINGS = (
+    "verifier_adopted",
+    "drop_conflicting_votes",
+    "enrichment",
+    "primary_model",
+    "fallback_model",
+    "passes_k",
+    "batch_size",
+)
+FROZEN_CONFIG_FILES = ("policy.yaml", "models.toml")
+SHIPPED_CONFIG_DIR = ROOT / "config"
 ENCODING = "utf-8"
 LEDGER_NEWLINE = "\n"
 SCORER_PATH = Path(__file__).resolve().parent / "score.py"
@@ -132,6 +166,15 @@ LOG_COMMIT_CELL = 1
 LOG_LANG_CELL = 3
 LOG_HEADER = "timestamp"
 DIGITS = 3
+CAUSES_SECTION_10_7 = (
+    "lexical_gap",
+    "usage_confuser",
+    "subtype_parse",
+    "header_context",
+    "not_in_library",
+    "llm_failure",
+    "gt_convention",
+)
 
 
 class ExperimentError(Exception):
@@ -275,6 +318,56 @@ def _refuse_partial_lockbox(args: argparse.Namespace) -> None:
         raise RefusedError(
             "a lockbox session runs the whole file once: no --slice, --limit or --baseline-id"
         )
+    if args.policy is not None:
+        raise RefusedError("a lockbox session decides under the shipped policy: no --policy")
+    if args.enrichment is not None:
+        raise RefusedError(
+            "a lockbox session renders the shipped entry's enrichment: no --enrichment"
+        )
+    _refuse_forced_profile(args)
+
+
+def _refuse_forced_profile(args: argparse.Namespace) -> None:
+    """Refuse a lockbox session whose flags force a decision profile (A67, A68.4)."""
+    forced = [
+        flag
+        for flag, given in (
+            ("--verifier-adopted/--no-verifier-adopted", args.verifier_adopted is not None),
+            ("--drop-conflicting-votes", bool(args.drop_conflicting_votes)),
+            ("--llm-verifier", args.llm_verifier is not None),
+        )
+        if given
+    ]
+    if forced:
+        raise RefusedError(
+            f"a lockbox session decides under the shipped entry only: no {', '.join(forced)}"
+        )
+
+
+def _refuse_forced_settings() -> None:
+    """Refuse a lockbox session whose environment or ``.env`` changes the frozen configuration.
+
+    Every decision-relevant setting must keep its default, and the config directory must
+    hold the repository's own ``policy.yaml`` and ``models.toml``, so the session decides
+    under exactly what ``eval-freeze`` pins (A67, A68.4).
+    """
+    settings = Settings()
+    changed = [
+        name
+        for name in FROZEN_SETTINGS
+        if getattr(settings, name)
+        != Settings.model_fields[name].get_default(call_default_factory=True)
+    ]
+    if changed:
+        names = ", ".join(f"ORIS_{name.upper()}" for name in changed)
+        raise RefusedError(f"a lockbox session runs the frozen configuration: unset {names}")
+    for name in FROZEN_CONFIG_FILES:
+        used = settings.config_file(name)
+        if not used.is_file() or used.read_bytes() != (SHIPPED_CONFIG_DIR / name).read_bytes():
+            raise RefusedError(
+                f"a lockbox session runs the frozen configuration: {used} is not the "
+                f"repository's config/{name}"
+            )
 
 
 def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
@@ -286,12 +379,15 @@ def check_lockbox_gate(args: argparse.Namespace, runtime: Runtime) -> None:
 
     Raises:
         RefusedError: A partial lockbox route, a session narrowed by slice, limit or baseline,
-            a non-live ``--llm``, ``eval-freeze`` not at HEAD, or a dirty working tree.
+            a forced policy, enrichment or decision profile, a setting or config file that
+            differs from the frozen one, any ``--llm`` but the pinned primary, ``eval-freeze``
+            not at HEAD, or a dirty working tree.
 
     """
     if args.side == SIDE_DEV and not args.lockbox_session:
         return
     _refuse_partial_lockbox(args)
+    _refuse_forced_settings()
     if FREEZE_TAG not in _git_output(runtime, GIT_TAGS_AT_HEAD).split():
         raise RefusedError(f"--lockbox-session is refused: the tag {FREEZE_TAG} is not at HEAD")
     _refuse_non_live(args)
@@ -312,6 +408,10 @@ def _refuse_non_live(args: argparse.Namespace) -> None:
     if kind not in LIVE_KINDS:
         live = ", ".join(sorted(kind.value for kind in LIVE_KINDS))
         raise RefusedError(f"--lockbox-session needs a live --llm ({live}), not {args.llm!r}")
+    if kind != LLMKind.ANTHROPIC or parse_llm_spec(args.llm).model is not None:
+        raise RefusedError(
+            f"--lockbox-session runs the pinned primary only: --llm anthropic, not {args.llm!r}"
+        )
 
 
 def _git_output(runtime: Runtime, command: Sequence[str]) -> str:
@@ -906,7 +1006,9 @@ def _run_fields(
         "id": args.id,
         "date": moment.astimezone(UTC).isoformat(),
         "hypothesis": args.hypothesis,
+        "cause_targeted": args.cause_targeted,
         "change": args.change,
+        DECISION_PROFILE_KEY: manifest[DECISION_PROFILE_KEY],
         "run_id": outcome.result.run_id,
         "lang": args.lang,
         "profile": outcome.result.profile.value,
@@ -1102,11 +1204,16 @@ def build_job(args: argparse.Namespace, selection: Selection | None) -> MatchJob
         llm=parse_llm_spec(args.llm),
         output_path=args.output,
         profile=RunProfile(args.profile),
+        policy_path=args.policy,
         use_cache=not args.no_cache and not is_lockbox_session(args),
         runs_dir=args.runs_dir,
         selector=selection.line_ids if selection is not None else None,
         split_sha256=file_sha256(args.split),
         budget_usd=_budget(args),
+        drop_conflicting_votes=True if args.drop_conflicting_votes else None,
+        verifier_adopted=args.verifier_adopted,
+        llm_verifier=parse_llm_spec(args.llm_verifier) if args.llm_verifier else None,
+        enrichment=Path(args.enrichment) if args.enrichment is not None else None,
     )
 
 
@@ -1245,6 +1352,10 @@ def run(args: argparse.Namespace, runtime: Runtime) -> int:
     Returns:
         The run's exit code: 0, or 3 when a line was ``LLM_UNAVAILABLE`` or a replay miss.
 
+    Raises:
+        ReplayMissError: A mixed E-08 run's source lacks a main-pass record; ``main`` exits 2
+            and no ledger row is written.
+
     """
     check_lockbox_gate(args, runtime)
     check_once_only(args, runtime)
@@ -1271,10 +1382,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--profile", choices=[profile.value for profile in RunProfile])
     parser.add_argument("--llm", default=DEFAULT_LLM)
+    parser.add_argument("--policy", type=Path)
     parser.add_argument("--budget-usd", type=float)
     parser.add_argument("--baseline-id")
     parser.add_argument("--id", required=True)
     parser.add_argument("--hypothesis", required=True)
+    parser.add_argument("--cause-targeted", choices=CAUSES_SECTION_10_7)
     parser.add_argument("--change", required=True)
     parser.add_argument("--reference", type=Path, default=DEFAULT_REFERENCE)
     parser.add_argument("--classes", type=Path, default=DEFAULT_CLASSES)
@@ -1282,6 +1395,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"))
     parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER)
     parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument("--drop-conflicting-votes", action="store_true")
+    parser.add_argument("--verifier-adopted", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--llm-verifier")
+    parser.add_argument("--enrichment")
     parser.set_defaults(profile=RunProfile.B3.value)
     return parser
 
@@ -1306,7 +1423,15 @@ def main(argv: Sequence[str] | None = None, runtime: Runtime | None = None) -> i
     except RefusedError as error:
         print(f"refused: {error}", file=sys.stderr)
         return EXIT_REFUSED
-    except (ExperimentError, WiringError, ConfigError, OSError, ValueError, KeyError) as error:
+    except (
+        ExperimentError,
+        WiringError,
+        ConfigError,
+        OSError,
+        ValueError,
+        KeyError,
+        ReplayMissError,
+    ) as error:
         print(f"error: {error}", file=sys.stderr)
         return EXIT_ERROR
 

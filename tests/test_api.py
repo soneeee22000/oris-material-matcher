@@ -1,7 +1,10 @@
 """The /v1 API contract: limits, 422s, auth, X-Request-ID, partial failure, parity (§11.4)."""
 
 import csv
+import hashlib
 import json
+import re
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -22,9 +25,11 @@ from oris_matcher.api.app import (
 from oris_matcher.doctor import LLMSpec, Runtime
 from oris_matcher.domain.boq import LineKind
 from oris_matcher.io.boq_reader import read_boq
-from oris_matcher.llm.base import LLMRequest
+from oris_matcher.llm.base import LLMRequest, LLMResult
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind
 from oris_matcher.llm.recording import read_calls_jsonl
+from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.service import MatchService
 from oris_matcher.settings import Settings, load_models_config
 from test_service import answers_for
@@ -46,7 +51,12 @@ LABELS = ("decision", "reason", "material_type", "material_usage", "material_sub
 
 @pytest.fixture(autouse=True)
 def in_tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Run every test from a temporary folder, so API run folders never land in the repo."""
+    """Run every test from a temporary folder, so API run folders never land in the repo.
+
+    The folder mirrors data/enrichment/, which the shipped policy entry names by a
+    repository-relative path (A68.4).
+    """
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -407,3 +417,101 @@ def test_breaker_trip_hands_the_request_to_the_fallback() -> None:
     assert {d["reason"] for d in decisions}.isdisjoint({"LLM_UNAVAILABLE"})
     assert any(d["model"].startswith("gpt-4o-mini") for d in decisions)
     assert any(request.model.startswith("gpt-4o-mini") for request in recorder.calls)
+
+
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+HAIKU = "claude-haiku-4-5-20251001"
+GPT_4O_MINI = "gpt-4o-mini-2024-07-18"
+
+
+class LiveLike:
+    """A port that is neither FakeLLM nor ReplayLLM, so the API treats its run as live."""
+
+    def __init__(self, model: str) -> None:
+        self.inner = FakeLLM(model, ALLOWLIST)
+        self.calls: list[LLMRequest] = []
+
+    async def complete(self, req: LLMRequest) -> LLMResult:
+        self.calls.append(req)
+        return await self.inner.complete(req)
+
+
+class LiveRecorder:
+    """An LLM factory handing out live-like ports and keeping them."""
+
+    def __init__(self) -> None:
+        self.ports: list[LiveLike] = []
+
+    def __call__(self, model: str) -> LiveLike:
+        port = LiveLike(model)
+        self.ports.append(port)
+        return port
+
+
+def _oversized_prefix_evidence(folder: Path, model: str = HAIKU) -> None:
+    """Record a doctor measurement whose prefix alone costs more than a small run's cap."""
+    versions = {prompt_version(v): OVERSIZED_PREFIX_TOKENS for v in (CANONICAL_V1, REVERSE_V1, B2)}
+    data = {
+        "library_sha256": hashlib.sha256(LIBRARIES["fr"].read_bytes()).hexdigest(),
+        "model": model,
+        "by_prompt_version": versions,
+    }
+    check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
+    evidence = folder / "evidence" / "doctor_2026-10-06.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+
+
+def test_a_live_api_run_reserves_its_prefix_from_the_doctor_measurement(in_tmp: Path) -> None:
+    """A63: the API reserves a live run's prefix from the measurement, as the CLI does."""
+    estimated = LiveRecorder()
+    runtime = Runtime(sleep=no_sleep, git=fake_git)
+    client = TestClient(create_app(make_settings(), estimated, runtime=runtime))
+    first = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+    assert first["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert sum(len(port.calls) for port in estimated.ports) > 0
+
+    _oversized_prefix_evidence(in_tmp)
+    measured = LiveRecorder()
+    client = TestClient(create_app(make_settings(), measured, runtime=runtime))
+    second = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert second["decisions"][0]["reason"] == "BUDGET_CAP"
+    assert sum(len(port.calls) for port in measured.ports) == 0
+
+
+def test_a_fake_api_run_reserves_from_the_estimate_despite_a_measurement(in_tmp: Path) -> None:
+    """A63: a FakeLLM run never reaches the measured model, so it keeps characters / 4."""
+    _oversized_prefix_evidence(in_tmp)
+    recorder = Recorder()
+    response = post(client_for(recorder), {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert response["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert recorder.calls
+
+
+def test_a_live_non_anthropic_api_run_ignores_a_measurement_for_its_model(in_tmp: Path) -> None:
+    """A63: the doctor measures Anthropic only, so another provider's run keeps characters / 4."""
+    _oversized_prefix_evidence(in_tmp, model=GPT_4O_MINI)
+    ports = LiveRecorder()
+    settings = make_settings(primary_model=GPT_4O_MINI)
+    client = TestClient(create_app(settings, ports, runtime=Runtime(sleep=no_sleep, git=fake_git)))
+    response = post(client, {"library": "fr", "lines": [ONE_LINE]}).json()
+
+    assert response["decisions"][0]["reason"] != "BUDGET_CAP"
+    assert sum(len(port.calls) for port in ports.ports) > 0
+
+
+def test_ready_is_503_when_the_certified_enrichment_does_not_load(tmp_path: Path) -> None:
+    """G2-T11 review: /ready must fail when every B3 match would fail on the enrichment."""
+    config = tmp_path / "config"
+    shutil.copytree(CONFIG, config)
+    policy = (config / "policy.yaml").read_text(encoding="utf-8")
+    sha = re.search(r"enrichment_sha256: '([0-9a-f]{64})'", policy)
+    assert sha is not None
+    (config / "policy.yaml").write_text(policy.replace(sha.group(1), "0" * 64), encoding="utf-8")
+    settings = make_settings(config_dir=config, anthropic_api_key=SecretStr("sk-test"))
+    response = TestClient(create_app(settings)).get("/ready")
+    assert response.status_code == 503
+    assert response.json()["libraries"]["global"] is False
+    assert response.json()["libraries"]["fr"] is True

@@ -316,7 +316,7 @@ This rule replaces both the v1 selection rule and A18's certified walk; neither 
 
 - Dev precision by v, and the share of errors with v = k (systematic errors that agreement cannot catch). [A-46]
 - A precision / coverage / review-load / cost table for every threshold, produced by $0 replay. This is the explicit trade-off curve.
-- D5a's false-reject rate on dev, by $0 replay. If it rejects more than 3 correct matches, the evidence length is widened and the prompt version bumped (logged). [A-43]
+- D5a's false-reject rate on dev, by $0 replay. If it rejects more than 3 correct matches, the validator's evidence tolerance is widened (A59.1); the prompt and prompt_version are unchanged because the limit is not part of the generated schema (logged). [A-43]
 
 **Risk–coverage curves** (reported with the selection, G2)
 

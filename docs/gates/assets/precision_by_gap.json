@@ -1,0 +1,56 @@
+{
+  "by_gap": {
+    "en": {
+      "levels": {
+        "clear": {
+          "correct": 71,
+          "n": 80,
+          "precision": 0.8875
+        },
+        "decisive": {
+          "correct": 13,
+          "n": 15,
+          "precision": 0.8666666666666667
+        },
+        "narrow": {
+          "correct": 5,
+          "n": 5,
+          "precision": 1.0
+        },
+        "tossup": {
+          "correct": 2,
+          "n": 2,
+          "precision": 1.0
+        }
+      },
+      "population": 102
+    },
+    "fr": {
+      "levels": {
+        "clear": {
+          "correct": 65,
+          "n": 73,
+          "precision": 0.8904109589041096
+        },
+        "decisive": {
+          "correct": 17,
+          "n": 17,
+          "precision": 1.0
+        },
+        "narrow": {
+          "correct": 10,
+          "n": 10,
+          "precision": 1.0
+        },
+        "tossup": {
+          "correct": 3,
+          "n": 4,
+          "precision": 0.75
+        }
+      },
+      "population": 104
+    },
+    "label": "verbal ordinal judgement, not a probability"
+  },
+  "figure": "precision_by_gap"
+}

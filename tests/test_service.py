@@ -3,7 +3,9 @@
 import asyncio
 import csv
 import dataclasses
+import json
 import logging
+import shutil
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -63,6 +65,7 @@ from oris_matcher.settings import (
     PolicyEntry,
     Settings,
     load_models_config,
+    load_policy,
     load_pricing,
     load_supply_markers,
 )
@@ -87,15 +90,31 @@ RUN_ID = "test-run"
 
 
 def make_settings(**overrides: Any) -> Settings:
+    overrides.setdefault("config_dir", CONFIG)
     return Settings(
         _env_file=None,  # type: ignore[call-arg]
-        config_dir=CONFIG,
         libraries=LIBRARIES,
         **overrides,
     )
 
 
 SERVICE = MatchService.from_settings(make_settings())
+SELECTION = ROOT / "eval" / "selection_v1.json"
+EMPTY_POLICY = "policies: {}\n"
+
+
+def selected_threshold_id() -> str:
+    """Return the threshold the G2 dev selection chose (eval/selection_v1.json)."""
+    payload = json.loads(SELECTION.read_text(encoding="utf-8"))
+    return str(payload["selected"]["threshold_id"])
+
+
+def service_without_policy(tmp_path: Path) -> MatchService:
+    """Build the service from a copy of config/ whose policy file lists no entry."""
+    config = tmp_path / "config"
+    shutil.copytree(CONFIG, config)
+    (config / "policy.yaml").write_text(EMPTY_POLICY, encoding="utf-8")
+    return MatchService.from_settings(make_settings(config_dir=config))
 
 
 async def _no_sleep(seconds: float) -> None:
@@ -150,23 +169,25 @@ async def run(
     library_id: str,
     llm: LLMWrapper,
     profile: RunProfile = RunProfile.B3,
+    service: MatchService = SERVICE,
     **options: Any,
 ) -> RunResult:
     options.setdefault("run_id", RUN_ID)
-    return await SERVICE.match(
+    return await service.match(
         boq, library_id, profile=profile, llm=llm, options=RunOptions(**options)
     )
 
 
 @pytest.mark.parametrize(("source", "library_id"), [(EN_INPUT, "global"), (FR_INPUT, "fr")])
 async def test_full_file_b3_strictest(
-    source: Path, library_id: str, caplog: pytest.LogCaptureFixture
+    source: Path, library_id: str, caplog: pytest.LogCaptureFixture, tmp_path: Path
 ) -> None:
+    service = service_without_policy(tmp_path)
     boq = read_boq(source)
-    library = SERVICE.library(library_id)
+    library = service.library(library_id)
     fake = fake_for(boq, library_id)
     with caplog.at_level(logging.WARNING):
-        result = await run(boq, library_id, make_wrapper(fake))
+        result = await run(boq, library_id, make_wrapper(fake), service=service)
 
     assert [item.line.line_id for item in result.lines] == [line.line_id for line in boq.lines]
     assert [item.line.position for item in result.lines] == list(range(len(boq.lines)))
@@ -374,6 +395,32 @@ def test_policy_resolution_exact_hit_override_and_no_path() -> None:
     forced = resolve_policy(config, PolicyQuery(HAIKU, library.sha256, 2, override=loose))
     assert forced.resolution == PolicyResolution.OVERRIDE
     assert forced.threshold == loose
+
+
+async def test_repo_policy_resolves_exact_for_haiku_and_the_global_library() -> None:
+    """The shipped config/policy.yaml certifies the G2 dev selection for (Haiku, global)."""
+    boq = read_boq(EN_INPUT)
+    result = await run(boq, "global", make_wrapper(fake_for(boq, "global")))
+
+    assert result.policy.resolution == PolicyResolution.EXACT
+    assert result.policy.threshold.threshold_id == selected_threshold_id()
+    assert result.manifest["policy_resolution"] == "exact"
+    assert result.manifest["policy_id"] == selected_threshold_id()
+    assert result.manifest["policy_certified_by"] == "dev_selection"
+
+
+def test_repo_policy_falls_back_for_a_changed_library_and_for_gpt() -> None:
+    """Any pair the shipped policy does not list resolves to the strictest threshold."""
+    config = load_policy(CONFIG / "policy.yaml")
+    library = SERVICE.library("global")
+    changed = resolve_policy(config, PolicyQuery(HAIKU, "0" * 64, 2, path_derived=True))
+    gpt = resolve_policy(config, PolicyQuery(GPT, library.sha256, 2, path_derived=True))
+    exact = resolve_policy(config, PolicyQuery(HAIKU, library.sha256, 2, path_derived=True))
+
+    assert changed.resolution == PolicyResolution.FALLBACK_STRICTEST
+    assert gpt.resolution == PolicyResolution.FALLBACK_STRICTEST
+    assert changed.threshold == gpt.threshold == strictest_threshold(2)
+    assert exact.resolution == PolicyResolution.EXACT
 
 
 def test_policy_entry_naming_an_unknown_threshold_is_refused() -> None:

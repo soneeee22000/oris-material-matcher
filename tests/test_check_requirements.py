@@ -552,6 +552,39 @@ def test_rq10_fails_on_a_large_model_in_served_models(world: World) -> None:
     assert _status(world, "RQ10") == "FAIL"
 
 
+def _zero_calls(world: World) -> None:
+    world.calls = []
+    world.manifest["served_models"] = []
+
+
+def test_rq10_zero_call_run_passes_with_no_served_model(world: World) -> None:
+    _zero_calls(world)
+    world.manifest["fallback_model"] = "gpt-4o-mini-2024-07-18"
+    result = _statuses(world)["RQ10"]
+    assert result.status == "PASS"
+    configured = ", ".join(sorted([MODEL, "gpt-4o-mini-2024-07-18"]))
+    assert result.detail == f"no served model (0 calls); configured on the allowlist: {configured}"
+
+
+def test_rq10_zero_call_run_with_a_refused_configured_model_fails(world: World) -> None:
+    _zero_calls(world)
+    world.manifest["fallback_model"] = "claude-sonnet-4-5"
+    assert _status(world, "RQ10") == "FAIL"
+
+
+def test_rq10_served_run_detail_counts_the_models(world: World) -> None:
+    result = _statuses(world)["RQ10"]
+    assert result.status == "PASS"
+    assert result.detail == f"1 model(s) on the allowlist: {MODEL}"
+
+
+def test_rq10_run_with_calls_but_no_served_models_is_not_a_zero_call_run(world: World) -> None:
+    world.manifest["served_models"] = []
+    result = _statuses(world)["RQ10"]
+    assert result.status == "PASS"
+    assert result.detail == f"1 model(s) on the allowlist: {MODEL}"
+
+
 # --- RQ11 replay -----------------------------------------------------------------------
 
 

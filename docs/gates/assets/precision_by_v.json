@@ -1,0 +1,49 @@
+{
+  "by_v": {
+    "en": {
+      "levels": {
+        "1": {
+          "correct": 12,
+          "n": 33,
+          "precision": 0.36363636363636365
+        },
+        "2": {
+          "correct": 91,
+          "n": 102,
+          "precision": 0.8921568627450981
+        }
+      },
+      "passes": 2,
+      "population": 135
+    },
+    "fr": {
+      "levels": {
+        "1": {
+          "correct": 17,
+          "n": 28,
+          "precision": 0.6071428571428571
+        },
+        "2": {
+          "correct": 95,
+          "n": 104,
+          "precision": 0.9134615384615384
+        }
+      },
+      "passes": 2,
+      "population": 132
+    }
+  },
+  "figure": "precision_by_v",
+  "systematic_error_share": {
+    "en": {
+      "value": 0.34375,
+      "wrong": 32,
+      "wrong_v_k": 11
+    },
+    "fr": {
+      "value": 0.45,
+      "wrong": 20,
+      "wrong_v_k": 9
+    }
+  }
+}

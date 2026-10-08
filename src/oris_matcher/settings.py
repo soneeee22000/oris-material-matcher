@@ -10,7 +10,7 @@ import re
 import tomllib
 from collections.abc import Iterable
 from datetime import date
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Annotated, Literal, Self
 
 import yaml
@@ -54,6 +54,7 @@ LOCAL_PATTERN_RE = re.compile(r"local:<=(?P<limit>\d+(?:\.\d+)?)B")
 LOCAL_MODEL_RE = re.compile(r"local:[^:\s]+:(?P<size>\d+(?:\.\d+)?)[bB]")
 SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
 PRICING_META_KEYS = frozenset({"price_date", "currency", "per_tokens", "providers"})
+PARENT_DIR = ".."
 
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 LibrarySha256 = Annotated[str, StringConstraints(pattern=SHA256_HEX_PATTERN)]
@@ -71,6 +72,13 @@ class Settings(BaseSettings):
 
     ``primary_model`` and ``fallback_model`` are optional overrides; the pinned models live only
     in ``models.toml``, and ``resolve_models`` checks any override against its allowlist.
+    ``drop_conflicting_votes`` (``ORIS_DROP_CONFLICTING_VOTES``, off by default) turns on arm
+    ``E-subtype-drop`` of the decision table (A64). ``verifier_adopted``
+    (``ORIS_VERIFIER_ADOPTED``) forces the E-08 sibling verifier on or off: a B3 run with it on
+    asks the verifier about every line that would match, and D8a and D1b read its answer (A20,
+    A65.2). Unset (the default), the resolved policy entry decides (A67). ``enrichment``
+    (``ORIS_ENRICHMENT``) forces the arm C enrichment file a B3 run renders, or ``none`` to
+    force it off; unset, the resolved policy entry's file is used, if it names one (A68.4).
     """
 
     model_config = SettingsConfigDict(
@@ -100,6 +108,9 @@ class Settings(BaseSettings):
     line_budget_seconds: float = Field(default=DEFAULT_LINE_BUDGET_SECONDS, gt=0)
     budget_usd_per_100_lines: float = Field(default=DEFAULT_BUDGET_USD_PER_100_LINES, gt=0)
     breaker_consecutive_failures: int = Field(default=DEFAULT_BREAKER_CONSECUTIVE_FAILURES, ge=1)
+    drop_conflicting_votes: bool = False
+    verifier_adopted: bool | None = None
+    enrichment: Path | None = None
 
     def config_file(self, name: str) -> Path:
         """Return the path of one config file inside ``config_dir``.
@@ -210,10 +221,38 @@ class PricingTable(_Config):
 
 
 class PolicyEntry(_Config):
-    """A certified operating threshold for one (model, library) pair."""
+    """A certified operating point for one (model, library) pair (§10.6, A67, A68.4).
+
+    ``verifier_adopted`` says the certification covers the E-08 sibling verifier as well as the
+    threshold; an entry without the key certifies the threshold alone. ``enrichment`` names the
+    arm C enrichment file the certification covers, as a repository-relative POSIX path, with
+    its ``enrichment_sha256``; the two come together or not at all.
+    """
 
     policy_id: NonEmptyStr
     certified_by: Certifier
+    verifier_adopted: bool = False
+    enrichment: NonEmptyStr | None = None
+    enrichment_sha256: LibrarySha256 | None = None
+
+    @field_validator("enrichment")
+    @classmethod
+    def _enrichment_is_repo_relative(cls, enrichment: str | None) -> str | None:
+        """Refuse an enrichment path that is absolute, has a backslash or leaves the repository."""
+        if enrichment is None:
+            return None
+        parts = PurePosixPath(enrichment).parts
+        portable = "\\" not in enrichment and ":" not in enrichment
+        if not portable or PurePosixPath(enrichment).is_absolute() or PARENT_DIR in parts:
+            raise ValueError(f"enrichment {enrichment!r} must be a repository-relative POSIX path")
+        return enrichment
+
+    @model_validator(mode="after")
+    def _enrichment_comes_with_its_hash(self) -> Self:
+        """Refuse an entry naming an enrichment without its SHA-256, or the reverse."""
+        if (self.enrichment is None) != (self.enrichment_sha256 is None):
+            raise ValueError("enrichment and enrichment_sha256 must be given together")
+        return self
 
 
 class PolicyConfig(_Config):

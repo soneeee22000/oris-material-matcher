@@ -5,7 +5,9 @@ budgets, bisection and id reconciliation. Response checks run in the §11.3 orde
 reason (in the adapter), then strict Pydantic validation here, of the envelope once and of each
 line object on its own (G1-T1a). The case-sensitive code check
 against the library belongs to the domain; ``WrapperDeps.answer_hook`` sees every validated
-answer for callers that want to inspect it.
+answer for callers that want to inspect it. A batch is validated against one ``AnswerSchema``:
+the main passes' ``LineAnswer`` by default, or the E-08 verifier's ``VerifierAnswer``, whose
+code check also belongs to the caller.
 """
 
 import asyncio
@@ -16,7 +18,7 @@ import math
 import random
 import re
 from collections import deque
-from collections.abc import Awaitable, Callable, Iterable, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
@@ -46,6 +48,7 @@ from oris_matcher.llm.recording import (
 )
 from oris_matcher.llm.replay_llm import ReplayLLM, ResponseCache, result_from_record
 from oris_matcher.prompts.v1.schema import BatchAnswer, LineAnswer
+from oris_matcher.prompts.v1.verifier import VerifierAnswer, VerifierBatchAnswer
 from oris_matcher.settings import (
     DEFAULT_BREAKER_CONSECUTIVE_FAILURES,
     DEFAULT_LINE_BUDGET_CALLS,
@@ -94,6 +97,36 @@ FAILURE_BY_STATUS = {
 
 RequestBuilder = Callable[[tuple[str, ...]], LLMRequest]
 AnswerHook = Callable[[LineAnswer], LineAnswer]
+PrefixKey = tuple[str, str]
+Answer = LineAnswer | VerifierAnswer
+
+
+@dataclass(frozen=True)
+class AnswerSchema:
+    """How a response's ``lines`` are validated: the whole envelope, then one line object.
+
+    Attributes:
+        batch: Validates a whole response strictly, raising ``ValidationError``.
+        line: Validates one line object strictly, raising ``ValidationError``.
+
+    """
+
+    batch: Callable[[str], Sequence[Answer]]
+    line: Callable[[str], Answer]
+
+
+def _main_batch(raw_text: str) -> Sequence[Answer]:
+    """Validate a main-pass response whole."""
+    return BatchAnswer.model_validate_json(raw_text).lines
+
+
+def _verifier_batch(raw_text: str) -> Sequence[Answer]:
+    """Validate a verifier response whole."""
+    return VerifierBatchAnswer.model_validate_json(raw_text).lines
+
+
+MAIN_ANSWERS = AnswerSchema(_main_batch, LineAnswer.model_validate_json)
+VERIFIER_ANSWERS = AnswerSchema(_verifier_batch, VerifierAnswer.model_validate_json)
 
 
 def _identity(answer: LineAnswer) -> LineAnswer:
@@ -112,6 +145,20 @@ def estimate_tokens(text: str) -> int:
 
     """
     return math.ceil(len(text) / CHARS_PER_TOKEN)
+
+
+def prefix_key(model: str, blocks: Iterable[SystemBlock]) -> PrefixKey:
+    """Key a measured cached prefix by the requested model and the system blocks (A63).
+
+    Args:
+        model: The requested model snapshot id.
+        blocks: The request's system blocks, i.e. one rendering of one library.
+
+    Returns:
+        ``(model, system_blocks_sha256)``.
+
+    """
+    return model, system_blocks_sha256(blocks)
 
 
 def _utc_now() -> datetime:
@@ -176,6 +223,9 @@ class WrapperDeps:
         rng: Jitter source, seeded so tests are deterministic.
         now: UTC clock for record timestamps.
         count_tokens: Token estimator for budget reservation.
+        measured_prefix_tokens: The doctor's measured token count of a rendering, keyed by
+            ``prefix_key``; a request found here reserves its cached prefix from it instead of
+            ``count_tokens`` (A63). Reservations never enter a request or its hash.
         answer_hook: Called on every validated answer before it is returned.
         call_id_namespace: Mixed into call ids, e.g. the run id.
 
@@ -187,6 +237,7 @@ class WrapperDeps:
     rng: random.Random = field(default_factory=_default_rng)
     now: Callable[[], datetime] = _utc_now
     count_tokens: Callable[[str], int] = estimate_tokens
+    measured_prefix_tokens: Mapping[PrefixKey, int] = field(default_factory=dict)
     answer_hook: AnswerHook = _identity
     call_id_namespace: str = ""
 
@@ -221,15 +272,16 @@ def _split_prefix(blocks: Sequence[SystemBlock]) -> tuple[str, str]:
     return prefix, rest
 
 
-def reservation_usd(
+def reservation_usd(  # noqa: PLR0913
     req: LLMRequest,
     price: ModelPrice,
     per_tokens: int,
     *,
     prefix_read: bool,
     count_tokens: Callable[[str], int],
+    prefix_tokens: int | None = None,
 ) -> float:
-    """Reserve the worst-case cost of one dispatch (DESIGN.md §11.3).
+    """Reserve the worst-case cost of one dispatch (DESIGN.md §11.3, A63).
 
     Args:
         req: The request.
@@ -237,6 +289,7 @@ def reservation_usd(
         per_tokens: Tokens the prices refer to.
         prefix_read: Whether a cache read of this prefix has been observed.
         count_tokens: Token estimator.
+        prefix_tokens: The cached prefix's measured token count; estimated when None.
 
     Returns:
         Prefix at the cache-write rate (read rate once a read is seen), the rest of the input
@@ -245,10 +298,9 @@ def reservation_usd(
     """
     prefix, rest = _split_prefix(req.system_blocks)
     prefix_rate = price.cache_read if prefix_read else price.cache_write
+    cached = count_tokens(prefix) if prefix_tokens is None else prefix_tokens
     uncached = count_tokens(rest) + count_tokens(req.user_payload)
-    total = (
-        count_tokens(prefix) * prefix_rate + uncached * price.input + req.max_tokens * price.output
-    )
+    total = cached * prefix_rate + uncached * price.input + req.max_tokens * price.output
     return total / per_tokens
 
 
@@ -266,6 +318,36 @@ class BudgetLedger:
         self.spent_usd = 0.0
         self.reserved_usd = 0.0
         self._read_prefixes: set[str] = set()
+        self._settled: list[asyncio.Event] = []
+
+    def _over_cap(self, total_usd: float) -> bool:
+        """Tell whether a total is above the cap."""
+        return total_usd > self.cap_usd + BUDGET_EPSILON_USD
+
+    async def reserve(self, amount: Callable[[], float]) -> float | None:
+        """Reserve once in-flight reservations leave room; decline only what spend alone exceeds.
+
+        Spend only grows and reservations only shrink, so a reservation over the cap on spend
+        alone can never fit, and one that fits spend always fits once nothing is in flight
+        (A61). The amount is asked again after every wait, since a cache read seen meanwhile
+        lowers it.
+
+        Args:
+            amount: Returns the reservation for a dispatch made now.
+
+        Returns:
+            The amount reserved, or None when the dispatch must not happen.
+
+        """
+        while True:
+            amount_usd = amount()
+            if self._over_cap(self.spent_usd + amount_usd):
+                return None
+            if self.try_reserve(amount_usd):
+                return amount_usd
+            settled = asyncio.Event()
+            self._settled.append(settled)
+            await settled.wait()
 
     def try_reserve(self, amount_usd: float) -> bool:
         """Reserve an amount if spent + reserved + amount stays within the cap.
@@ -277,8 +359,7 @@ class BudgetLedger:
             True when reserved; False means the dispatch must not happen.
 
         """
-        total = self.spent_usd + self.reserved_usd + amount_usd
-        if total > self.cap_usd + BUDGET_EPSILON_USD:
+        if self._over_cap(self.spent_usd + self.reserved_usd + amount_usd):
             return False
         self.reserved_usd += amount_usd
         return True
@@ -292,7 +373,12 @@ class BudgetLedger:
 
         """
         self.reserved_usd -= reserved_usd
+        if abs(self.reserved_usd) <= BUDGET_EPSILON_USD:
+            self.reserved_usd = 0.0
         self.spent_usd += cost_usd
+        waiting, self._settled = self._settled, []
+        for settled in waiting:
+            settled.set()
 
     def prefix_read(self, req: LLMRequest) -> bool:
         """Tell whether a cache read was observed for this request's system blocks."""
@@ -396,7 +482,7 @@ def failure_kind(result: LLMResult) -> LLMFailureKind:
 
 @dataclass(frozen=True)
 class LineOutcome:
-    """One line's result from one pass: an answer, a failure kind, or a line failure.
+    """One line's result from one call kind: an answer, a verdict, a failure, or a line failure.
 
     Attributes:
         line_id: The line id.
@@ -407,6 +493,8 @@ class LineOutcome:
         raw_line_response: The line's verbatim JSON object from the deciding response:
             the accepted answer, or the invalid object a per-line ``MALFORMED`` failure
             kept for the audit; empty otherwise.
+        verdict: The validated E-08 verifier answer, for a batch run with
+            ``VERIFIER_ANSWERS``; its code is not yet checked against the line's codes.
 
     """
 
@@ -416,22 +504,32 @@ class LineOutcome:
     failure: LLMFailureKind | None = None
     line_failure: ReasonCode | None = None
     raw_line_response: str = ""
+    verdict: VerifierAnswer | None = None
 
     def __post_init__(self) -> None:
         """Reject an outcome that does not hold exactly one result.
 
         Raises:
-            ValueError: Not exactly one of answer, failure and line_failure is set.
+            ValueError: Not exactly one of answer, verdict, failure and line_failure is set.
 
         """
-        held = [self.answer, self.failure, self.line_failure]
+        held = [self.answer, self.verdict, self.failure, self.line_failure]
         if sum(value is not None for value in held) != 1:
-            raise ValueError("a line outcome holds exactly one of answer, failure, line_failure")
+            raise ValueError(
+                "a line outcome holds exactly one of answer, verdict, failure, line_failure"
+            )
 
     def pass_outcome(self) -> PassOutcome | None:
-        """Return the domain's pass outcome, or None for a line failure."""
+        """Return the domain's pass outcome of a main-pass line, or None for a line failure.
+
+        Raises:
+            ValueError: The outcome is a verifier verdict, which is not a pass.
+
+        """
         if self.line_failure is not None:
             return None
+        if self.verdict is not None:
+            raise ValueError("a verifier verdict is not a pass outcome")
         return PassOutcome(call_ids=self.call_ids, answer=self.answer, failure=self.failure)
 
 
@@ -516,7 +614,7 @@ class _LineEntry:
     """
 
     raw: str
-    answer: LineAnswer | None
+    answer: Answer | None
     declared_id: str | None
 
 
@@ -564,12 +662,19 @@ class LLMWrapper:
         self._occurrences: dict[str, int] = {}
         self.declined: list[DeclinedAttempt] = []
 
-    async def run_batch(self, line_ids: Sequence[str], build: RequestBuilder) -> BatchOutcome:
+    async def run_batch(
+        self,
+        line_ids: Sequence[str],
+        build: RequestBuilder,
+        answers: AnswerSchema = MAIN_ANSWERS,
+    ) -> BatchOutcome:
         """Get one validated answer or one failure for every line of a batch.
 
         Args:
             line_ids: Distinct line ids, in batch order.
             build: Renders the request for any subset of the ids, in the given order.
+            answers: The schema each response is validated against; the main passes' by
+                default, ``VERIFIER_ANSWERS`` for E-08 verifier batches.
 
         Returns:
             The outcome per line and every attempt's record.
@@ -581,7 +686,7 @@ class LLMWrapper:
         ids = tuple(line_ids)
         if len(set(ids)) != len(ids):
             raise ValueError("line ids in a batch must be distinct")
-        return await _BatchRun(self, ids, build).run()
+        return await _BatchRun(self, ids, build, answers).run()
 
     def wait_s(self, retry_index: int, result: LLMResult) -> float:
         """Return max(retry-after, exponential backoff + jitter) before a retry.
@@ -670,9 +775,12 @@ class LLMWrapper:
         if cached is not None:
             return self._from_cache(req, cached, meta)
         price = self.pricing.lookup(req.provider, req.model)
-        reserve = self._reservation(req, price)
-        if not self.ledger.try_reserve(reserve):
+        reserve = await self.ledger.reserve(lambda: self._reservation(req, price))
+        if reserve is None:
             return self._decline(req, meta, ReasonCode.BUDGET_CAP)
+        if self.breaker.tripped:
+            self.ledger.settle(reserve, 0.0)
+            return self._decline(req, meta, ReasonCode.LLM_UNAVAILABLE)
         return await self._live(req, meta, price, reserve)
 
     def _reservation(self, req: LLMRequest, price: ModelPrice) -> float:
@@ -683,6 +791,9 @@ class LLMWrapper:
             self.pricing.per_tokens,
             prefix_read=self.ledger.prefix_read(req),
             count_tokens=self.deps.count_tokens,
+            prefix_tokens=self.deps.measured_prefix_tokens.get(
+                prefix_key(req.model, req.system_blocks)
+            ),
         )
 
     def _cached(self, req: LLMRequest, meta: _AttemptMeta) -> CallRecord | None:
@@ -859,19 +970,27 @@ def _retry_meta(attempt: _Attempt, meta: _AttemptMeta) -> _AttemptMeta:
 class _BatchRun:
     """One ``run_batch`` execution: a queue of tasks over the batch's lines."""
 
-    def __init__(self, wrapper: LLMWrapper, line_ids: tuple[str, ...], build: RequestBuilder):
+    def __init__(
+        self,
+        wrapper: LLMWrapper,
+        line_ids: tuple[str, ...],
+        build: RequestBuilder,
+        answers: AnswerSchema = MAIN_ANSWERS,
+    ):
         """Start with one first-call task for every line.
 
         Args:
             wrapper: The owning wrapper.
             line_ids: The batch's ids.
             build: The request builder.
+            answers: The schema responses are validated against.
 
         """
         self.wrapper = wrapper
         self.policy = wrapper.policy
         self.line_ids = line_ids
         self.build = build
+        self.answers = answers
         self.states = {line_id: _LineState() for line_id in line_ids}
         self.done: dict[str, LineOutcome] = {}
         self.records: list[CallRecord] = []
@@ -953,7 +1072,7 @@ class _BatchRun:
         if result.status != LLMStatus.OK:
             self._fail(task.line_ids, failure=failure_kind(result))
             return
-        entries = _validated_lines(result.raw_text)
+        entries = _validated_lines(result.raw_text, self.answers)
         if entries is None:
             self._bisect(task.line_ids, call_id, LLMFailureKind.MALFORMED)
             return
@@ -1035,10 +1154,15 @@ class _BatchRun:
             return
         self._accept(line_id, entry.answer, entry.raw)
 
-    def _accept(self, line_id: str, answer: LineAnswer, raw: str) -> None:
-        """Store a validated answer, after the answer hook."""
-        checked = self.wrapper.deps.answer_hook(answer)
+    def _accept(self, line_id: str, answer: Answer, raw: str) -> None:
+        """Store a validated answer, after the answer hook, or a verifier verdict."""
         call_ids = tuple(self.states[line_id].call_ids)
+        if isinstance(answer, VerifierAnswer):
+            self.done[line_id] = LineOutcome(
+                line_id, call_ids, verdict=answer, raw_line_response=raw
+            )
+            return
+        checked = self.wrapper.deps.answer_hook(answer)
         self.done[line_id] = LineOutcome(line_id, call_ids, answer=checked, raw_line_response=raw)
 
     def _fail(
@@ -1062,7 +1186,7 @@ class _BatchRun:
             self._fail((line_id,), failure=kind)
 
 
-def _validated_lines(raw_text: str) -> list[_LineEntry] | None:
+def _validated_lines(raw_text: str, answers: AnswerSchema) -> list[_LineEntry] | None:
     """Validate the envelope once, then each line object on its own (DESIGN.md §11.3, G1-T1a).
 
     A batch that validates whole is taken as before, so a fully valid batch is decided exactly
@@ -1073,18 +1197,19 @@ def _validated_lines(raw_text: str) -> list[_LineEntry] | None:
 
     Args:
         raw_text: The delivered response text.
+        answers: The schema of the envelope and of each line object.
 
     Returns:
         One entry per element of ``lines``, in order, or None when the envelope is broken.
 
     """
     try:
-        batch = BatchAnswer.model_validate_json(raw_text)
+        batch = answers.batch(raw_text)
     except ValidationError:
         if not _envelope_is_valid(raw_text):
             return None
-        return [_line_entry(raw) for raw in line_slices(raw_text)]
-    pairs = zip(batch.lines, line_slices(raw_text), strict=True)
+        return [_line_entry(raw, answers) for raw in line_slices(raw_text)]
+    pairs = zip(batch, line_slices(raw_text), strict=True)
     return [_LineEntry(raw, answer, answer.id) for answer, raw in pairs]
 
 
@@ -1099,10 +1224,10 @@ def _envelope_is_valid(raw_text: str) -> bool:
     return isinstance(document[LINES_KEY], list)
 
 
-def _line_entry(raw: str) -> _LineEntry:
+def _line_entry(raw: str, answers: AnswerSchema) -> _LineEntry:
     """Validate one verbatim line object strictly, keeping its declared id when it fails."""
     try:
-        answer = LineAnswer.model_validate_json(raw)
+        answer = answers.line(raw)
     except ValidationError:
         return _LineEntry(raw, None, _declared_id(raw))
     return _LineEntry(raw, answer, answer.id)

@@ -20,14 +20,18 @@ from oris_matcher.doctor import (
     DoctorReport,
     Runtime,
     infer_tier,
+    measured_prefix_tokens,
     render_table,
     run_doctor,
     with_measured_tokens,
 )
 from oris_matcher.llm.fake_llm import default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
-from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1
+from oris_matcher.llm.wrapper import prefix_key
+from oris_matcher.prompts.v1.render import B2, CANONICAL_V1, REVERSE_V1, render_system_blocks
+from oris_matcher.prompts.v1.schema import EVIDENCE_MAX_WORDS
 from oris_matcher.prompts.v1.version import prompt_version
+from oris_matcher.service import load_catalogue
 from oris_matcher.settings import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -286,11 +290,11 @@ def test_live_rate_limited_call_fails_the_call_check(tmp_path: Path) -> None:
 
 
 class OverCapApi(Api):
-    """Answers every line, but with evidence over the 12-word cap (G1 observation O5)."""
+    """Answers every line, but with evidence over the validator's word cap (G1 observation O5)."""
 
     def _answer(self, payload: str) -> str:
         ids = re.findall(r'"id": "(L\d+)"', payload)
-        long_evidence = " ".join(["word"] * 14)
+        long_evidence = " ".join(["mot"] * (EVIDENCE_MAX_WORDS + 1))
         lines = [{**default_answer(line_id), "evidence": long_evidence} for line_id in ids]
         return json.dumps({"lines": lines})
 
@@ -409,3 +413,33 @@ def test_a_run_keeps_its_estimate_without_a_matching_measurement(
     manifest = _estimated_manifest([canonical])
 
     assert with_measured_tokens(manifest, tmp_path / "evidence", tmp_path) == manifest
+
+
+def test_measured_prefix_tokens_key_each_rendering_by_model_and_system_blocks(
+    tmp_path: Path,
+) -> None:
+    """A63: each measured rendering is keyed as the wrapper keys a request's cached prefix."""
+    canonical, reverse = (prompt_version(variant) for variant in (CANONICAL_V1, REVERSE_V1))
+    _token_evidence(tmp_path, FR_SHA, HAIKU, {canonical: 3380, reverse: 3390})
+    library = load_catalogue("fr", make_settings())
+
+    measured = measured_prefix_tokens(library, HAIKU, tmp_path / "evidence")
+
+    def key(variant: Any) -> tuple[str, str]:
+        return prefix_key(HAIKU, render_system_blocks(library, variant))
+
+    assert measured == {key(CANONICAL_V1): 3380, key(REVERSE_V1): 3390}
+
+
+@pytest.mark.parametrize("mismatch", ["sha", "model", "none"])
+def test_measured_prefix_tokens_are_empty_without_a_matching_measurement(
+    tmp_path: Path, mismatch: str
+) -> None:
+    """A63: no matching doctor evidence means every reservation keeps the estimate."""
+    if mismatch != "none":
+        sha = "0" * 64 if mismatch == "sha" else FR_SHA
+        model = GPT if mismatch == "model" else HAIKU
+        _token_evidence(tmp_path, sha, model, {prompt_version(CANONICAL_V1): 3380})
+    library = load_catalogue("fr", make_settings())
+
+    assert measured_prefix_tokens(library, HAIKU, tmp_path / "evidence") == {}

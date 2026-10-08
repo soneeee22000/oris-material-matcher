@@ -31,6 +31,7 @@ from oris_matcher.llm.recording import (
 )
 from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ReplayMissError, ResponseCache
 from oris_matcher.llm.wrapper import (
+    BUDGET_EPSILON_USD,
     BatchOutcome,
     BudgetLedger,
     CircuitBreaker,
@@ -38,9 +39,10 @@ from oris_matcher.llm.wrapper import (
     WrapperDeps,
     WrapperPolicy,
     cost_of,
+    prefix_key,
     reservation_usd,
 )
-from oris_matcher.prompts.v1.schema import LineAnswer, output_json_schema
+from oris_matcher.prompts.v1.schema import EVIDENCE_MAX_WORDS, LineAnswer, output_json_schema
 from oris_matcher.settings import PricingTable, load_models_config, load_pricing
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -587,6 +589,116 @@ async def test_budget_cap_mid_batch_marks_only_undispatched_lines() -> None:
     assert harness.ledger.spent_usd <= harness.ledger.cap_usd
 
 
+# ---------------------------------------------------------------- waiting reservations (A61)
+
+LEDGER_CAP = 0.10
+HELD = 0.08
+NEXT = 0.05
+SMALL_COST = 0.01
+LARGE_COST = 0.07
+CHEAPER = 0.02
+WAIT_TIMEOUT_S = 1.0
+RESIDUE_CAP = 0.01
+RESIDUE_CYCLES = 5
+RESIDUE_AMOUNTS = (0.0019, 0.0023, 0.0001)
+RESIDUE_SETTLE_ORDER = (0, 2, 1)
+
+
+async def _held_and_waiting(ledger: BudgetLedger, amount: Callable[[], float]) -> asyncio.Task[Any]:
+    """Hold one reservation, then start a second that cannot fit until the first settles."""
+    assert ledger.try_reserve(HELD)
+    waiting = asyncio.create_task(ledger.reserve(amount))
+    await asyncio.sleep(0)
+    assert not waiting.done()
+    return waiting
+
+
+async def test_a_reservation_that_fits_the_spend_waits_for_in_flight_reservations() -> None:
+    """A reservation held by a call in flight delays the next one; it does not refuse it."""
+    ledger = BudgetLedger(LEDGER_CAP)
+    waiting = await _held_and_waiting(ledger, lambda: NEXT)
+    ledger.settle(HELD, SMALL_COST)
+    assert await asyncio.wait_for(waiting, WAIT_TIMEOUT_S) == pytest.approx(NEXT)
+    assert ledger.reserved_usd == pytest.approx(NEXT)
+
+
+async def test_a_reservation_that_spend_alone_exceeds_is_declined_at_once() -> None:
+    """Spend only grows, so a reservation over the cap on spend alone can never fit."""
+    ledger = BudgetLedger(LEDGER_CAP)
+    ledger.settle(0.0, LARGE_COST)
+    assert await asyncio.wait_for(ledger.reserve(lambda: NEXT), WAIT_TIMEOUT_S) is None
+    assert ledger.reserved_usd == 0.0
+
+
+async def test_a_waiting_reservation_is_declined_when_the_settled_cost_leaves_no_room() -> None:
+    """After the wait, the cap is checked again against what was actually spent."""
+    ledger = BudgetLedger(LEDGER_CAP)
+    waiting = await _held_and_waiting(ledger, lambda: NEXT)
+    ledger.settle(HELD, LARGE_COST)
+    assert await asyncio.wait_for(waiting, WAIT_TIMEOUT_S) is None
+    assert ledger.reserved_usd == 0.0
+
+
+async def test_a_waiting_reservation_is_recomputed_after_each_settlement() -> None:
+    """The amount is asked again after a wait, so a prefix read seen meanwhile lowers it."""
+    ledger = BudgetLedger(LEDGER_CAP)
+    amounts = iter((NEXT, CHEAPER))
+    waiting = await _held_and_waiting(ledger, lambda: next(amounts))
+    ledger.settle(HELD, LARGE_COST)
+    assert await asyncio.wait_for(waiting, WAIT_TIMEOUT_S) == pytest.approx(CHEAPER)
+
+
+async def test_a_reservation_never_waits_when_nothing_is_in_flight() -> None:
+    """Float residue from settled reservations must not park a dispatch that fits the spend."""
+    ledger = BudgetLedger(RESIDUE_CAP)
+    for _ in range(RESIDUE_CYCLES):
+        for amount in RESIDUE_AMOUNTS:
+            assert ledger.try_reserve(amount)
+        for index in RESIDUE_SETTLE_ORDER:
+            ledger.settle(RESIDUE_AMOUNTS[index], 0.0)
+    at_cap = RESIDUE_CAP + BUDGET_EPSILON_USD
+    reserved = await asyncio.wait_for(ledger.reserve(lambda: at_cap), WAIT_TIMEOUT_S)
+    assert reserved == at_cap
+
+
+async def test_a_waiting_dispatch_is_refused_when_the_breaker_trips_meanwhile() -> None:
+    """A call that waited for budget asks the breaker again; it never reaches a tripped model."""
+    policy = WrapperPolicy(max_retries=0, breaker_threshold=1)
+    price = PRICING.lookup("anthropic", HAIKU)
+    one = make_request(("L1",))
+    cap = reservation_usd(one, price, PRICING.per_tokens, prefix_read=False, count_tokens=len)
+    calls: list[LLMRequest] = []
+
+    class Counting(Yielding):
+        """Yielding, failing adapter that counts dispatches."""
+
+        async def complete(self, req: LLMRequest) -> LLMResult:
+            """Count, then fail as Yielding does."""
+            calls.append(req)
+            return await super().complete(req)
+
+    live = Harness(adapter=Counting(), cap_usd=cap * 1.5, policy=policy)
+    live_failures = await asyncio.wait_for(_two_batches(live), WAIT_TIMEOUT_S)
+
+    assert len(calls) == 1
+    assert live_failures[1] == {"L2": ReasonCode.LLM_UNAVAILABLE}
+    assert {d.reason for d in live.wrapper.declined} == {ReasonCode.LLM_UNAVAILABLE}
+
+
+async def test_concurrent_batches_wait_for_a_held_reservation_instead_of_failing() -> None:
+    """Live smoke 20261006T001017Z: a batch that fits the spend is never refused by a hold."""
+    usage = Usage(input_tokens=1, output_tokens=1)
+    fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=answers(), usage=usage))
+    price = PRICING.lookup("anthropic", HAIKU)
+    one = make_request(("L1",))
+    cap = reservation_usd(one, price, PRICING.per_tokens, prefix_read=False, count_tokens=len)
+    live = Harness(adapter=Yielding(fake), cap_usd=cap * 1.5)
+
+    assert await _two_batches(live) == ({"L1": None}, {"L2": None})
+    assert live.wrapper.declined == []
+    assert live.ledger.spent_usd <= live.ledger.cap_usd
+
+
 # ---------------------------------------------------------------- cache and replay
 
 
@@ -852,7 +964,7 @@ async def test_empty_batch_makes_no_call() -> None:
 # ---------------------------------------------------------------- per-line validation (G1-T1a)
 
 TEN_IDS = tuple(f"L{number}" for number in range(1, 11))
-LONG_EVIDENCE = " ".join(["mot"] * 14)
+LONG_EVIDENCE = " ".join(["mot"] * (EVIDENCE_MAX_WORDS + 1))
 BROKEN_ENVELOPE = '{"lines": [{"id": "L1"'
 
 
@@ -1148,11 +1260,11 @@ async def test_replay_reproduces_a_breaker_trip_between_concurrent_batches() -> 
 
 
 async def test_replay_reproduces_a_budget_cap_between_concurrent_batches() -> None:
-    """Live, the second batch finds the first one's reservation held; replay reads that."""
-    usage = Usage(input_tokens=1, output_tokens=1)
+    """Live, the second batch waits for the first, whose cost leaves no room; replay reads that."""
+    one = make_request(("L1",))
+    usage = Usage(input_tokens=1, output_tokens=one.max_tokens)
     fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(answers=answers(), usage=usage))
     price = PRICING.lookup("anthropic", HAIKU)
-    one = make_request(("L1",))
     cap = reservation_usd(one, price, PRICING.per_tokens, prefix_read=False, count_tokens=len)
     live = Harness(adapter=Yielding(fake), cap_usd=cap * 1.5)
 
@@ -1161,6 +1273,20 @@ async def test_replay_reproduces_a_budget_cap_between_concurrent_batches() -> No
 
     assert live_failures == ({"L1": None}, {"L2": ReasonCode.BUDGET_CAP})
     assert replayed == live_failures
+
+
+async def test_replay_keeps_a_refusal_the_recorded_run_made_under_a_hold() -> None:
+    """Runs recorded before A61 refused under a hold alone; replay reads that, never re-derives."""
+    live = Harness()
+    await live.run(("L1",))
+    held = DeclinedAttempt(make_request(("L2",)).sha256(), None, 1, ReasonCode.BUDGET_CAP)
+    live.wrapper.declined.append(held)
+    replay = _replay_of(live)
+
+    outcome = await replay.run(("L2",))
+
+    assert failures(outcome) == {"L2": ReasonCode.BUDGET_CAP}
+    assert replay.wrapper.declined == [held]
 
 
 def test_declined_attempts_round_trip_through_json() -> None:
@@ -1176,3 +1302,80 @@ async def test_a_replay_without_declined_records_keeps_the_legacy_explanation() 
     assert replay.wrapper.declined == []
     replay_outcomes = [await replay.run((line_id,)) for line_id in IDS]
     assert [o.lines for o in replay_outcomes] == [o.lines for o in live_outcomes]
+
+
+# ---------------------------------------------------------------- measured prefix (A63)
+
+MEASURED_PREFIX_TOKENS = 10_066
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+MEASURED_CAP = 1.0
+OTHER_MODEL = "claude-other-model"
+
+
+def test_reservation_counts_a_measured_prefix_instead_of_the_estimate() -> None:
+    """A63: the prefix term uses the doctor's measured token count when one is given."""
+    req = make_request(("L1",))
+    price = PRICING.lookup("anthropic", HAIKU)
+    per = PRICING.per_tokens
+    rest = len(req.user_payload) * price.input + req.max_tokens * price.output
+    cold = reservation_usd(
+        req, price, per, prefix_read=False, count_tokens=len, prefix_tokens=MEASURED_PREFIX_TOKENS
+    )
+    warm = reservation_usd(
+        req, price, per, prefix_read=True, count_tokens=len, prefix_tokens=MEASURED_PREFIX_TOKENS
+    )
+    assert cold == pytest.approx((MEASURED_PREFIX_TOKENS * price.cache_write + rest) / per)
+    assert warm == pytest.approx((MEASURED_PREFIX_TOKENS * price.cache_read + rest) / per)
+
+
+def test_reservation_without_a_measurement_estimates_the_prefix() -> None:
+    """A63: with no measurement the prefix term stays the estimator's count."""
+    req = make_request(("L1",))
+    price = PRICING.lookup("anthropic", HAIKU)
+    per = PRICING.per_tokens
+    prefix = len("vocabulary") + len("library")
+    rest = len(req.user_payload) * price.input + req.max_tokens * price.output
+    unmeasured = reservation_usd(
+        req, price, per, prefix_read=False, count_tokens=len, prefix_tokens=None
+    )
+    assert unmeasured == pytest.approx((prefix * price.cache_write + rest) / per)
+
+
+def _measured_harness(model: str, tokens: int, cap_usd: float) -> Harness:
+    """Build a harness whose wrapper holds one measured prefix for the test request's blocks."""
+    harness = Harness(cap_usd=cap_usd)
+    key = prefix_key(model, make_request(IDS).system_blocks)
+    deps = replace(harness.wrapper.deps, measured_prefix_tokens={key: tokens})
+    harness.wrapper = LLMWrapper(harness.fake, PRICING, harness.ledger, None, deps)
+    return harness
+
+
+async def test_a_measured_prefix_sets_the_reservation_of_a_dispatch() -> None:
+    """A measured prefix too large for the cap refuses the dispatch the estimate let through."""
+    estimated = Harness(cap_usd=MEASURED_CAP)
+    assert answered(await estimated.run()) == set(IDS)
+
+    measured = _measured_harness(HAIKU, OVERSIZED_PREFIX_TOKENS, MEASURED_CAP)
+    outcome = await measured.run()
+
+    assert set(failures(outcome).values()) == {ReasonCode.BUDGET_CAP}
+    assert measured.fake.calls == []
+
+
+async def test_a_measurement_of_another_model_is_not_used() -> None:
+    """A measurement keyed by another model leaves the request on the estimate."""
+    harness = _measured_harness(OTHER_MODEL, OVERSIZED_PREFIX_TOKENS, MEASURED_CAP)
+    assert answered(await harness.run()) == set(IDS)
+
+
+async def test_a_measured_prefix_leaves_requests_and_their_hashes_unchanged() -> None:
+    """Reservations never enter a request: the bytes and hashes sent are the same."""
+    estimated = Harness()
+    await estimated.run()
+    measured = _measured_harness(HAIKU, MEASURED_PREFIX_TOKENS, BIG_CAP)
+    await measured.run()
+
+    assert measured.fake.calls == estimated.fake.calls
+    hashes = [record.request_sha256 for record in measured.sink.records]
+    assert hashes == [record.request_sha256 for record in estimated.sink.records]
+    assert hashes == [req.sha256() for req in estimated.fake.calls]

@@ -21,6 +21,7 @@ from typer.testing import CliRunner, Result
 
 from oris_matcher import cli
 from oris_matcher.doctor import LLMKind, LLMSpec, Runtime, WiringError, parse_llm_spec
+from oris_matcher.domain.library import load_library
 from oris_matcher.io.boq_reader import read_boq
 from oris_matcher.llm.fake_llm import FakeBehaviour, FakeLLM, Fault, FaultKind, default_answer
 from oris_matcher.llm.recording import read_calls_jsonl
@@ -70,6 +71,8 @@ def workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for name in ENV_NAMES:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
+    shutil.copytree(CONFIG.parent / "data" / "enrichment", tmp_path / "data" / "enrichment")
+
     libraries = {"global": str(GLOBAL_LIBRARY), "fr": str(FR_LIBRARY)}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
     monkeypatch.setattr(cli, "RUNTIME", make_runtime(root=lambda: tmp_path))
@@ -994,6 +997,52 @@ def test_a_fake_run_keeps_the_estimate(workdir: Path) -> None:
     assert manifest_of(only_run(workdir))["library_rendered_tokens"]["estimated"] is True
 
 
+OVERSIZED_PREFIX_TOKENS = 1_000_000
+
+
+def _oversized_prefix_evidence(workdir: Path) -> None:
+    """Record a doctor measurement whose prefix alone costs more than any small run's cap."""
+    versions = {prompt_version(v): OVERSIZED_PREFIX_TOKENS for v in (CANONICAL_V1, REVERSE_V1, B2)}
+    data = {
+        "library_sha256": hashlib.sha256(FR_LIBRARY.read_bytes()).hexdigest(),
+        "model": HAIKU,
+        "by_prompt_version": versions,
+    }
+    check = {"name": "rendered_tokens:fr", "status": "pass", "detail": "", "data": data}
+    evidence = workdir / "evidence" / "doctor_2026-10-06.json"
+    evidence.parent.mkdir(parents=True, exist_ok=True)
+    evidence.write_text(json.dumps({"checks": [check]}), encoding="utf-8")
+
+
+def test_a_live_run_reserves_its_prefix_from_the_doctor_measurement(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A63: a live run's reservation counts the measured prefix, so a huge one refuses calls."""
+    requests: list[httpx2.Request] = []
+    _live_runtime(workdir, monkeypatch, requests)
+    assert run_and_note("estimated", match_args(workdir / "a.csv", "--no-cache")).exit_code == 0
+    assert requests
+
+    _oversized_prefix_evidence(workdir)
+    requests.clear()
+    assert run_and_note("measured", match_args(workdir / "b.csv", "--no-cache")).exit_code == 0
+
+    assert requests == []
+    with (workdir / "b.csv").open(encoding="utf-8", newline="") as handle:
+        reasons = {
+            row["reason"] for row in csv.DictReader(handle) if row["decision"] != "not_a_material"
+        }
+    assert "BUDGET_CAP" in reasons
+
+
+def test_a_fake_run_reserves_from_the_estimate_despite_a_measurement(workdir: Path) -> None:
+    """A63: only a run that reaches the measured model reserves from the doctor's count."""
+    _oversized_prefix_evidence(workdir)
+    output = workdir / "out.csv"
+    assert invoke(match_args(output, "--llm", "fake")).exit_code == 0
+    assert "BUDGET_CAP" not in output.read_text(encoding="utf-8")
+
+
 def _always_down(spec: LLMSpec, model: str) -> FakeLLM:
     del spec
     return FakeLLM(model, ALLOWLIST, FakeBehaviour(rule=lambda n, r: Fault(FaultKind.SERVER_ERROR)))
@@ -1024,3 +1073,31 @@ def test_a_breaker_trip_is_recorded_and_replayed_from_the_manifest(
     assert again.exit_code == 3
     newest = max((workdir / "runs").iterdir(), key=lambda path: path.name != folder.name)
     assert manifest_of(newest)["declined_attempts"] == declined
+
+
+def _recorded(resolution: str, policy_id: str) -> dict[str, Any]:
+    library = load_library((ROOT / "data" / "oris_materials_global.csv").read_bytes())
+    return {
+        "requested_model": "claude-haiku-4-5-20251001",
+        "library_sha256": library.sha256,
+        "policy_resolution": resolution,
+        "policy_id": policy_id,
+        "profile": "b3",
+    }
+
+
+def test_a_replay_refuses_when_the_current_policy_would_re_decide_the_run() -> None:
+    """G2-T11 review: a run decided at T1 is never silently replayed at today's T8 (§11.5)."""
+    settings = Settings(_env_file=None, config_dir=CONFIG)  # type: ignore[call-arg]
+    with pytest.raises(cli.WiringError, match="--policy"):
+        cli.require_recorded_policy(_recorded("fallback_strictest", "T1"), settings)
+    with pytest.raises(cli.WiringError, match="T7"):
+        cli.require_recorded_policy(_recorded("exact", "T7"), settings)
+
+
+def test_a_replay_under_the_policy_it_was_decided_with_passes() -> None:
+    settings = Settings(_env_file=None, config_dir=CONFIG)  # type: ignore[call-arg]
+    cli.require_recorded_policy(_recorded("exact", "T8"), settings)
+    cli.require_recorded_policy(_recorded("no_path_strictest", "T1"), settings)
+    cli.require_recorded_policy(_recorded("override", "T3"), settings)
+    cli.require_recorded_policy({**_recorded("b2_match_all", "B2"), "profile": "b2"}, settings)

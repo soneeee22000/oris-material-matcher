@@ -5,9 +5,9 @@
 in ``selection.json`` and the output CSV the replay must reproduce. Complete batches keep every
 request byte unchanged (same lines, same ``L<position>`` transport ids, same order), so a strict
 ``ReplayLLM`` serves each one and a miss raises instead of reaching a model. The expected CSV
-was rendered once from this replay and checked row for row against the run's
-``runs/b2-dev-en.csv``; it is compared as bytes (CRLF as the writer emits), so the test holds
-on Linux and Windows alike.
+was rendered from this replay under the 25-word evidence tolerance (A59.1) and is checked row
+for row against the run's replayed output ``runs/b2-dev-en-w25.csv``; it is compared as bytes
+(CRLF as the writer emits), so the test holds on Linux and Windows alike.
 """
 
 import csv
@@ -45,7 +45,16 @@ ENCODING = "utf-8"
 GOLDEN_RUN_ID = "golden-replay"
 FIXED_NOW = datetime(2026, 10, 5, 15, 10, 20, tzinfo=UTC)
 GOLDEN_ITEM_COUNT = 20
-GOLDEN_REASONS = {"SIGNAL:B2", "NM_UNCONFIRMED", "LLM_FAILURE:malformed"}
+GOLDEN_REASONS = {"SIGNAL:B2", "NM_UNCONFIRMED"}
+MALFORMED_REASON = "LLM_FAILURE:malformed"
+ITEM_COLUMN = "Item No."
+DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS = {
+    "00.03.0030.": "NM_UNCONFIRMED",
+    "00.03.0040.": "NM_UNCONFIRMED",
+    "01.02.0160.": "SIGNAL:B2",
+    "01.02.0200.": "SIGNAL:B2",
+    "01.02.0210.": "SIGNAL:B2",
+}
 REASON_COLUMN = "reason"
 
 
@@ -130,10 +139,23 @@ async def test_golden_replay_is_byte_identical_to_the_committed_output() -> None
     assert all(record.cache_hit for record in result.calls)
 
 
-def test_golden_output_covers_matched_unconfirmed_and_malformed_lines() -> None:
+def test_golden_output_covers_matched_and_unconfirmed_lines() -> None:
     reasons = {row[REASON_COLUMN] for row in _csv_rows(EXPECTED.read_bytes())}
 
     assert reasons >= GOLDEN_REASONS
+
+
+def test_golden_lines_rejected_at_12_words_are_decided_at_25() -> None:
+    rows = {row[ITEM_COLUMN]: row for row in _csv_rows(EXPECTED.read_bytes())}
+
+    decided = {
+        item: rows[item][REASON_COLUMN]
+        for item in DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS
+        if item in rows
+    }
+
+    assert decided == DECIDED_REASONS_OF_LINES_REJECTED_AT_12_WORDS
+    assert MALFORMED_REASON not in {row[REASON_COLUMN] for row in rows.values()}
 
 
 def test_golden_output_rows_are_rows_of_the_recorded_run_output() -> None:

@@ -1,0 +1,15 @@
+# Test fixture: a glossary supplement with the schema of prompts/v1/glossary.yaml. Not domain content.
+entries:
+  - term: HA (haute adhérence)
+    meaning: high-bond reinforcing steel bars
+    lang: fr
+    source: standard
+    ref: NF A 35-080-1, reinforcing steel
+  - term: semelle
+    meaning: footing of a foundation
+    lang: fr
+    source: dev_error
+  - term: ZZZ hidden
+    meaning: never rendered
+    lang: en
+    source: lockbox_obs

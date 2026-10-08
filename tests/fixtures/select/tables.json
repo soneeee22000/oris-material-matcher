@@ -1,0 +1,116 @@
+{
+  "_comment": "Hand-built section 10.6 tables, strictest first. Each language cell is [matched, correct]; expected values are worked by hand from the rule (G2.md section 3, G2-T2).",
+  "loosest_qualifier": {
+    "thresholds": [
+      { "id": "T1", "en": [20, 20], "fr": [20, 20] },
+      { "id": "T2", "en": [35, 35], "fr": [35, 35] },
+      { "id": "T3", "en": [45, 45], "fr": [45, 45] },
+      { "id": "T4", "en": [50, 50], "fr": [50, 50] },
+      { "id": "T5", "en": [55, 54], "fr": [55, 54] },
+      { "id": "T6", "en": [60, 58], "fr": [60, 58] },
+      { "id": "T7", "en": [70, 64], "fr": [70, 64] },
+      { "id": "T8", "en": [80, 70], "fr": [80, 70] }
+    ],
+    "expected": {
+      "threshold": "T6",
+      "loosest": "T6",
+      "status": "meets the dev bar",
+      "qualifies": ["T3", "T4", "T5", "T6"]
+    }
+  },
+  "within_three_at_exactly_three": {
+    "thresholds": [
+      { "id": "T1", "en": [20, 20], "fr": [20, 20] },
+      { "id": "T2", "en": [35, 35], "fr": [35, 35] },
+      { "id": "T3", "en": [45, 45], "fr": [45, 45] },
+      { "id": "T4", "en": [50, 50], "fr": [50, 50] },
+      { "id": "T5", "en": [57, 57], "fr": [56, 56] },
+      { "id": "T6", "en": [60, 58], "fr": [60, 58] },
+      { "id": "T7", "en": [70, 64], "fr": [70, 64] },
+      { "id": "T8", "en": [80, 70], "fr": [80, 70] }
+    ],
+    "expected": {
+      "threshold": "T5",
+      "loosest": "T6",
+      "status": "meets the dev bar"
+    }
+  },
+  "within_three_not_at_four": {
+    "thresholds": [
+      { "id": "T1", "en": [20, 20], "fr": [20, 20] },
+      { "id": "T2", "en": [35, 35], "fr": [35, 35] },
+      { "id": "T3", "en": [45, 45], "fr": [45, 45] },
+      { "id": "T4", "en": [50, 50], "fr": [50, 50] },
+      { "id": "T5", "en": [56, 56], "fr": [56, 56] },
+      { "id": "T6", "en": [60, 58], "fr": [60, 58] },
+      { "id": "T7", "en": [70, 64], "fr": [70, 64] },
+      { "id": "T8", "en": [80, 70], "fr": [80, 70] }
+    ],
+    "expected": {
+      "threshold": "T6",
+      "loosest": "T6",
+      "status": "meets the dev bar"
+    }
+  },
+  "stricter_below_the_floor": {
+    "thresholds": [
+      { "id": "T1", "en": [30, 30], "fr": [30, 30] },
+      { "id": "T2", "en": [39, 39], "fr": [40, 40] },
+      { "id": "T3", "en": [41, 41], "fr": [40, 40] },
+      { "id": "T4", "en": [50, 45], "fr": [50, 45] },
+      { "id": "T5", "en": [55, 48], "fr": [55, 48] },
+      { "id": "T6", "en": [60, 50], "fr": [60, 50] },
+      { "id": "T7", "en": [70, 55], "fr": [70, 55] },
+      { "id": "T8", "en": [80, 60], "fr": [80, 60] }
+    ],
+    "expected": {
+      "threshold": "T3",
+      "loosest": "T3",
+      "status": "meets the dev bar",
+      "qualifies": ["T3"]
+    }
+  },
+  "non_contiguous": {
+    "thresholds": [
+      { "id": "T1", "en": [20, 20], "fr": [20, 20] },
+      { "id": "T2", "en": [35, 35], "fr": [35, 35] },
+      { "id": "T3", "en": [56, 56], "fr": [56, 56] },
+      { "id": "T4", "en": [59, 56], "fr": [59, 56] },
+      { "id": "T5", "en": [60, 57], "fr": [60, 57] },
+      { "id": "T6", "en": [70, 60], "fr": [70, 60] },
+      { "id": "T7", "en": [75, 62], "fr": [75, 62] },
+      { "id": "T8", "en": [80, 64], "fr": [80, 64] }
+    ],
+    "expected": {
+      "threshold": "T3",
+      "loosest": "T5",
+      "status": "meets the dev bar",
+      "qualifies": ["T3", "T5"]
+    }
+  },
+  "empty_with_zero_and_tie": {
+    "thresholds": [
+      { "id": "T1", "en": [0, 0], "fr": [10, 10] },
+      { "id": "T2", "en": [5, 5], "fr": [12, 12] },
+      { "id": "T3", "en": [5, 5], "fr": [5, 5] },
+      { "id": "T4", "en": [20, 10], "fr": [20, 10] },
+      { "id": "T5", "en": [30, 12], "fr": [30, 12] },
+      { "id": "T6", "en": [40, 14], "fr": [40, 14] },
+      { "id": "T7", "en": [50, 16], "fr": [50, 16] },
+      { "id": "T8", "en": [60, 18], "fr": [60, 18] }
+    ],
+    "expected": {
+      "threshold": "T2",
+      "loosest": null,
+      "status": "below the dev bar",
+      "qualifies": []
+    }
+  },
+  "cp_cases": [
+    [1, 1],
+    [5, 10],
+    [43, 104],
+    [40, 40],
+    [103, 132]
+  ]
+}

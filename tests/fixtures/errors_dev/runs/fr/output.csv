@@ -1,0 +1,13 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty,decision,material_type,material_usage,material_subtype,reason,model,prompt_version,latency_ms,cost_usd,suggested_type,suggested_usage,suggested_subtype,library_row_id,call_ids,suggested2_type,suggested2_usage,suggested2_subtype
+0,Terrassements et ouvrages,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.,Ouvrages,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.01.,Bétons et liants,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.01.0010.,Béton de propreté C12/15,"Sous semelles, 50 mm",m3,1,matched,Concrete,Lean concrete,C12/15,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Concrete,Lean concrete,C12/15,9a4b8de06ff6,,,,
+01.01.0020.,Béton maigre C16/20,"Sous pavés, 150 mm",m3,1,matched,Concrete,Lean concrete,C16/20,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Concrete,Lean concrete,C16/20,8bd5f850329b,,,,
+01.01.0030.,Béton structurel C30/37 voiles,Murs de soutènement,m3,1,matched,Concrete,Lean concrete,C16/20,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Concrete,Lean concrete,C16/20,8bd5f850329b,,,,
+01.01.0040.,Liant modifié polymère,Pour la couche de roulement,t,1,needs_review,,,,ATTR_CONFLICT,fake-model,v1+fixture,10,0.001000,Steel,Reinforcement,B500B,bf05ca12adcf,,,,
+01.01.0050.,Armatures,"Barres HA, façonnées",t,1,needs_review,,,,LLM_FAILURE:partial_signal,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0060.,Signalisation de chantier,"Panneaux et cônes, phase 1",LS,1,matched,Bitumen,bitumen for asphalt mixtures,Normal Bitumen,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Bitumen,bitumen for asphalt mixtures,Normal Bitumen,813a31c8052c,,,,
+01.01.0070.,Repli des installations,"Enlèvement, remise en état",LS,1,needs_review,,,,NM_UNCONFIRMED,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0080.,Traverses bois créosotées,Évacuées comme déchet dangereux,t,1,needs_review,,,,NO_LIBRARY_EQUIVALENT,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0090.,Couche d'accrochage émulsion,"Répandue à 0,3 kg/m2",t,1,not_a_material,,,,G2_SERVICE,fake-model,v1+fixture,10,0.001000,,,,,,,,

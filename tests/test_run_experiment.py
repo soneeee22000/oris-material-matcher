@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import shutil
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -101,6 +102,7 @@ def isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("ORIS_CONFIG_DIR", str(CONFIG))
     libraries = {"global": str(LIBRARIES["en"]), "fr": str(LIBRARIES["fr"])}
     monkeypatch.setenv("ORIS_LIBRARIES", json.dumps(libraries))
+    shutil.copytree(ROOT / "data" / "enrichment", tmp_path / "data" / "enrichment")
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
@@ -295,7 +297,87 @@ def test_lockbox_session_refuses_a_narrowed_run(isolated: Path, extra: tuple[str
     assert factory.fakes == []
 
 
+def test_lockbox_session_refuses_a_policy_override(isolated: Path) -> None:
+    """The lockbox decides under the shipped, certified policy only (A67)."""
+    factory = RecordingFactory()
+    policy = isolated / "policy.yaml"
+    args = argv(isolated, "en", "--side", "all", "--lockbox-session", "--policy", str(policy))
+    code = runner.main(args, make_runtime(isolated, factory, Git("eval-freeze\n")))
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
 SESSION = ("--side", "all", "--lockbox-session", "--llm", "anthropic")
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ("--no-verifier-adopted",),
+        ("--verifier-adopted",),
+        ("--drop-conflicting-votes",),
+        ("--llm-verifier", "fake"),
+    ],
+)
+def test_lockbox_session_refuses_a_forced_decision_profile(
+    isolated: Path, extra: tuple[str, ...]
+) -> None:
+    """G2-T11 review: the lockbox decides under the shipped entry only (A67, A68.4)."""
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION, *extra),
+        make_runtime(isolated, factory, Git("eval-freeze\n")),
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("ORIS_VERIFIER_ADOPTED", "false"),
+        ("ORIS_DROP_CONFLICTING_VOTES", "true"),
+        ("ORIS_PRIMARY_MODEL", "claude-haiku-4-5-20251001"),
+        ("ORIS_FALLBACK_MODEL", "gpt-4o-mini-2024-07-18"),
+        ("ORIS_PASSES_K", "1"),
+        ("ORIS_BATCH_SIZE", "5"),
+    ],
+)
+def test_lockbox_session_refuses_a_setting_that_changes_the_configuration(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch, name: str, value: str
+) -> None:
+    """A setting from the environment or .env cannot change the frozen configuration."""
+    monkeypatch.setenv(name, value)
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION), make_runtime(isolated, factory, Git("eval-freeze\n"))
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+@pytest.mark.parametrize("llm", ["anthropic:claude-haiku-4-5-20251001", "openai"])
+def test_lockbox_session_refuses_any_llm_but_the_pinned_primary(isolated: Path, llm: str) -> None:
+    factory = RecordingFactory()
+    args = argv(isolated, "en", "--side", "all", "--lockbox-session", "--llm", llm)
+    code = runner.main(args, make_runtime(isolated, factory, Git("eval-freeze\n")))
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
+
+
+def test_lockbox_session_refuses_a_config_dir_with_another_policy(
+    isolated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = isolated / "elsewhere"
+    shutil.copytree(CONFIG, other)
+    (other / "policy.yaml").write_text("policies: {}\n", encoding="utf-8")
+    monkeypatch.setenv("ORIS_CONFIG_DIR", str(other))
+    factory = RecordingFactory()
+    code = runner.main(
+        argv(isolated, "en", *SESSION), make_runtime(isolated, factory, Git("eval-freeze\n"))
+    )
+    assert code == runner.EXIT_REFUSED
+    assert factory.fakes == []
 
 
 def lockbox_log(root: Path) -> Path:
@@ -765,6 +847,29 @@ def test_a_failed_lockbox_session_is_logged_and_still_uses_its_slot(
     assert runner.main(argv(isolated, "en", *SESSION), runtime) == runner.EXIT_ERROR
     assert "FAILED" in lockbox_log(isolated).read_text(encoding="utf-8")
     assert runner.main(argv(isolated, "en", *SESSION), runtime) == runner.EXIT_REFUSED
+
+
+def test_cause_targeted_is_recorded_in_the_row(isolated: Path) -> None:
+    runtime = make_runtime(isolated)
+    assert runner.main(argv(isolated, "en", "--limit", "2"), runtime) == 0
+    targeted = ("--limit", "2", "--cause-targeted", "lexical_gap")
+    assert runner.main([*argv(isolated, "en", *targeted), "--id", "E-01"], runtime) == 0
+
+    plain, targeted_row = ledger_rows(isolated)
+    assert plain["cause_targeted"] is None
+    assert targeted_row["cause_targeted"] == "lexical_gap"
+    markdown = (isolated / "experiments.md").read_text(encoding="utf-8")
+    assert "| lexical_gap |" in markdown
+
+
+def test_cause_targeted_outside_the_section_10_7_list_is_refused(isolated: Path) -> None:
+    factory = RecordingFactory()
+    extra = ("--limit", "2", "--cause-targeted", "prompt_wording")
+    with pytest.raises(SystemExit) as raised:
+        runner.main(argv(isolated, "en", *extra), make_runtime(isolated, factory))
+    assert raised.value.code == runner.EXIT_ERROR
+    assert factory.fakes == []
+    assert not (isolated / "experiments.jsonl").exists()
 
 
 def test_a_bad_baseline_id_is_refused_before_any_call(isolated: Path) -> None:

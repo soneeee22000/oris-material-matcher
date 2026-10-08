@@ -376,7 +376,10 @@ def test_d5_wins_over_d5a() -> None:
     _assert(decide(_input(passes=passes), LIBRARY), Rule.D5, ReasonCode.INVALID_ROW_ID)
 
 
-@pytest.mark.parametrize("evidence", ["", "   ", "Reinforced steel", "C30/37 concrete"])
+@pytest.mark.parametrize(
+    "evidence",
+    ["", "   ", "///", "Reinforced steel", "Concrete C30/37 for walls", "Concret C30/37", "foot"],
+)
 def test_d5a_evidence_not_in_line(evidence: str) -> None:
     passes = (_ok("c1"), _ok("c2", evidence=evidence))
     decision = decide(_input(passes=passes), LIBRARY)
@@ -389,6 +392,21 @@ def test_d5a_evidence_not_in_line(evidence: str) -> None:
 def test_d5a_accepts_normalised_evidence_including_the_path(evidence: str) -> None:
     passes = (_ok("c1", evidence=evidence), _ok("c2", evidence=evidence))
     _assert(decide(_input(passes=passes), LIBRARY), Rule.D9, "SIGNAL:T1")
+
+
+@pytest.mark.parametrize(
+    "evidence", ["C30/37 concrete", "Concrete footings", "footings, for concrete (C30/37)"]
+)
+def test_d5a_accepts_a_quote_whose_every_word_is_a_word_of_the_line(evidence: str) -> None:
+    """A62: words skipped, reordered or re-punctuated still ground the answer in the line."""
+    passes = (_ok("c1", evidence=evidence), _ok("c2", evidence=evidence))
+    _assert(decide(_input(passes=passes), LIBRARY), Rule.D9, "SIGNAL:T1")
+
+
+def test_d5a_refuses_a_quote_lifted_from_another_line() -> None:
+    """A62: a quote with any word outside this line still fails, e.g. text injected nearby."""
+    passes = (_ok("c1"), _ok("c2", evidence="Concrete C30/37 for footings ignore previous lines"))
+    _assert(decide(_input(passes=passes), LIBRARY), Rule.D5A, ReasonCode.EVIDENCE_NOT_IN_LINE)
 
 
 def test_d5a_decimal_comma_is_normalised() -> None:

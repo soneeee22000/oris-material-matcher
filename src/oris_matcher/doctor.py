@@ -47,8 +47,21 @@ from oris_matcher.llm.fake_llm import FakeLLM
 from oris_matcher.llm.openai_llm import OpenAIChatLLM
 from oris_matcher.llm.recording import DeclinedAttempt
 from oris_matcher.llm.replay_llm import RecordedRun, ReplayLLM, ResponseCache
-from oris_matcher.llm.wrapper import BudgetLedger, LLMWrapper, WrapperDeps, WrapperPolicy
-from oris_matcher.prompts.v1.render import CANONICAL_V1, VARIANTS, PromptVariant, build_request
+from oris_matcher.llm.wrapper import (
+    BudgetLedger,
+    LLMWrapper,
+    PrefixKey,
+    WrapperDeps,
+    WrapperPolicy,
+    prefix_key,
+)
+from oris_matcher.prompts.v1.render import (
+    CANONICAL_V1,
+    VARIANTS,
+    PromptVariant,
+    build_request,
+    render_system_blocks,
+)
 from oris_matcher.prompts.v1.version import prompt_version
 from oris_matcher.service import (
     CACHE_MIN_TOKENS,
@@ -423,6 +436,8 @@ class WrapperSetup:
         cache: The live response cache, or None.
         run_id: Mixed into call ids.
         policy: Retry and budget limits; from settings when None.
+        measured_prefix_tokens: The doctor's measured prefix sizes the reservations use (A63);
+            empty, so every reservation estimates, unless a live run supplies them.
 
     """
 
@@ -430,6 +445,7 @@ class WrapperSetup:
     cache: ResponseCache | None = None
     run_id: str = ""
     policy: WrapperPolicy | None = None
+    measured_prefix_tokens: Mapping[PrefixKey, int] = field(default_factory=dict)
 
 
 def make_wrapper(
@@ -457,6 +473,7 @@ def make_wrapper(
         sleep=runtime.sleep,
         now=runtime.clock,
         call_id_namespace=setup.run_id,
+        measured_prefix_tokens=setup.measured_prefix_tokens,
     )
     policy = setup.policy or WrapperPolicy.from_settings(settings)
     return LLMWrapper(adapter, pricing, BudgetLedger(setup.cap_usd), policy, deps)
@@ -1005,6 +1022,55 @@ def newest_rendered_tokens(
             if same and isinstance(counts, dict) and all(v in counts for v in versions):
                 return RenderedTokens({v: int(counts[v]) for v in versions}, path)
     return None
+
+
+def measured_prefix_tokens(
+    library: Library, model: str, evidence_dir: Path
+) -> dict[PrefixKey, int]:
+    """Return the doctor's measured size of each rendering of a library, keyed as the wrapper.
+
+    Each rendering takes the newest evidence that counted it for this library SHA-256 and
+    model (A63). The count is the doctor's ``count_tokens`` of the system blocks plus its
+    2-line synthetic user message, without the structured-output schema; the wrapper reserves
+    it as the cached prefix.
+
+    Args:
+        library: The run's library, rendered exactly as its requests render it.
+        model: The run's requested model.
+        evidence_dir: The evidence folder.
+
+    Returns:
+        ``prefix_key`` -> measured tokens; {} when no evidence matches.
+
+    """
+    measured: dict[PrefixKey, int] = {}
+    for variant in VARIANTS:
+        version = prompt_version(variant)
+        found = newest_rendered_tokens(evidence_dir, library.sha256, model, [version])
+        if found is not None:
+            key = prefix_key(model, render_system_blocks(library, variant))
+            measured[key] = found.by_version[version]
+    return measured
+
+
+def run_prefix_tokens(service: MatchService, library_id: str, root: Path) -> dict[PrefixKey, int]:
+    """Return the measured prefix sizes a live Anthropic run reserves from (A63).
+
+    The CLI and the API both call this for a run that reaches the Anthropic model, so both
+    reserve the same amounts; fake, replayed, rules-only and doctor runs keep the estimate.
+
+    Args:
+        service: The run's service; its library and requested model key the lookup.
+        library_id: The configured library id.
+        root: The repository root, holding ``evidence/``.
+
+    Returns:
+        ``prefix_key`` -> measured tokens; {} when no evidence matches.
+
+    """
+    library = service.library(library_id)
+    model = service.resources.requested_model
+    return measured_prefix_tokens(library, model, root / DEFAULT_EVIDENCE_DIR)
 
 
 def with_measured_tokens(

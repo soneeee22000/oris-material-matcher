@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 CONFIDENCE_MIN = 0
 CONFIDENCE_MAX = 100
-EVIDENCE_MAX_WORDS = 12
+EVIDENCE_MAX_WORDS = 25
 SCHEMA_TITLE_KEY = "title"
 
 Kind = Literal["material", "non_material", "no_equivalent"]
@@ -87,15 +87,28 @@ def _close_objects(node: Any) -> Any:
     return closed
 
 
-def output_json_schema() -> dict[str, Any]:
-    """Build the JSON schema sent through native structured outputs.
+def closed_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """Build a model's JSON schema for native structured outputs.
 
     Every object has ``additionalProperties: false`` and lists all its fields as required.
     Generated ``title`` strings are dropped, so only intended text reaches the model.
 
+    Args:
+        model: The Pydantic model of a whole response.
+
     Returns:
-        The batch answer schema.
+        The closed schema.
 
     """
-    closed: dict[str, Any] = _close_objects(BatchAnswer.model_json_schema())
+    closed: dict[str, Any] = _close_objects(model.model_json_schema())
     return closed
+
+
+def output_json_schema() -> dict[str, Any]:
+    """Build the JSON schema of the main passes' batch answer (§9.4).
+
+    Returns:
+        The batch answer schema, closed by ``closed_schema``.
+
+    """
+    return closed_schema(BatchAnswer)

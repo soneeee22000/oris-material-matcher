@@ -651,7 +651,7 @@ Only the description, the unit and the section path are sent. **Quantities, file
 - **The candidate gap is a verbal, ordinal judgement, not a probability.** The API exposes no log-probabilities, and I never call it a margin.
 - Codes are checked against the library in code, case-sensitively, not through schema enums, which keeps the schema identical across libraries. [A44]
 - Responses are read with `messages.create`, never `parse()`, so the raw text survives a malformed answer. [A44]
-- `max_tokens` is sized from measured output (p99 × 1.3), because output-token rate limits are reserved against it. [A39]
+- `max_tokens` is a fixed 4,096. The measured output peaks at 1,213 tokens for a 10-line batch, so 4,096 never truncates; the reasons for not sizing it from p99 × 1.3 are given in A63. [A39, A63]
 
 **Versioning.** `prompt_version = v1+sha256(templates ‖ generated JSON schema ‖ glossary ‖ renderer ‖ rendering variant)[:8]`, with one component per pass. The rendering is canonical (sorted, with no timestamps), so each cached prefix is byte-stable and a snapshot test pins it. [A44, A46]
 
@@ -670,7 +670,7 @@ The first rule that fires wins. "top1" is the plurality top-1 across the passes.
 | D3  | `kind = non_material`, any other case                                                                                                        | `needs_review`   | `NM_UNCONFIRMED`                                                         |
 | D4  | `kind = no_equivalent`                                                                                                                       | `needs_review`   | `NO_LIBRARY_EQUIVALENT`                                                  |
 | D5  | top1 unknown, malformed or inconsistent with its prefix (case-sensitive check)                                                               | `needs_review`   | `INVALID_ROW_ID` [A44]                                                   |
-| D5a | The evidence is empty or not a substring of normalise(short + ' ' + long + ' ' + path) (NFKC, casefold, whitespace collapse, decimal comma)  | `needs_review`   | `EVIDENCE_NOT_IN_LINE` [A43]                                             |
+| D5a | The evidence has no word, or a word of it is not a word of normalise(short + ' ' + long + ' ' + path) (NFKC, casefold, whitespace collapse, decimal comma; words are `\w+` runs, any order) | `needs_review`   | `EVIDENCE_NOT_IN_LINE` [A43, A62]                                        |
 | D6  | top1 is a configured never-match row                                                                                                         | `needs_review`   | `NEVER_MATCH_ROW`                                                        |
 | D7  | Attribute comparison of top1 = conflict                                                                                                      | `needs_review`   | `ATTR_CONFLICT`                                                          |
 | D8  | top1 is the blank leaf of a mixed parent and a sibling is `agree`                                                                            | `needs_review`   | `GENERIC_PARENT` [A35]                                                   |
@@ -681,6 +681,8 @@ The first rule that fires wins. "top1" is the plurality top-1 across the passes.
 The **reason-code enum is frozen**, issued here as one list, and the UI shows it verbatim:
 
 `HEADER, EMPTY_ROW, HEADER_UNCONFIRMED, G2_SERVICE, NM_UNCONFIRMED, NO_LIBRARY_EQUIVALENT, INVALID_ROW_ID, EVIDENCE_NOT_IN_LINE, NEVER_MATCH_ROW, ATTR_CONFLICT, GENERIC_PARENT, VERIFIER_DISAGREES, SIGNAL:*, LOW_SIGNAL:*, ENSEMBLE_DEGRADED:SIGNAL:*, ENSEMBLE_DEGRADED:LOW_SIGNAL:*, LLM_FAILURE:{timeout, rate_limited, overloaded, api_error, truncated, malformed, refusal, missing_item, duplicate_conflict, partial_signal, replay_miss}, LLM_UNAVAILABLE, BUDGET_CAP, INTERNAL_INVARIANT`.
+
+**D7 under arm `E-subtype-drop`** (setting `drop_conflicting_votes`, default off): after D4, every `material` answer whose library top1 conflicts with the line's hard attributes (the D7 test) is removed and the vote, supporters, tie and top2 are re-tallied over the rest before D5. If no answer remains, the original tally runs D5 to D8a exactly as with the arm off. The run's manifest records `decision_profile.drop_conflicting_votes`, the value the run decided with (always false for B0 and B2, which never read it); a replay reads it back (absent means off). [A64]
 
 `VERIFIER_DISAGREES` occurs only if E-08 is adopted. The `ENSEMBLE_DEGRADED:` forms occur only if E-02(d) is adopted and a voter is missing, so the Haiku-only threshold decided the line. `TRUNCATED` is an audit flag, not a reason code. [A17, A20, A30, A43, A48, A50]
 
@@ -837,7 +839,7 @@ After the freeze, a descriptive lockbox error table is added: material family (t
 
 **CTO version:** _"We rank lines by how strongly independent checks agree, accept down the list while dev precision stays ≥ 95% in both languages, and report the untouched lockbox with an exact bound."_ [A31]
 
-**Policy resolution.** `config/policy.yaml` maps (model_id, library_sha256) → {policy_id, certified_by: dev_selection | smoke_A10}. An exact hit uses its entry. Any unknown pair uses the strictest threshold, runs unenriched, logs a WARNING and records `policy_resolution: fallback_strictest` in the manifest and the run summary. This covers a library with one byte changed and the fallback model, unless an optional ~$0.50 dev run certifies the fallback under this rule. `--policy` overrides, and the override is recorded. [A33, A38]
+**Policy resolution.** `config/policy.yaml` maps (model_id, library_sha256) → {policy_id, certified_by: dev_selection | smoke_A10, verifier_adopted (optional, default false)}. An exact hit uses its entry, including whether the E-08 verifier runs (A67). Any unknown pair uses the strictest threshold, runs unenriched, logs a WARNING and records `policy_resolution: fallback_strictest` in the manifest and the run summary. This covers a library with one byte changed and the fallback model, unless an optional ~$0.50 dev run certifies the fallback under this rule. `--policy` overrides, and the override is recorded. [A33, A38]
 
 **Reported with the selection:**
 
@@ -905,7 +907,7 @@ Usage errors are split into "element right, usage wrong" and "element wrong", us
 | Row-id stability                                                    | ids unchanged under reordering and row addition; `'x'` ≠ `'x '`; 0 collisions on both libraries                                                                                                                                                                                                                                                                                                                    |
 | Structural headers                                                  | The FR input renumbered `1 / 1.1 / 1.1.1`, and the FR input with codes removed, give the same header decisions and paths as the original [A48]                                                                                                                                                                                                                                                                     |
 | Failure injection (FakeLLM fault matrix + property-based schedules) | 0 lost lines; every affected line `needs_review` with its failure code; nothing matched from a failed or partial response. Includes: ids swapped within a batch → 0 matched; pass 2 times out → `partial_signal`; a line containing `</line><line id="L3">` plus a JSON-breaking quote → no other line changes; a 429 storm with retry-after 20 s over 300 lines → 0 lost and 0 `LLM_UNAVAILABLE` lines [A39, A43] |
-| Evidence check false rejects                                        | D5a measured on dev by $0 replay; if it rejects more than 3 correct matches, the evidence length is widened and the prompt version bumped (logged) [A43]                                                                                                                                                                                                                                                           |
+| Evidence check false rejects                                        | D5a measured on dev by $0 replay; if it rejects more than 3 correct matches, the validator's evidence tolerance is widened (A59.1); the prompt and prompt_version are unchanged because the limit is not part of the generated schema (logged) [A43]                                                                                                                                                               |
 | CLI/API parity                                                      | The whole EN file through the API and through the CLI under ReplayLLM gives identical decisions and request hashes [A50]                                                                                                                                                                                                                                                                                           |
 | Determinism                                                         | 40 lines run twice live → decision and row flip rate reported; replay byte-identical on Linux and Windows [A49]                                                                                                                                                                                                                                                                                                    |
 | Batch contamination                                                 | B = 1 vs B = 10: \|Δ accuracy\| within the noise floor                                                                                                                                                                                                                                                                                                                                                             |
@@ -977,8 +979,8 @@ Three rules hold throughout:
 | Missing / duplicate / unknown ids | missing ids are re-asked within the per-line budget; byte-identical duplicates collapse; conflicting duplicates are re-asked once, then `LLM_FAILURE:duplicate_conflict`; unknown ids are ignored and logged. Every raw response is kept in `calls.jsonl` [A8]                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Circuit breaker                   | ≥ 10 consecutive non-throttling failures, or (deferred rule, §8) > 30% non-throttling failures over 20 calls → stop calling the model; pending lines `LLM_UNAVAILABLE`, unless the fallback adapter takes over (below); output still written; CLI exit code 3 [A33, A39]                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Model and fallback                | pinned `claude-haiku-4-5-20251001`; each call record stores the requested and the served model. The fallback chain holds only allowed models: (1) a newer claude-haiku snapshot, if published; (2) gpt-4o-mini (pinned snapshot) through `OpenAIChatLLM` behind the same port (official openai SDK, strict json_schema, same Pydantic schema), built in G1. Selected by `--llm openai:gpt-4o-mini`, or automatically after the breaker trips; it runs the strictest threshold unless certified (§10.6); `fallback_model` is recorded in the manifest and the per-line model column. Allowlist in `config/models.toml`: {claude-haiku-\*, gpt-4o-mini\*, gemini-\*-flash\*, local:≤8B}. No other model is ever configured [A33] |
-| Budget                            | before each dispatch, reserve input cost (the prefix at the cache-write rate until a cache read is observed, then at the read rate) + max_tokens × output price; dispatch only if spent + reserved ≤ cap ($1.80 / 100 lines); reconcile on usage; undispatched rows become `BUDGET_CAP` [A12, A46]                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Replay miss                       | raises in tests; at runtime the line becomes `needs_review` with `LLM_FAILURE:replay_miss`, the exit code is 3, and nothing falls through to a live call [A50]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Budget                            | before each dispatch, reserve input cost (the prefix, counted with the `oris doctor --live` measurement of that rendering when one exists and as characters ÷ 4 otherwise [A63], at the cache-write rate until a cache read is observed, then at the read rate) + max_tokens × output price; dispatch when spent + reserved ≤ cap ($1.80 / 100 lines); otherwise wait for reservations in flight to settle, and refuse only when spent + reservation > cap [A61]; reconcile on usage; undispatched rows become `BUDGET_CAP` [A12, A46]                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Replay miss                       | raises in tests; at runtime the line becomes `needs_review` with `LLM_FAILURE:replay_miss`, the exit code is 3, and nothing falls through to a live call [A50]; in a mixed E-08 run a main-pass miss writes nothing and exits 2 [A65 note]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | API partial failure               | always HTTP 200 with every line present and a per-line reason; never a 5xx for model failures                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | API limits                        | `POST /v1/match`: soft limit 100 lines (documented), hard limit 500 (413 above); field caps and auth in §11.4. There is no request-level deadline. The CLI and UI chunk automatically [A50, A51]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
@@ -1357,6 +1359,15 @@ This records how the code resolves points that this document leaves open, so the
 9. **B2 cannot fire G2.** B2 runs without extractors or supply markers (§10.5), so a line the model calls non-material is `NM_UNCONFIRMED` in B2, never `G2_SERVICE`. Changed: §10.5.
 10. **`calls.jsonl` holds transport ids.** `line_ids` in a call record are the batch's transport ids (`L<position>`), and cost attribution maps them back to lines. They are not part of the request hash. Changed: §9.6.
 
+### A59 · 2026-10-06 · G2 rules fixed before any G2 model call
+
+**Results existing at the time:** B0, B1 and B2 on dev (§17, `docs/gates/G1.md`). No B3 run has been made. None of the choices below uses a B3 result.
+
+1. **The evidence remedy (§10.9) widens the validator, not the prompt.** On the B2 dev runs, the 12-word evidence check rejected 17 answers, and 14 of them were correct (`docs/gates/G1.md` O10). §10.9's trigger is more than 3. The validator tolerance becomes 25 words (`EVIDENCE_MAX_WORDS`). The prompt instruction stays "at most 12 words", so request bytes and cache keys do not change, and the B2 dev runs are re-scored by replay at $0, which gives an exact before and after. D5a still requires the evidence to be a substring of the line, so a longer quote is still grounded. If the schema module is part of `prompt_version`, the version moves, and the prompt pins and the golden fixture are regenerated as a recorded change. The before/after is a ledger row. Changed: §9.4, §10.9.
+2. **Error causes are labelled by a panel.** Every dev error at the selected threshold gets its computed fields (family, kind, first wrong level) from `eval/errors_dev.py`. Two labeller agents then assign the §10.7 cause, each without seeing the other's labels, and a third agent adjudicates every disagreement with a written reason. Raw agreement and Cohen's κ are reported. The owner reviews every disagreement and every `gt_suspect` call. Provenance on each row: "builder labels (assistant panel)" and the date. Causes decide which arms trigger (§10.7) and are never used at inference. Changed: §10.7, §10.8.
+3. **Selection never calls a model.** `oris select` reads the B3 dev run folders and re-decides every line under each of the thresholds T1–T8 by replay (the policy is not part of the cache key, §11.5). It scores each language with `eval/score.py --side dev` and applies the §10.6 rule. `--target` only changes the bar for a sensitivity row; the shipped threshold always uses .95 and 40 matched in each language. The result is written to `eval/selection_v1.json`. Changed: §10.6.
+4. **G2 spend cap: $3**, with one pause for the owner after the first B3 live call. Changed: §14.
+
 **Owner decisions on the contested items (2026-10-04):** experiment ledger adopt-lite, written by the runner, never by `score.py` (§7.2); no request deadline (§11.3); k = 2 by default (§10.6); XLSX `number_format` note only (§9.1); fallback certification optional, ~$0.50 if G2 closes on time (§10.6, §14); a 1-hour Phoenix/OpenInference export spike in G6 if G5 is green (§11.6).
 
 **Rejected (not merged):**
@@ -1366,6 +1377,273 @@ This records how the code resolves points that this document leaves open, so the
 - R3 · Correction memory from reviewer fixes · singleton triples make it near-useless, and ground truth as "corrections" is labelled data at inference; a README production note (§12).
 - R4 · Keyboard-first queue with self-timed minutes saved · a self-graded benchmark whose sort conflicts with A14.
 - R5 · Cut the UI before evidence because of time · its ordering survives in A14 and A16; time caps return with A32.
+
+### A60 · 2026-10-06 · G2 interpretations and owner decisions, fixed before any B3 run
+
+**Results existing at the time:** B0, B1 and B2 on dev (§17, `docs/gates/G1.md`). No B3 run has been made. None of the items below uses a B3 result. They come from a read-only audit of the G2 ticket sheet (four lenses, each adversarially verified). They are interpretations only: none changes the split, the candidates, the selection rule or the form of the claim. Items 15 and 16 record owner decisions.
+
+1. **Ledger ids.** Rows of one configuration share a language-neutral id and baseline id. The B2 baseline for the evidence remedy is re-recorded at $0 as `B2-dev-w12` (a replay of the two B2 dev runs under the 12-word cap). `R-10.9-evidence` is adopted under §10.9 (A59.1). Its §7.2 `kept` field is informational, because B2 has no threshold and so cannot meet the dev bar.
+2. **§10.9 wording.** "The prompt version bumped" reads as "the validator's evidence tolerance is widened; the prompt and prompt_version are unchanged because the limit is not part of the generated schema".
+3. **§10.6 rule, as already implemented for B1.**
+   - Qualifies ⇔ matched ≥ 40 and P ≥ .95 in each language (strict scoring, all 162 dev items, so a matched blank-GT line counts as wrong). Qualifiers need not be contiguous.
+   - "Within 3 summed correct" is measured once against the loosest qualifier, and the strictest qualifier within that window ships.
+   - Fallback: maximise the min-over-languages one-sided CP lower bound, with 0 when matched = 0 and ties to the stricter. The within-3 rule does not apply in the fallback.
+   - Sensitivity rows (per language; `--target`) are never shipped.
+   - Candidates are forced by a temporary override policy file. Selection never reads `config/policy.yaml`.
+4. **Trade-off columns.** Review load follows evaluation-protocol.md:87 (needs_review per 100 lines, N basis). Cost per threshold is the source run's attributed cost and is identical across thresholds. Match-all and B2 are reference rows, never candidates.
+5. **Below the dev bar.** The policy entry is `certified_by: dev_selection` in both outcomes. The "below the dev bar" label lives in `eval/selection_v1.json` (`dev_bar_met`), G2.md, the §17 entry and the README.
+6. **Arm baseline.** Arms are compared with `B3-dev-sel`, a $0 replay of the T5 votes decided at the selected threshold. They are never compared with the T5 rows, which were decided at `T1` (fallback_strictest). A kept arm is followed by a $0 re-selection, logged as a new ledger row.
+7. **Errors.** Kinds and fields are those of evaluation-protocol.md §6.
+   - A blank-GT line in needs_review or not_a_material is not an error.
+   - The family is the GT type, else the predicted type. The "top 8 + other" grouping belongs only to the §10.5 lockbox table.
+   - A §10.7 trigger counts primary causes, unweighted, per language: ≥ 5 rows in one language or ≥ 20% of one language's error rows. The ×2 weighting is for the Pareto display only.
+8. **gt_suspect.** A candidate is an error row where both passes returned kind material with the same library top1 (v = k) and that triple ≠ GT, blank GT included. The adjudicator rules once per Item No., and the tag goes on both language rows.
+9. **κ.** Unweighted Cohen's κ on the primary cause, pooled and per language, with n. It is "undefined" when p_e = 1.
+10. **Precision by v and by gap.**
+    - The population is lines where every pass answered validly and the plurality is a material with a valid top1. Matched lines alone would make the measure degenerate at k = 2.
+    - The systematic-error share = wrong with v = k / wrong in that population.
+    - A line's gap is the weakest gap among the passes that support the plurality top1, mirroring the min-confidence rule.
+11. **Risk–coverage bands.** 1,000 Item No. resamples (protocol §4). The 10,000 figure applies only to paired precision differences. Per-signal curves are deferred diagnostics.
+12. **D5a false rejects.** A D5a false reject is a line with reason `EVIDENCE_NOT_IN_LINE` whose plurality top1 triple equals GT. It is measured on the B3 dev runs. More than 3 in total re-triggers §10.9, and any further change is written as its own amendment before it runs.
+13. **Undefined responses.** A §10.7 response that is not a specified E-arm (not_in_library guard, header_context rendering) has its exact change and ledger id written as an amendment before its first run, citing the error rows that triggered it.
+14. **Latency.** In the keep rule, latency is checked only where a cold live run measured it. Otherwise it is recorded as "not measured" and checked at the G3 cold run.
+15. **Owner decisions D1 and D2 (Tue 6 Oct, before any B3 result).**
+    - D1, missed rows: a `missed` row (a correct proposal sent to review) gets the cause of the signal that failed: `llm_failure` for D1/D1b, otherwise the panel's best fit for why v or b failed. It counts in the trigger denominator.
+    - D2, keep rule under a shortfall: clause (iii) is read literally, as `run_experiment.py` codes it. If no threshold meets the dev bar, an arm cannot be kept; it is reverted and its gain is logged as directional.
+16. **Owner decision D3: no time cut on triggered arms.** §14's "triggered arms, only within the cap" and "the optional ~$0.50 fallback certification if G2 closes on time" no longer bind scope. Every triggered arm is built and run, and the fallback certification is in scope. The $3 G2 spend cap and the `eval-freeze` boundary (§10.3, Thu 8 Oct 12:00) are unchanged. If G2 runs past its Wed 7 Oct 12:00 cap, the slip is recorded in `docs/gates/G2.md`.
+
+### A61 · 2026-10-06 · A held reservation delays a dispatch; it never refuses one
+
+**Results existing at the time:** the B3 live smoke `20261006T001017Z-354cd333` (5 EN dev slice items; `docs/gates/G2.md` O12) and the G1 runs. No selection result exists.
+
+§11.3 said "dispatch only if spent + reserved ≤ cap". In the smoke run, 4 pass-1 calls in flight held about $0.084 of worst-case reservations (mostly `max_tokens` at the output rate). Each pass-2 call was then refused as `BUDGET_CAP` while spend was about $0.015 (the run finished at $0.0215) of the $0.10 cap. That refusal is a defect: the cap bounds spend, and it rejected calls that would have fit.
+
+The rule becomes:
+
+- A dispatch whose reservation fits the spend (spent + reservation ≤ cap) **waits** until reservations in flight settle, then reserves.
+- A dispatch is refused as `BUDGET_CAP` only when spent + reservation > cap. Spend only grows, so such a dispatch can never fit.
+- The reservation is recomputed after every wait, because a cache read observed meanwhile lowers it.
+- This cannot deadlock: with nothing in flight, a reservation that fits the spend always fits. The reserved total is set to exactly 0 when the last reservation settles, so float residue cannot park a waiter.
+- After a wait, the circuit breaker is asked again: a dispatch whose wait ended after the breaker tripped is refused as `LLM_UNAVAILABLE`, and never reaches the model.
+- Time spent waiting is not part of `latency_ms`, attributed latency or the per-line in-flight budget (§11.3); it shows only in wall-clock. Under a small cap, the fan-out degrades toward one call at a time.
+- A dispatch within about one worst-case reservation (~$0.02–0.03 while `max_tokens` is 4,096; G2.md O13) of the cap is still refused.
+
+Replay is unchanged. It reads each run's recorded `declined_attempts`, and runs recorded before this change keep their refusals. The cap, its A57 floor and the $2.00 per 100 lines target are unchanged.
+
+Changed: §11.3. Owner decision Tue 6 Oct (pause #1, option A).
+
+### A62 · 2026-10-06 · D5a checks that every quoted word is a word of the line
+
+**Results existing at the time:** the B3 dev runs `20261006T004009Z-2fb88775` (EN) and `20261006T004134Z-242c4109` (FR), decided at `T1` (`docs/gates/G2.md` O15). No threshold has been selected.
+
+The amended rule is fixed before the $0 replay that measures it, as A60.12 requires.
+
+**Why.** D5a required each supporting quote to be a contiguous substring of the normalised line, and on the B3 dev runs it rejected 52 EN and 71 FR lines. 43 EN and 60 FR of those carried the GT triple, against a §10.9 / A60.12 trigger of more than 3. Every rejected quote was classified against the haystack:
+- no quote introduced a word absent from the line;
+- the model stitches its quote from the short and long descriptions, skipping words and punctuation, and sometimes reordering them.
+
+The check is meant to test grounding: the answer must rest on this line's text, not on another line or on injected text (§11.8). The contiguous span was an implementation choice, not that purpose.
+
+**The rule.**
+- A supporting quote passes when it has at least one word and **every word of it is a word of the normalised haystack** (short + long + section path). A word is a `\w+` run, compared whole, in any order.
+- Normalisation is unchanged: NFKC, casefold, whitespace collapse, decimal comma.
+- A quote that brings in any word not in this line is still refused, so text injected from a neighbouring line or invented by the model still fails D5a.
+
+**What it does not change.** It does not touch the prompt or `prompt_version` (D5a lives in the decision table, not in the prompt), B2 (which has no D5a), the split, the candidates, the selection rule or the form of the claim.
+
+**Measured** by a $0 replay of the two runs, ledger id `R-D5a-words` against `B3-dev`, decided at the same `T1`. The alternative "same words, in order" (owner option B) would have recovered EN 28 of 52 and FR 36 of 71; it was not adopted.
+
+Changed: §9.5 D5a. Owner decision Tue 6 Oct (pause #1b, option A).
+
+### A63 · 2026-10-06 · `max_tokens` stays 4,096; budget reservations count the measured prefix
+
+**Results existing at the time:** the G2 B3 dev runs, the selection (`T8`, below the dev bar) and the analysis `evidence/o13-max-tokens-brief.md` (`docs/gates/G2.md` O13). Neither decision below uses a quality result.
+
+**1. `max_tokens` stays 4,096, and §9.4 now says so.** §9.4 said `max_tokens` is "sized from measured output (p99 × 1.3)"; the code has always sent 4,096.
+
+The measurement: across 505 fresh Haiku calls (G1 and G2), output peaks at 1,213 tokens (10 lines) and at 138 per line. There were 0 truncations.
+
+The rule is not adopted, for four reasons:
+- `max_tokens` is part of the request hash. Changing it would stop every recorded run from replaying: the golden fixture, the selection evidence and `runs/submission/`. It would force about $0.58–0.90 of re-runs and re-derive the selection on new votes before the freeze.
+- A39's reason, output-token rate limits, does not bind at the recorded tier: 1,000,000 output tokens per minute, against about 16k in flight.
+- Since A61, the slack costs only waiting time on small runs.
+- The slack keeps every reservation above the realistic cost of its call (item 2). It is not a strict bound: a cold call whose output reached 4,096 tokens could cost about $0.0006 more than its reservation (`docs/gates/G2.md` O13).
+
+Owner decision (O13, option A).
+
+**2. The budget reservation counts the cached prefix with its measured token count.** The reservation estimated the prefix as characters ÷ 4: about 5.3k tokens for the global library, against 10,066 billed cache-write tokens. With the 4,096-token output term the reservation was still above the true cost, but only by accident.
+
+- The prefix term now uses the `oris doctor --live` measurement for that rendering (`rendered_tokens`, keyed by library SHA-256, model and prompt version) whenever one exists.
+- Otherwise it falls back to characters ÷ 4, recorded as estimated.
+- Reservations change only in size; they never enter a request hash. Replays that recorded their `declined_attempts` are unaffected.
+
+Owner decision (O13 follow-up, option A). Changed: §9.4, §11.3.
+
+### A64 · 2026-10-06 · G2-T8 arm `E-subtype-drop`: a pass whose top1 conflicts with a stated hard attribute casts no vote
+
+**Results existing at the time:** the G2 selection (`T8`, below the dev bar), the `B3-dev-sel` runs and the accepted cause panel (`docs/gates/G2.md` O18). This arm is a §10.7 response that is not a pre-specified E-arm, so it is written here before its first run (A60.13).
+
+**Why.** `subtype_parse` triggered in EN (7 rows; FR 1). In all 8 rows the extractor read the attribute correctly: C35/45, CEM V/A, RA 20 %. One pass picked a sibling row of the same type and usage whose attribute contradicts the line.
+- In 4 rows that pass carried the plurality, and D7 sent the line to review (`ATTR_CONFLICT`).
+- In 4 rows the other pass was right, and the split vote left v = 1 (`LOW_SIGNAL:v`).
+
+The pre-mapped response (fix or add an extractor) has nothing to fix.
+
+**The arm (owner decision, option C).**
+- With the setting `drop_conflicting_votes` on, a `material` answer whose library top1 conflicts with the line's extracted hard attributes (`compare(...) == CONFLICT`, the D7 test) is removed from the vote before the plurality is taken.
+- If no answer remains, the line is decided by D7 exactly as today.
+- Otherwise the vote, the supporters and the signals are computed over the remaining answers. With k = 2, one dropped pass leaves v ≤ 1, so the line cannot match at `T8`. The arm can move lines between review reasons and improve the suggested row, but it is not expected to add matches.
+- Defaults are unchanged: off.
+- The run's manifest records the setting, and replay reads it back, so a replay re-decides exactly as the run did.
+- D-08 still holds: an extractor only removes a vote, it never chooses a row.
+- The alternative "repair the conflicting pass to the agreeing sibling" (owner option A) was not adopted.
+
+**Measured** by a $0 replay of the `B3-dev-sel` votes, ledger id `E-subtype-drop`, `--baseline-id B3-dev-sel`, `--cause-targeted subtype_parse`. It is kept only under §7.2. Changed: §9.5 (D7 note).
+
+### A65 · 2026-10-06 · G2-T8 E-08: the flagged lines, and how a precision arm is kept
+
+**Results existing at the time:** the G2 selection (`T8`, below the dev bar: EN P .891, FR .913), `B3-dev-sel`, the accepted cause panel (`usage_confuser` EN 23, FR 22; `docs/gates/G2.md` O18), and the build of `E-subtype-drop` (A64, not yet measured). No E-08 output exists. Both rules below are fixed before E-08 is built or measured.
+
+**1. A precision arm is kept only if it reaches the dev bar.** The §7.2 keep rule needs summed correct matches to rise by ≥ max(6, 2√d). A veto (E-08 as D8a, A20) can never raise correct matches, so under §7.2 alone it could never be kept, even if it fixes exactly the precision shortfall that put G2 below the dev bar.
+
+For an arm whose only possible effect on matched lines is to remove matches (a *precision arm*):
+- It is **kept** if and only if the $0 re-selection (`oris select`) on the arm's runs finds a threshold that meets the dev bar of §10.6 (P ≥ .95 and ≥ 40 matched, in each language), where `B3-dev-sel`'s selection found none.
+- F_NM stays 0, and cost and latency stay in budget (§7.2 clause 4).
+- Otherwise it is **reverted**, and its effect is logged.
+- If kept, the re-selected threshold and its policy entry replace `T8`, with a new ledger row.
+- Coverage arms keep the §7.2 rule unchanged (owner decision D2 = A still applies).
+
+Owner decision, Tue 6 Oct, option A.
+
+**2. E-08's flagged lines.** §7.2 says "+ calls on flagged lines" without defining them.
+- **Flagged lines** are the lines whose plurality top1 passes D0–D8 and meets the selected threshold: every line that would be matched at `T8` without the verifier (about 101 EN and 104 FR on dev).
+- **What the verifier sees:** the line, its section path, and only the sibling usages of the agreed type (§7.2).
+- **What it returns:** one of those sibling codes or `NONE`, plus an evidence span. The code is validated in code, case-sensitively.
+- **What decides:** D8a sends the line to `needs_review` as `VERIFIER_DISAGREES` when the returned code is not top1, including `NONE`. A missing or invalid verifier answer is D1b `partial_signal`.
+- **How it is measured:** the main passes are replayed from the T5 runs at $0; only the verifier calls are live. They are recorded in `calls.jsonl` so the arm replays exactly. The ledger id is `E-08`, with `--baseline-id B3-dev-sel` and `--cause-targeted usage_confuser`.
+- Correct-to-wrong and wrong-to-correct flips are reported per family (§7.2).
+
+Owner decision, Tue 6 Oct, option A. Changed: §7.2 (keep rule for precision arms; E-08 flagged lines).
+
+**A65 note, 2026-10-07: the mixed run's provenance and exit codes.** How item 2's measurement is recorded, found while building it. This changes no rule above; it states what the run folder and the exit code mean.
+- **The source.** `--llm replay:<run> --verifier-adopted` on a B3 run recorded without the verifier is a *mixed run*. Its source is the replayed run itself; for E-08 that is `B3-dev-sel`, which is a replay of the T5 runs. A58.6 says the response cache is seeded only from earlier `live` runs. A mixed run is the one exception: its cache is seeded from every record of the replayed run, which a replay copies from the live run unchanged. It serves the main passes at $0, and the run never reads the general cache. A strict ReplayLLM sits behind the cache for any main request the source never made.
+- **Which sources are allowed.** The run is refused (exit 2, before any call) if the source records an attempt that delivered no content, a request hash sent more than once, or a declined attempt. In any of those cases, serving from the cache would differ from replaying. A live verifier is also refused unless the chain of replays (`source_run_id`, else `llm_run_dir`) ends at a `live` or `cached` run. B0 and B2 never run the verifier. On those profiles `--verifier-adopted` leaves a replay a plain replay, and `--llm-verifier` is refused.
+- **The manifest.** `mode` is `cached` with a live verifier and `fake` with `--llm-verifier fake`; it is never `live`. `llm_kind` is `replay`, and `llm`/`llm_run_dir` name the replayed run. `source_run_id` names that replayed run (for E-08, the `B3-dev-sel` replay), not the T5 live run behind it. A new key, `llm_verifier`, records who answered the verifier requests. `spend_usd` counts only attempts that were not cache hits, which are the verifier calls. `calls.jsonl` holds the copied main-pass records (`cache_hit: true`) and the new verifier records, so a plain replay of the arm run reproduces it byte for byte at $0. Because its mode is not `live`, a mixed run never enters RQ7 (§11.5). The E-08 verifier cost is read from its verifier records.
+- **Exit codes.** A verifier request that is never answered (the breaker trips, or a replay miss in a later plain replay) leaves its line D1b and the run exits 3, as §11.3 says. A main-pass request missing from the source is a different case: the run is not a measurement of that source. It raises `ReplayMissError`, writes no run folder and no ledger row, and exits 2 from `oris` and from `eval/run_experiment.py`.
+
+Changed: §11.3 (replay miss in a mixed run); docstrings of `src/oris_matcher/cli.py` and `eval/run_experiment.py`.
+
+
+### A67 · 2026-10-06 · E-08 kept: the policy entry binds the verifier, and selecting over verifier runs
+
+**Results existing at the time:** the E-08 dev runs, `runs/20261006T203537Z-891d4ff3` (EN) and `runs/20261006T203620Z-a56a890b` (FR). They are mixed runs of the T5 votes at `T8`, with the verifier live, and spent $0.1558.
+
+- **Verifier vetoes:** 18 EN would-be matches (10 wrong, 8 correct) and 22 FR (8 wrong, 14 correct).
+- **At `T8`:** EN P .988 (82/83), CP-LB .944; FR P .988 (81/82), CP-LB .943; F_NM 0.
+- **`$0` re-selection:** it found that `T8` meets the dev bar, so E-08 is **kept** under A65.1.
+
+Two questions followed, and the owner decided both on Tue 6 Oct (option A each).
+
+**1. The policy entry binds the verifier.** A certification describes the whole decision configuration, not only the threshold.
+
+- **The entry.** An entry of `config/policy.yaml` gains an optional `verifier_adopted` (default `false`). An entry without the key certifies its threshold alone.
+- **Who decides.** A B3 run takes its verifier from the entry of the policy it decides under: the primary's entry, or the fallback's once the A33 fallback has rescued the run. That way a fallback certified without the verifier never inherits it, and never fails every flagged line closed.
+- **Forcing.** `ORIS_VERIFIER_ADOPTED`, and the job values behind `--verifier-adopted`, become three-valued. Unset (the default) follows the entry; `true` or `false` forces the verifier on or off.
+- **Replays.** A replay still re-decides with its recorded profile.
+- **`--policy` files.** An exact hit of a `--policy` file carries its entry's `verifier_adopted` with its other claims (the resolution is `override`). Every other resolution (`fallback_strictest`, `no_path_strictest`, a forced threshold) adopts no verifier.
+- **Lockbox.** A lockbox session refuses `--policy`, so the lockbox decides under the shipped entry only.
+
+**2. Selecting over verifier runs.** The verifier is asked only about the lines that would match at the run's own threshold.
+
+- **What breaks at $0.** Re-deciding at another threshold flags other lines. The groups (≤ 10 lines per material type) and their request hashes change, so the recorded run cannot answer them. Those lines fail closed as `verifier_failure: replay_miss`, D1b. The old `oris select` guard counted only main-pass misses, so its first E-08 re-selection reported contaminated `T1`–`T7` rows. At `T7`, 2 EN and 42 FR lines were left unanswered; `T8` was exact. Found before anything was committed.
+- **The rule now.** `--run-en` and `--run-fr` are repeatable. A threshold is **measured** in a language by the first given run whose replay at it answers every verifier request. Otherwise it is **unmeasured at $0**, and it carries a ceiling: the verifier-off replay of the first run. A veto only removes matches, so the ceiling bounds matched and correct lines.
+- **How it selects.** The §10.6 rule runs on the thresholds measured in both languages. The selection is refused (exit 4) unless no unmeasured threshold could have been selected:
+  - the measured selection meets the dev bar;
+  - every unmeasured threshold is stricter than the loosest measured qualifier;
+  - each unmeasured threshold's summed ceiling of correct lines is below that qualifier's summed correct minus the tie window (3).
+- **What the output records.** The payload marks each threshold `measured` with its `source_runs`, or unmeasured with its ceilings. Sensitivity rows use measured thresholds only.
+- **The runner.** `eval/run_experiment.py` gains `--policy`, to measure a threshold other than the certified one.
+
+**3. What decides the shipped threshold.** On the T5 votes without the verifier, the summed correct lines are ≤ 125 for `T1`–`T6` and 169 for `T7`. The measured `T8` has 163, so the window floor is 160.
+
+- `T1`–`T6` can never be selected.
+- `T7` can, so it is measured: ledger id `E-08-T7`, with the T5 runs replayed, the policy forced to `T7`, the verifier live, and a budget of $0.15 per language.
+- `oris select` then runs over the E-08 and E-08-T7 runs, and the threshold it selects, with `verifier_adopted: true`, becomes the (Haiku, global library) entry. The result goes to `eval/selection_v1_e08.json`; `eval/selection_v1.json` remains the record of the selection without the verifier.
+
+Changed: §10.6 (the policy entry, and selection over verifier runs); §11.3 (the setting); `eval/run_experiment.py` (`--policy`); `eval/select_threshold.py`.
+
+
+### A68 · 2026-10-07 · E-01 arm C: deterministic bilingual library enrichment
+
+**Results existing at the time:** E-08 is kept (A67): `T8` with the verifier, baseline `B3-dev-e08` (EN 82/83, FR 81/82). The cause panel (O18) counts `lexical_gap` at EN 11 and FR 13 rows.
+
+- **The rows are mostly terminology bridges**, for example:
+  - CL 90-Q / CL 90-S against quicklime / hydrated lime;
+  - CBGM and grave-ciment against hydraulically bound mixtures;
+  - tiède and reduced temperature against WMA;
+  - AE and RA against RAP;
+  - regard and manhole against "Other prefabricated";
+  - caniveau à câbles against cable ducts;
+  - liernes against excavation beam.
+- **Most are missed lines at v = 1:** one pass proposed the right row and the other did not.
+- No arm-C output exists. Owner decisions, Wed 7 Oct: full arm C (option A), run E-01 and decide the remaining spend at the pause (A), and build both libraries' enrichment while measuring the global one (A).
+
+**1. Sources, all under `data/enrichment/`, written by the builder and reviewed before use.**
+
+- **`term_map.yaml`:** `entries`, each with:
+  - `term`: a phrase as one library writes it in a type, usage or subtype;
+  - `lang`: `en` or `fr`, the term's language;
+  - `equivalents`: a list of short phrases, the other language's terms, abbreviations and standard designations for the same thing;
+  - `source`: `library`, `standard` or `dev_error`;
+  - `ref`: required for `standard`, the public norm or reference.
+
+  Every term must occur in at least one of the two libraries. Equivalents state general domain terms, never BoQ item text.
+
+- **`glossary_supplement.yaml`:** the schema of `prompts/v1/glossary.yaml` and the same provenance tags (§10.8). These are general facts that the default glossary does not carry, mostly `standard` with a ref, or `dev_error`.
+
+**2. Generator.** `scripts/enrich_library.py --library <csv> --output <yaml>` is offline and deterministic. It reads only the library, the term map and the supplement, never BoQ text, labels or annotations.
+
+- **What it writes:** `library_sha256`, `generator` and `generator_version`, `term_map_sha256`, `glossary_supplement_sha256`, `reviewed_by`, and three node lists: `types` (type), `usages` (type and usage) and `subtypes` (type, usage and subtype).
+- **Each node's `also` list:** the sorted, de-duplicated equivalents of every term-map entry whose `term` matches the node's own label as a whole phrase (case-insensitive, after the §6 normaliser).
+- **The glossary:** the supplement's entries are copied in.
+- **Determinism:** the same inputs always give byte-identical output: sorted keys, LF line ends, no timestamps. The shipped files are `data/enrichment/global.yaml` and `data/enrichment/fr.yaml`.
+
+**3. Rendering.** With an enrichment loaded, the coded tree appends ` [also: a; b; c]` to each type, usage and row line whose node has a non-empty `also`, in both renderings, and the glossary block adds the supplement's entries.
+
+- The enrichment file's SHA-256 enters the prompt-version hash (§9.3), so an enriched run has its own `prompt_version` and cached prefixes.
+- Without an enrichment, every rendered byte, prompt version and pin is unchanged.
+- B0 and B2 never render enrichment.
+
+**4. Selection and binding.**
+
+- **Turning it on.** `--enrichment <file>` (runner and `oris match`) and the setting `ORIS_ENRICHMENT` load a file. Its `library_sha256` must equal the loaded library's, or the run is refused before any call (exit 2).
+- **Binding, as in A67.** A policy entry may name `enrichment` (a repo-relative path) and `enrichment_sha256`. A B3 run with no forced enrichment uses the entry's file after checking its SHA-256. A forced value wins, and `none` forces it off.
+- **Manifest and replay.** The manifest records `enrichment_sha256` (null without one) and the enrichment path, copying an external file into the run folder. A replay re-renders with the recorded enrichment, whatever the policy says now.
+
+**5. Leakage (§10.8).** A CI test fails if any word 6-gram, after the §6 normaliser, is shared between both BoQ inputs (every short and long description) and any of the following:
+
+- a term-map entry (its term and every equivalent);
+- a supplement entry (its term and meaning);
+- a generated `also` list.
+
+A second test fails if the generator imports or opens anything under `eval/` or `input/`, or the ground truth.
+
+**6. Measurement.**
+
+- **Smoke:** 5 EN slice items, k = 2, live.
+- **Then `E-01-C` on EN and FR dev:** live, with `--enrichment data/enrichment/global.yaml`, `--baseline-id B3-dev-e08`, `--cause-targeted lexical_gap` and `--budget-usd 0.45` each. The run decides under the shipped entry (`T8` with the verifier), and the paid-run rule applies.
+- **Keep rule:** §7.2 for a coverage arm (owner decision D2 = A).
+- **If kept:** the entry names the enrichment. A $0 `oris select` over the arm runs then measures `T8` exactly. Any other threshold that A67.2 shows could win is measured live under the paid-run rule before the entry changes.
+- **The FR library's enrichment** ships only if E-01 is kept, and is first checked on the FR smoke set at G3 (A10).
+- **At the lockbox (G4):** precision is also reported excluding lines that contain a `dev_error` term or equivalent (§10.8).
+
+Changed: §6 (arm C made concrete), §9.3 (prompt version), §10.6 (policy entry), §10.8 (the overlap check covers enrichment), §11.10 (manifest).
+
+**A68 note, 2026-10-07: what the build changed.** These are found while building and reviewing arm C. No rule above changes; they say how the rules are applied.
+- **The longest match wins.** A term-map entry whose every occurrence in a node label lies inside a longer matching term's occurrence is left out of that node. So `Concrete` gives way to `Asphalt Concrete` and never tags an asphalt row with *béton*.
+- **The fallback renders its own entry's enrichment.** Lines the A33 fallback rescues render the enrichment of the fallback's own policy entry, as A67 binds the verifier. The manifest records it as `fallback_enrichment_sha256` and `fallback_enrichment_path`, and a replay re-renders it.
+- **A committable run checks the effective enrichment,** `--enrichment` or `ORIS_ENRICHMENT`, against host paths.
+- **`reviewed_by`.** The shipped sources were reviewed by the builder and an agent panel with two lenses, terminology and leakage. `reviewed_by` records that, not an owner review.
 
 ---
 
@@ -1387,3 +1665,23 @@ Dev only, before `eval-freeze`; 162 items per language, 139 labelled; FR input s
 - **B2 per level over matched** (type / type+usage / triple): EN .939 / .818 / .780; FR .947 / .856 / .803.
 - **B2 cost and latency:** mean attributed cost per line EN $0.00095, FR $0.00092; wall clock 40.9 s EN and 40.4 s FR for 162 routed lines; 40 calls per run.
 - **Live spend at G1:** $0.6713 billed, of the $3 G1 cap (`docs/gates/G1.md` §5).
+
+### 2026-10-08 · G2 (v0.2), dev only
+
+Dev only, before `eval-freeze`: 162 items per language, 139 labelled, FR input scored against the global library. Record: `docs/gates/G2.md` §4–§6.
+
+- **B2 under the 25-word evidence cap** (`R-10.9-evidence`): EN P .791 (110/139), CP-LB .727, C₂₅₂ .791; FR P .813 (113/139), CP-LB .750, C₂₅₂ .813; F_NM 0. The §10.9 remedy recovered 14 correct answers.
+- **B3, k = 2, at the §10.6 selection without arms** (`B3-dev-sel`, `T8`, below the dev bar): EN P .891 (90/101), CP-LB .826, C₂₅₂ .647; FR P .913 (95/104), CP-LB .854, C₂₅₂ .683; F_NM 0.
+- **E-08 sibling verifier, kept** (A65, A67; `B3-dev-e08`): EN P .988 (82/83), CP-LB .944, C₂₅₂ .590; FR P .988 (81/82), CP-LB .943, C₂₅₂ .583. It meets the dev bar.
+- **E-01 arm C enrichment, kept as E-01-C2** (A68; `B3-dev-e01`, `T8` with the verifier). This is **the configuration the policy ships**:
+  - EN P .979 (92/94), CP-LB .935, C₂₅₂ .662; FR P .990 (102/103), CP-LB .955, C₂₅₂ .734; F_NM 0.
+  - Mean cost $0.0030 (EN) and $0.0029 (FR) per line.
+  - Live wall clock 0.75 s and 0.80 s per routed line.
+  - Review load 31.7 (EN) and 26.1 (FR) needs_review per 100 output lines.
+- **Sensitivity, never shipped:** the E-01-C2 votes without the verifier give EN .972 (103/106) and FR .958 (115/120), with 218 summed correct against 194 (O24).
+- **Arms:**
+  - `E-subtype-drop`: reverted, d = 0 (O19).
+  - `E-01-C`: reverted on the EN dev bar, P .936 (O23).
+  - `header_context`: triggered, not run before the freeze (O25).
+- **Fallback (G2-T10):** gpt-4o-mini is not certified; at its best threshold, `T5`, EN P .714 (10/14) and FR P .619 (13/21). The A33 fallback stays at the strictest threshold (O26).
+- **Live spend at G2:** $3.4621 billed, of a cap raised by owner decisions from $3.00 to $3.75 (O23) and then to $4.25 (O25).

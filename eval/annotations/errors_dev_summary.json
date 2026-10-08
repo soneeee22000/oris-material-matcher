@@ -1,0 +1,159 @@
+{
+  "agreement": {
+    "en": {
+      "expected_agreement": 0.2965431070387339,
+      "kappa": 0.8259325044404973,
+      "n": 49,
+      "raw_agreement": 0.8775510204081632
+    },
+    "fr": {
+      "expected_agreement": 0.33884297520661155,
+      "kappa": 0.8624999999999999,
+      "n": 44,
+      "raw_agreement": 0.9090909090909091
+    },
+    "pooled": {
+      "expected_agreement": 0.3096311712336686,
+      "kappa": 0.8442471947747444,
+      "n": 93,
+      "raw_agreement": 0.8924731182795699
+    }
+  },
+  "gt_suspect": {
+    "candidates": [
+      "01.02.0010.",
+      "03.04.0010.",
+      "03.04.0020.",
+      "03.04.0030.",
+      "03.04.0040.",
+      "03.04.0050.",
+      "03.04.0060.",
+      "03.05.0040.",
+      "04.01.0100.",
+      "04.01.0110.",
+      "04.01.0120.",
+      "04.03.0050.",
+      "04.03.0070.",
+      "04.03.0080.",
+      "04.03.0090.",
+      "04.03.0100.",
+      "05.01.0010.",
+      "05.01.0070."
+    ],
+    "ruled_suspect": []
+  },
+  "notes": {
+    "kappa": "unweighted Cohen's kappa on the primary cause; undefined when p_e = 1",
+    "triggers": "primary cause, >= 5 rows or >= 20% of the language's error rows; missed rows included (A60.15)"
+  },
+  "triggers": {
+    "en": {
+      "causes": {
+        "gt_convention": {
+          "count": 1,
+          "share": 0.02040816326530612,
+          "triggered": false
+        },
+        "header_context": {
+          "count": 6,
+          "share": 0.12244897959183673,
+          "triggered": true
+        },
+        "lexical_gap": {
+          "count": 11,
+          "share": 0.22448979591836735,
+          "triggered": true
+        },
+        "llm_failure": {
+          "count": 1,
+          "share": 0.02040816326530612,
+          "triggered": false
+        },
+        "not_in_library": {
+          "count": 0,
+          "share": 0.0,
+          "triggered": false
+        },
+        "subtype_parse": {
+          "count": 7,
+          "share": 0.14285714285714285,
+          "triggered": true
+        },
+        "usage_confuser": {
+          "count": 23,
+          "share": 0.46938775510204084,
+          "triggered": true
+        }
+      },
+      "error_rows": 49,
+      "pareto_weighted_display_only": {
+        "gt_convention": 1,
+        "header_context": 8,
+        "lexical_gap": 12,
+        "llm_failure": 1,
+        "not_in_library": 0,
+        "subtype_parse": 7,
+        "usage_confuser": 31
+      },
+      "triggered": [
+        "lexical_gap",
+        "usage_confuser",
+        "subtype_parse",
+        "header_context"
+      ]
+    },
+    "fr": {
+      "causes": {
+        "gt_convention": {
+          "count": 1,
+          "share": 0.022727272727272728,
+          "triggered": false
+        },
+        "header_context": {
+          "count": 4,
+          "share": 0.09090909090909091,
+          "triggered": false
+        },
+        "lexical_gap": {
+          "count": 13,
+          "share": 0.29545454545454547,
+          "triggered": true
+        },
+        "llm_failure": {
+          "count": 3,
+          "share": 0.06818181818181818,
+          "triggered": false
+        },
+        "not_in_library": {
+          "count": 0,
+          "share": 0.0,
+          "triggered": false
+        },
+        "subtype_parse": {
+          "count": 1,
+          "share": 0.022727272727272728,
+          "triggered": false
+        },
+        "usage_confuser": {
+          "count": 22,
+          "share": 0.5,
+          "triggered": true
+        }
+      },
+      "error_rows": 44,
+      "pareto_weighted_display_only": {
+        "gt_convention": 1,
+        "header_context": 4,
+        "lexical_gap": 15,
+        "llm_failure": 3,
+        "not_in_library": 0,
+        "subtype_parse": 1,
+        "usage_confuser": 29
+      },
+      "triggered": [
+        "lexical_gap",
+        "usage_confuser"
+      ]
+    }
+  }
+}

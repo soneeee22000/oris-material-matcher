@@ -1,0 +1,10 @@
+{
+  "input_sha256": "7a6d68b7e507738e567cbf20fc0cf35b94e7ce20dddab692c86b153dd665dede",
+  "library_id": "fixture",
+  "library_sha256": "47458595380fad8d60dae762d897f30b5bbb2d1d558ab331caecccb36676d2bd",
+  "mode": "replay",
+  "passes_k": 2,
+  "profile": "b3",
+  "run_id": "fixture-fr",
+  "threshold_id": "T8"
+}
