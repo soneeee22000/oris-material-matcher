@@ -378,3 +378,181 @@ def test_demo_on_the_committed_runs_is_byte_identical(repo_root: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "319 rows" in result.stdout
     assert result.stdout.count("byte-identical") >= 2
+
+
+# explain, review findings on the text rendering
+
+
+def _record_run(workdir: Path, monkeypatch: pytest.MonkeyPatch, *extra: str) -> Path:
+    output = workdir / "out.csv"
+    args = ["--input", str(SMALL_BOQ), "--library", str(GLOBAL_LIBRARY), "--output", str(output)]
+    invoke([*args, "--llm", "fake", *extra])
+    folders = sorted((workdir / "runs").iterdir())
+    assert len(folders) == 1
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(workdir, NoModel()))
+    return folders[0]
+
+
+@pytest.fixture
+def failing_run(workdir: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    from oris_matcher.llm.fake_llm import Fault, FaultKind  # noqa: PLC0415
+
+    def always_500(number: int, request: Any) -> Fault:
+        del number, request
+        return Fault(FaultKind.SERVER_ERROR)
+
+    fake = FakeLLM(HAIKU, ALLOWLIST, FakeBehaviour(rule=always_500))
+    monkeypatch.setattr(cli, "RUNTIME", make_runtime(workdir, lambda spec, model: fake))
+    return _record_run(workdir, monkeypatch)
+
+
+def _first_routed_item(run: Path) -> dict[str, Any]:
+    return next(record for record in audit_of(run) if record.get("call_ids"))
+
+
+def test_explain_text_shows_each_calls_status_attempt_and_no_valid_answer(
+    failing_run: Path,
+) -> None:
+    record = _first_routed_item(failing_run)
+    calls = {
+        json.loads(text)["call_id"]: json.loads(text)
+        for text in (failing_run / "calls.jsonl").read_text(encoding="utf-8").splitlines()
+    }
+
+    text = explain(failing_run, record["item_no"]).stdout
+
+    assert "HTTP 500" in text
+    for call_id in record["call_ids"]:
+        source = calls[call_id]
+        assert str(source["error_class"]) in text
+        assert f"attempt {source['attempt_no']}" in text
+    assert "no valid answer was received" in text
+
+
+def test_explain_text_states_the_threshold_as_a_lexicographic_minimum(fake_run: Path) -> None:
+    record = matched_record(fake_run)
+
+    text = explain(fake_run, record["item_no"]).stdout
+
+    assert "s >= (v 2, b no_evidence, confidence <70)" in text
+    assert "lexicographically" in text
+    assert "confidence <70\n" not in text
+
+
+def test_explain_text_says_the_verifier_was_asked_and_whether_it_agrees(fake_run: Path) -> None:
+    record = matched_record(fake_run)
+    raw = json.loads(record["verifier_raw"])
+
+    text = explain(fake_run, record["item_no"]).stdout
+
+    verifier = next(line for line in text.splitlines() if line.startswith("verifier:"))
+    assert "asked" in verifier
+    assert "agrees" in verifier
+    assert "flagged True" not in verifier
+    assert repr(raw["evidence"]) in verifier
+
+
+def test_explain_text_says_not_asked_for_a_line_the_verifier_skipped(fake_run: Path) -> None:
+    record = next(
+        item
+        for item in audit_of(fake_run)
+        if item.get("call_ids") and item.get("verifier_flagged") is False
+    )
+
+    text = explain(fake_run, record["item_no"]).stdout
+
+    verifier = next(line for line in text.splitlines() if line.startswith("verifier:"))
+    assert "not asked" in verifier
+    assert "flagged False" not in verifier
+
+
+def test_explain_json_carries_each_calls_raw_response(fake_run: Path) -> None:
+    record = matched_record(fake_run)
+    recorded = {
+        json.loads(text)["call_id"]: json.loads(text)
+        for text in (fake_run / "calls.jsonl").read_text(encoding="utf-8").splitlines()
+    }
+
+    payload = json.loads(explain(fake_run, record["item_no"], "--json").stdout)
+
+    for call in payload["calls"]:
+        assert call["raw_response"] == recorded[call["call_id"]]["raw_response"]
+
+
+def test_explain_full_prints_each_calls_user_message_and_raw_response(fake_run: Path) -> None:
+    record = matched_record(fake_run)
+    recorded = {
+        json.loads(text)["call_id"]: json.loads(text)
+        for text in (fake_run / "calls.jsonl").read_text(encoding="utf-8").splitlines()
+    }
+
+    short = explain(fake_run, record["item_no"]).stdout
+    full = explain(fake_run, record["item_no"], "--full")
+
+    assert full.exit_code == 0, full.output
+    assert "--full" in short
+    for call_id in record["call_ids"]:
+        assert recorded[call_id]["raw_response"] in full.stdout
+        assert recorded[call_id]["user_message"] in full.stdout
+
+
+def test_explain_a_b2_match_does_not_cite_a_score_threshold(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = _record_run(workdir, monkeypatch, "--profile", "b2")
+    record = matched_record(run)
+
+    text = explain(run, record["item_no"]).stdout
+
+    assert "B2 matches every valid answer" in text
+    assert "at or above the frozen threshold" not in text
+
+
+def test_explain_a_b0_line_does_not_cite_a_score_threshold(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = _record_run(workdir, monkeypatch, "--profile", "b0")
+    record = next(item for item in audit_of(run) if item["rule"] == "D10")
+
+    text = explain(run, record["item_no"]).stdout
+
+    assert "rules-only floor" in text
+    assert "below the threshold" not in text
+
+
+# demo, review findings
+
+
+def test_demo_writes_nothing_anywhere_under_the_working_root(
+    fake_run: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = fake_run.parent.parent
+    monkeypatch.setattr(cli, "DEMO_RUNS", _demo_runs(fake_run, root / "out.csv", monkeypatch))
+    before = tree_digest(root)
+
+    result = invoke(["demo"])
+
+    assert result.exit_code == 0, result.output
+    assert tree_digest(root) == before
+
+
+def test_demo_on_the_committed_runs_adds_no_run_folder(repo_root: Path) -> None:
+    runs = repo_root / "runs"
+    before = sorted(path.relative_to(runs).as_posix() for path in runs.rglob("*"))
+
+    result = invoke(["demo"])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(path.relative_to(runs).as_posix() for path in runs.rglob("*")) == before
+
+
+def test_demo_note_gives_the_measured_flip_rate_and_where_it_is_recorded(
+    fake_run: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    expected = fake_run.parent.parent / "out.csv"
+    monkeypatch.setattr(cli, "DEMO_RUNS", _demo_runs(fake_run, expected, monkeypatch))
+
+    text = invoke(["demo"]).stdout
+
+    assert "0 decision flips in 199 lines" in text
+    assert "docs/gates/G3.md" in text
