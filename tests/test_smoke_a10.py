@@ -79,6 +79,7 @@ def _label(
 
 
 RUN_CONFIGURATION = {
+    "mode": "live",
     "threshold_id": "T8",
     "requested_model": "claude-haiku-4-5-20251001",
     "enrichment_sha256": "f" * 64,
@@ -126,7 +127,7 @@ def _world(
         item = label[0]
         decision, triple = decisions.get(item, _default(label))
         rows.append([item, decision, *triple])
-    _write_csv(run / "output.csv", OUTPUT_COLUMNS, rows)
+    _write_csv(tmp_path / "output.csv", OUTPUT_COLUMNS, rows)
     audit = [
         {"item_no": row[0], "signals": {"b": "agree" if row[2] == "Bétons" else "none"}}
         for row in rows
@@ -137,6 +138,7 @@ def _world(
         "library_sha256": freeze["library_sha256"],
         "spend_usd": 0.01,
         "run_id": "smoke-run",
+        "mode": "live",
         "threshold_id": "T8",
         "requested_model": "claude-haiku-4-5-20251001",
         "enrichment_sha256": "f" * 64,
@@ -144,7 +146,7 @@ def _world(
         "decision_profile": {"drop_conflicting_votes": False, "verifier_adopted": True},
     }
     (run / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    return {"smoke": smoke_dir, "library": library, "run": run}
+    return {"smoke": smoke_dir, "library": library, "run": run, "csv": tmp_path / "output.csv"}
 
 
 def _default(label: list[str]) -> tuple[str, tuple[str, ...]]:
@@ -155,7 +157,9 @@ def _default(label: list[str]) -> tuple[str, tuple[str, ...]]:
 
 
 def _verdict(world: dict[str, Path]) -> dict[str, Any]:
-    result: dict[str, Any] = smoke.evaluate(world["smoke"], world["library"], world["run"])
+    result: dict[str, Any] = smoke.evaluate(
+        world["smoke"], world["library"], world["run"], world["csv"]
+    )
     return result
 
 
@@ -218,7 +222,7 @@ def test_edited_labels_are_refused(tmp_path: Path) -> None:
 
 def _rewrite_output(world: dict[str, Path], edit: Any) -> None:
     """Apply ``edit`` to the run's output rows (header excluded) and write them back."""
-    path = world["run"] / "output.csv"
+    path = world["csv"]
     with path.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.reader(handle))
     _write_csv(path, rows[0], edit(rows[1:]))
@@ -249,6 +253,7 @@ def test_a_label_set_without_eighteen_base_positives_is_refused(tmp_path: Path) 
 @pytest.mark.parametrize(
     ("key", "value"),
     [
+        ("mode", "fake"),
         ("threshold_id", "T1"),
         ("requested_model", "gpt-4o-mini-2024-07-18"),
         ("enrichment_sha256", "0" * 64),
@@ -280,7 +285,7 @@ def test_main_writes_the_result_files(tmp_path: Path) -> None:
     world = _world(tmp_path, {})
     out = tmp_path / "result"
     argv = ["--smoke", str(world["smoke"]), "--library", str(world["library"])]
-    argv += ["--run", str(world["run"]), "--output", str(out)]
+    argv += ["--run", str(world["run"]), "--csv", str(world["csv"]), "--output", str(out)]
     assert smoke.main(argv) == 0
     payload = json.loads((out.with_suffix(".json")).read_text(encoding="utf-8"))
     assert payload["verdict"] == "pass"

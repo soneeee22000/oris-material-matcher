@@ -16,14 +16,14 @@ line is reported apart and is not part of the rule.
 It refuses (exit 4) a run of another input, library or configuration (``run_configuration`` in
 ``freeze.json``: manifest values by dotted path), labels whose bytes changed after the freeze, a
 duplicate item number, an output line without a label (or the reverse), and a label set without
-exactly 18 base positives. ``output.csv`` itself is not hashed by the manifest, so the run folder
-is trusted as written; commit it with the result. It reads only the smoke folder, the library and
-the run folder; it never calls a model.
+exactly 18 base positives. The output CSV is not hashed by the manifest, so it is trusted as
+written; commit it with the run folder and the result. It reads only the smoke folder, the
+library, the run folder and the output CSV; it never calls a model.
 
 Usage::
 
     python eval/smoke_a10.py --smoke eval/smoke/fr_v1 --library data/oris_materials_fr.csv \\
-        --run runs/<run_id> --output eval/smoke_fr_v1_result
+        --run runs/<run_id> --csv <oris --output csv> --output eval/smoke_fr_v1_result
 
 Exit codes: 0 written (pass or fail is in the file), 2 bad input, 4 refused.
 """
@@ -44,7 +44,7 @@ READ_ENCODING = "utf-8-sig"
 LABELS_FILE = "labels.csv"
 INPUT_FILE = "input.csv"
 FREEZE_FILE = "freeze.json"
-OUTPUT_FILE = "output.csv"
+OUTPUT_FILE = "the output CSV"
 AUDIT_FILE = "audit.jsonl"
 MANIFEST_FILE = "manifest.json"
 ITEM_COLUMN = "Item No."
@@ -202,13 +202,14 @@ def counts(
 _TALLY_KEYS = ("positive", "correct", "matched", "wrong", "false_skip")
 
 
-def evaluate(smoke: Path, library: Path, run: Path) -> dict[str, Any]:
+def evaluate(smoke: Path, library: Path, run: Path, output_csv: Path) -> dict[str, Any]:
     """Score a recorded run of the frozen smoke set and apply the A10 rule.
 
     Args:
         smoke: The smoke folder (``input.csv``, ``labels.csv``, ``freeze.json``).
         library: The library the run used.
-        run: The run folder (``output.csv``, ``audit.jsonl``, ``manifest.json``).
+        run: The run folder (``audit.jsonl``, ``manifest.json``).
+        output_csv: The output CSV the run wrote (``oris --output``).
 
     Returns:
         The result, with ``verdict`` ``pass`` or ``fail``.
@@ -220,7 +221,7 @@ def evaluate(smoke: Path, library: Path, run: Path) -> dict[str, Any]:
     manifest = json.loads((run / MANIFEST_FILE).read_text(encoding=ENCODING))
     check_freeze(smoke, library, manifest)
     labels = read_rows(smoke / LABELS_FILE)
-    output_rows = read_rows(run / OUTPUT_FILE)
+    output_rows = read_rows(output_csv)
     check_coverage(labels, output_rows)
     output = {row[ITEM_COLUMN]: row for row in output_rows}
     rows = {triple(row) for row in read_rows(library)}
@@ -283,6 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--smoke", type=Path, required=True)
     parser.add_argument("--library", type=Path, required=True)
     parser.add_argument("--run", type=Path, required=True)
+    parser.add_argument("--csv", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser
 
@@ -291,7 +293,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Score the run, write ``<output>.json`` and ``<output>.md``, and return the exit code."""
     args = build_parser().parse_args(argv)
     try:
-        result = evaluate(args.smoke, args.library, args.run)
+        result = evaluate(args.smoke, args.library, args.run, args.csv)
     except RefusedError as error:
         print(f"refused: {error}", file=sys.stderr)
         return EXIT_REFUSED
