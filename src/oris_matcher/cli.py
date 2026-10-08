@@ -1626,13 +1626,16 @@ def explain_command(
     run_dir: Annotated[Path, typer.Option("--run", help="A recorded run folder.")],
     item: Annotated[str, typer.Option("--item", help="The line's Item No. (or line id).")],
     as_json: Annotated[bool, typer.Option("--json", help="One JSON object, sorted keys.")] = False,
+    full: Annotated[
+        bool, typer.Option("--full", help="Also print each call's user message and raw response.")
+    ] = False,
 ) -> None:
     """Explain why one line of a recorded run got its decision; reads only, calls nothing."""
     try:
         explanation = explain_item(run_records(run_dir, _runtime().root()), item)
     except USAGE_ERRORS as error:
         _fail(error)
-    typer.echo(render_json(explanation) if as_json else render_text(explanation))
+    typer.echo(render_json(explanation) if as_json else render_text(explanation, full=full))
 
 
 class DemoLang(StrEnum):

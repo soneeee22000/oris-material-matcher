@@ -47,6 +47,12 @@ RULE_MEANINGS: Mapping[str, str] = MappingProxyType(
         Rule.D10: "anything else, including a vote tie: s is below the threshold",
     }
 )
+PROFILE_RULE_MEANINGS: Mapping[tuple[str, str], str] = MappingProxyType(
+    {
+        ("b2", Rule.D9): "B2 matches every valid answer",
+        ("b0", Rule.D10): "rules-only floor: no model answer, every item goes to review",
+    }
+)
 
 
 class ExplainError(ValueError):
@@ -108,6 +114,20 @@ def find_record(records: Sequence[Mapping[str, Any]], item: str, run_id: str) ->
         ids = ", ".join(record["line_id"] for record in found)
         raise ExplainError(f"item {item!r} names {len(found)} lines of run {run_id}: {ids}")
     return found[0]
+
+
+def rule_meaning(rule: str, profile: Any) -> str | None:
+    """Return what a rule means under the run's profile.
+
+    Args:
+        rule: The decision-table rule that fired.
+        profile: The run's profile; B2 and B0 decide D9 and D10 without a score threshold.
+
+    Returns:
+        The meaning, or None for an unknown rule.
+
+    """
+    return PROFILE_RULE_MEANINGS.get((str(profile), rule), RULE_MEANINGS.get(rule))
 
 
 def _input_fields(line: BoqLine | None) -> dict[str, Any] | None:
@@ -274,6 +294,7 @@ def call_fields(
         "cost_usd": call.cost_usd,
         "latency_ms": call.latency_ms,
         "user_message": call.user_message,
+        "raw_response": call.raw_response,
     }
 
 
@@ -338,7 +359,7 @@ def _decision(record: Mapping[str, Any], records: RunRecords) -> dict[str, Any]:
         "decision": record["decision"],
         "reason": record["reason"],
         "rule": rule,
-        "rule_meaning": RULE_MEANINGS.get(rule),
+        "rule_meaning": rule_meaning(rule, records.manifest.get("profile")),
         "flags": list(record.get("flags") or []),
         "context": record.get("context"),
         "model": record.get("model"),
@@ -348,6 +369,7 @@ def _decision(record: Mapping[str, Any], records: RunRecords) -> dict[str, Any]:
         "attribute_result": record.get("attribute_result"),
         "passes": pass_answers(record.get("raw_line_response") or []),
         "verifier": verifier_fields(record),
+        "top1": top1 or None,
         "matched_row": row_fields(records.library, top1) if matched else None,
         "suggestions": [row_fields(records.library, code) for code in (top1, top2) if code],
         "suggested_row_id": record.get("suggested_row_id"),
@@ -407,7 +429,8 @@ def _decision_lines(explanation: Mapping[str, Any]) -> list[str]:
     policy = explanation["policy"]
     minimum = policy["threshold_minimum"]
     bar = (
-        f"v >= {minimum['v']}, b >= {minimum['b']}, confidence {minimum['confidence_bucket']}"
+        f"s >= (v {minimum['v']}, b {minimum['b']}, confidence "
+        f"{minimum['confidence_bucket']}), compared lexicographically"
         if minimum
         else "not a score threshold"
     )
@@ -434,13 +457,40 @@ def _pass_lines(explanation: Mapping[str, Any]) -> list[str]:
         else f"pass {answer['pass']}: unparsed {answer['raw']!r}"
         for answer in explanation["passes"]
     ]
+    if not explanation["passes"]:
+        lines.append(f"no valid answer was received in {len(explanation['calls'])} call(s)")
     verifier = explanation["verifier"]
     if verifier is not None:
-        lines.append(
-            f"verifier: flagged {verifier['flagged']}, top1 {_or_none(verifier['top1'])}, "
-            f"failure {_or_none(verifier['failure'])}"
-        )
+        lines.append(_verifier_text(verifier, str(explanation["top1"] or "")))
     return lines
+
+
+def _verifier_evidence(raw: Any) -> str | None:
+    """Return the evidence span of the verifier's verbatim answer, or None."""
+    try:
+        parsed = json.loads(raw) if raw else None
+    except ValueError:
+        return None
+    evidence = parsed.get("evidence") if isinstance(parsed, dict) else None
+    return evidence if isinstance(evidence, str) else None
+
+
+def _verifier_text(verifier: Mapping[str, Any], top1: str) -> str:
+    """Render whether E-08 was asked, its answer against the line's top1, and its evidence."""
+    if not verifier["flagged"]:
+        return "verifier: not asked (the line would not match without it)"
+    answer = verifier["top1"]
+    if answer is None:
+        verdict = f"no valid answer, failure {_or_none(verifier['failure'])}"
+    else:
+        agreement = "agrees" if answer == top1 else "disagrees"
+        verdict = f"its top1 {answer} {agreement} with top1 {_or_none(top1)}"
+    evidence = _verifier_evidence(verifier["raw"])
+    shown = NO_VALUE if evidence is None else repr(evidence)
+    return (
+        "verifier: flagged, so asked (the line would match without it); "
+        f"{verdict}, evidence {shown}"
+    )
 
 
 def _row_text(row: Mapping[str, Any] | None) -> str:
@@ -470,31 +520,45 @@ def _row_lines(explanation: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def _call_lines(explanation: Mapping[str, Any]) -> list[str]:
-    """Render each call's ids and where its prompt is stored."""
+def _status_text(call: Mapping[str, Any]) -> str:
+    """Render a call's outcome as ``HTTP 500 api_error``."""
+    status = call["http_status"]
+    head = f"HTTP {status}" if status is not None else "no HTTP response"
+    return f"{head} {call['error_class']}" if call["error_class"] else head
+
+
+def _call_lines(explanation: Mapping[str, Any], *, full: bool = False) -> list[str]:
+    """Render each call's outcome, ids and prompt file; with ``full``, its messages too."""
     lines = []
     for call in explanation["calls"]:
         if not call["recorded"]:
             lines.append(f"call {call['call_id']} ({call['kind']}): not in {CALLS_FILE}")
             continue
         lines.append(
-            f"call {call['call_id']} ({call['kind']}, {call['reason_for_call']}): request "
-            f"sha256 {call['request_sha256']}, system prompt "
-            f"{_or_none(call['system_prompt_file'])}, provider request id "
-            f"{_or_none(call['provider_request_id'])}"
+            f"call {call['call_id']} ({call['kind']}, {call['reason_for_call']}, attempt "
+            f"{call['attempt_no']}): {_status_text(call)}; request sha256 "
+            f"{call['request_sha256']}, system prompt {_or_none(call['system_prompt_file'])}, "
+            f"provider request id {_or_none(call['provider_request_id'])}"
         )
+        if full:
+            lines.append(f"  user message: {call['user_message']}")
+            lines.append(f"  raw response: {call['raw_response']}")
+    if explanation["calls"] and not full:
+        lines.append(f"user message and raw response of each call: --full, --json or {CALLS_FILE}")
     return lines
 
 
-def render_text(explanation: Mapping[str, Any]) -> str:
+def render_text(explanation: Mapping[str, Any], *, full: bool = False) -> str:
     """Render an explanation for the terminal.
 
     Args:
         explanation: From ``explain_item``.
+        full: Also print each call's user message and raw response.
 
     Returns:
         The text, one fact per line.
 
     """
-    sections = (_header_lines, _decision_lines, _pass_lines, _row_lines, _call_lines)
-    return "\n".join(line for section in sections for line in section(explanation))
+    sections = (_header_lines, _decision_lines, _pass_lines, _row_lines)
+    lines = [line for section in sections for line in section(explanation)]
+    return "\n".join([*lines, *_call_lines(explanation, full=full)])
