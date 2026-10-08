@@ -112,17 +112,17 @@ The shipped configuration is the bold row (`config/policy.yaml`): Haiku with k =
 - **Cost and speed:** about $0.003 per line and 0.75–0.80 s of wall clock per routed line.
 - **Review load:** 32 (EN) and 26 (FR) of every 100 output lines go to review.
 - **B2** matches every valid answer, so it is a baseline, not the shipped system.
-- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, the fallback decides at the strictest threshold, where almost every line goes to review (1 match in 324 dev lines when measured).
+- **Fallback:** gpt-4o-mini was not certified, so if the primary model fails, the fallback decides at the strictest threshold, where almost every line goes to review (1 match over the 324 dev items when measured).
 
 Live spend: $0.67 at G1, $3.46 at G2.
 
-The files in `output/` are B0 placeholders (rules only). They show the output format, not the results. See [`output/README.md`](output/README.md).
+The files in `output/` are the B3 lockbox outputs, the system's results. See [`output/README.md`](output/README.md).
 
 Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/gates/G2.md) (what was built, reviews, spend, results, observations), and [`eval/experiments.md`](eval/experiments.md) (the experiment ledger).
 
 ## Traced cases
 
-[`docs/traced-cases.md`](docs/traced-cases.md) walks four lines end to end with `oris explain`: a correct match, a plausible wrong match, an abstention, and an API failure that ends in review.
+[`docs/traced-cases.md`](docs/traced-cases.md) walks four lines end to end with `oris explain`: a correct match, a plausible wrong match, an abstention, and a failed call that ends in review (a budget refusal; a provider error takes the same path and is covered by a test).
 
 
 ## Known weaknesses
@@ -144,7 +144,7 @@ Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/ga
 
 The whole library is shown to the model (D-01), because lexical recall@20 is only .869 in English and .690 in French: a shortlist would cap accuracy before the model is called.
 
-- **Size handling:** each rendered library is measured with `count_tokens`, and the D-01 tiers apply:
+- **Size handling:** a run applies the D-01 tiers to a character-based estimate of each rendered library's tokens, and `oris doctor --live` measures them with `count_tokens`. The tiers are:
   - up to 30k tokens: the whole library;
   - 30k–150k: the whole library, with a warning and a cache check;
   - above 150k: an explicit error that names the retrieval switch.

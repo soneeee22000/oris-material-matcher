@@ -1,6 +1,6 @@
 # Four traced cases
 
-Each case is the output of `uv run oris explain --run <run> --item <Item No.>` on a committed run. The command reads only the run folder: no model call, no ground truth. DESIGN.md §12 asks for these four cases to be rehearsed before the live session: a correct match, a plausible wrong match, an abstention, and an API failure that ends in review. The reference rows quoted below come from `data/boq_dataset_matched_GT.csv`, which `explain` never reads.
+Each case is the output of `uv run oris explain --run <run> --item <Item No.>` on a committed run. The command reads only the run folder: no model call, no ground truth. DESIGN.md §12 asks for these four cases to be rehearsed before the live session: a correct match, a plausible wrong match, an abstention, and an API failure that ends in review. The committed runs hold no provider error, so case 4 is the nearest real failure: a call refused by the budget reservation before it reached the API. A provider error takes the same path (D1) and is covered by a test. The reference rows quoted below come from `data/boq_dataset_matched_GT.csv`, which `explain` never reads.
 
 ## 1. A correct match (EN lockbox, `03.02.0040.`)
 
@@ -83,7 +83,7 @@ user message and raw response of each call: --full, --json or calls.jsonl
 - **Why it abstained:** the two renderings disagreed. Pass 1 chose rock for aggregates; pass 2 chose soil for landfill, the right row. With v = 1, the line goes to `needs_review` as `LOW_SIGNAL:v`.
 - **What the reviewer gets:** the right row is suggestion 2, so the engineer confirms it instead of searching the library. This is the abstention the design wants: no wrong match is written.
 
-## 4. An API failure that ends in review (G2 smoke, `01.01.0010.`)
+## 4. A failed call that ends in review (G2 smoke, `01.01.0010.`)
 
 ```
 item 01.01.0010. (line e42c6958477c94c8, position 17, transport L17) in run 20261006T001017Z-354cd333 [mode live, library global]
