@@ -13,7 +13,19 @@ Start with [`DESIGN.md`](DESIGN.md), whose §0 is a one-page summary. The design
 | [`docs/ui-spec.md`](docs/ui-spec.md)                                     | Operator UI specification                                                                                   |
 | [`docs/exercise-brief.md`](docs/exercise-brief.md)                       | The exercise brief as received                                                                              |
 
-> **Status: v0.2, provisional, pre-freeze.** The numbers below are dev-only. They are not the lockbox claim, which is made once, after `eval-freeze` (gate G4).
+> **Status: lockbox scored.** The single post-freeze session ran on Thu 8 Oct 2026 at the `eval-freeze` tag. **Matched precision is 98.9% in English (88/89) and 98.8% in French (79/80).** The one-sided 95% exact lower bounds are .948 and .942, so the result is **certified at the 90% bar in both languages**, with no material skipped as "not a material". See [`docs/evaluation.md`](docs/evaluation.md).
+
+## The claim (lockbox, 113 labelled lines per language)
+
+| | EN | FR |
+|---|---|---|
+| Matched precision | 98.9% (88/89) | 98.8% (79/80) |
+| One-sided 95% exact lower bound | .948 | .942 |
+| Coverage (correct / labelled) | .779 | .699 |
+| False "not a material" | 0 | 0 |
+| Cost per 100 lines; seconds per routed line | $0.22; 0.63 | $0.21; 0.68 |
+
+In French, the abstention that buys this precision costs about 18 points of coverage against the B2 baseline. Those lines go to review with a reason, never to a wrong match.
 
 ## Quick start
 
@@ -43,7 +55,7 @@ uv run python eval/run_experiment.py --lang en --input input/boq_dataset_input_e
 
 Each run writes `runs/<run_id>/` (`calls.jsonl`, `audit.jsonl`, `manifest.json`, `score.json`, `prompts/`) and its output CSV, to `--output` when given (the G1 runs used `runs/<ledger-id>.csv`), else to `runs/<run_id>/output.csv`. It appends one row to the experiment ledger, a `failed` row when the run cannot be scored. `uv run oris replay` re-runs a recorded run at $0.
 
-## Results so far (dev only, pre-freeze)
+## Development results (dev only, before the freeze)
 
 Dev has 162 items per language, 139 of them labelled. FR input is scored against the global library, because the ground truth uses global-library strings. P is the precision of matched lines. CP-LB is its one-sided 95% Clopper–Pearson lower bound. C₂₅₂ is correct matches over labelled lines.
 
