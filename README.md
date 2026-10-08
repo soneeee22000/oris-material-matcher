@@ -120,10 +120,49 @@ The files in `output/` are B0 placeholders (rules only). They show the output fo
 
 Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/gates/G2.md) (what was built, reviews, spend, results, observations), and [`eval/experiments.md`](eval/experiments.md) (the experiment ledger).
 
-## What is open
+## Traced cases
 
-| Gate | Cap | Work |
-|---|---|---|
-| G3 hardening | Wed 7 Oct, 22:00 | Fault matrix including a 429 storm; FR smoke set on the FR library; CLI/API parity; one cold live dev run for cost and latency |
-| G4 freeze and lockbox | Thu 8 Oct, 12:00 | Tag `eval-freeze`; one lockbox session; final `output/` files; the claim |
-| G5 release | Thu 8 Oct, 18:00 | Clean clone on Windows and Linux; final README with weaknesses and what I would do with more time |
+[`docs/traced-cases.md`](docs/traced-cases.md) walks four lines end to end with `oris explain`: a correct match, a plausible wrong match, an abstention, and an API failure that ends in review.
+
+
+## Known weaknesses
+
+- **French coverage pays for French precision.** On the lockbox, B3 matches 79 of 113 labelled French lines correctly, against 99 for the single-pass baseline (McNemar p = .0002). Every line it declines goes to `needs_review` with a reason code and a top-2 suggestion; none is matched wrongly. In English, B3 keeps the baseline's coverage (p = 1.0).
+- **Usage confusions inside the right material type survive.** Both lockbox errors are of this kind:
+  - railway sub-ballast was matched to ballast aggregates;
+  - French _couche de fondation_, the sub-base, was matched to the base layer, although the glossary states the meaning.
+
+  The E-08 verifier reduces this error class but does not remove it.
+
+- **The verifier costs coverage once the enrichment is in place.** On dev, the same enriched votes without the verifier give 218 correct matches against 194, at P .972 and .958. The verifier was kept because that comparison was not registered before its result was seen (`docs/gates/G2.md` O24).
+- **The FR library has no certified threshold.** Unseen BoQs on `data/oris_materials_fr.csv` run at the strictest threshold, which is safe but matches little. The FR smoke set that would certify it (A10) was moved after the freeze.
+- **The fallback model is not certified.** If the primary model is unreachable, gpt-4o-mini decides at the strictest threshold, so almost every line goes to review (G2 O26).
+- **The lockbox is a same-project holdout.** It is section-held-out and blind to tuning, but it was explored before the split (§10.8). The unseen live BoQ is the only fully blind test.
+- **One triggered arm was not run.** `header_context` (6 English errors) did not run before the freeze (G2 O25).
+
+## Scaling to large libraries
+
+The whole library is shown to the model (D-01), because lexical recall@20 is only .869 in English and .690 in French: a shortlist would cap accuracy before the model is called.
+
+- **Size handling:** each rendered library is measured with `count_tokens`, and the D-01 tiers apply:
+  - up to 30k tokens: the whole library;
+  - 30k–150k: the whole library, with a warning and a cache check;
+  - above 150k: an explicit error that names the retrieval switch.
+- **Retrieval:** candidate selection sits behind a `CandidateProvider` port, with one implementation, `WholeLibrary`. A `HybridRetriever` (BM25 plus dense retrieval) for libraries above 30k tokens is designed (§10.5) but not built, so the error above 150k tokens names a switch that is not yet available.
+
+## Models, memory and provenance
+
+- **Model:** pinned to `claude-haiku-4-5-20251001`, whose published retirement floor is not before 2026-10-15 (A26). The latency numbers were measured at the account's custom rate-limit tier, above tier 4 (`evidence/doctor_2026-10-08.json`).
+- **Local models:** the model allowlist admits local ≤ 8B model ids, but no local adapter is built or benchmarked.
+- **Memory:** no conversational or correction memory is used. The classifier is stateless and closed-world; memory derived from labels would leak (D-02). Reviewer-correction memory keyed by library hash is a production next step.
+- **Labelled-data disclosure:** all 252 labelled lines, lockbox included, were profiled during data analysis before the split was frozen. Glossary and enrichment entries carry provenance tags (`standard`, `library`, `dev_error`). The lockbox claim also holds without the lines touched by `dev_error` entries: EN .989, FR .987 (`docs/evaluation.md`). The error-cause labels were produced by a panel of two blind labeller agents and an adjudicator, reviewed by me (κ .844).
+- **Replays:** `oris demo` replays the committed lockbox runs at $0. Live numbers can differ from a replay by the run-to-run flip rate. On dev, two independent live samples of the shipped configuration gave 0 flips in 199 lines per language (`docs/gates/G3.md` §5).
+
+## With more time
+
+- Run the triggered `header_context` arm and the FR-library smoke set (A10), so French BoQs on the French library get a certified threshold.
+- Register and measure "verifier off, given the enrichment" blind, on fresh votes. It may recover about 24 correct dev matches.
+- A carbon-weighted error metric, once ORIS CO₂ factors are available, so that a wrong match is weighted by the size of the carbon mistake.
+- The deferred G3 hardening: the full fault matrix with a 429 storm, CLI/API parity over whole files, and the doctor measuring the enriched prompt for budget reservations.
+- Build the `HybridRetriever` and measure its recall@k for libraries above 30k tokens, and add and benchmark a local ≤ 8B adapter.
+- The operator UI with asynchronous jobs (`docs/ui-spec.md`).
