@@ -1675,6 +1675,21 @@ Changed: §6 (arm C made concrete), §9.3 (prompt version), §10.6 (policy entry
 
 Changed: §11 (the demo bullet), §12 (README requirement on the flip rate).
 
+### A70 · 2026-10-09 · The French-library smoke set (A10), after the freeze
+
+**Results existing at the time:** the lockbox claim (`v1.0`, `eval-freeze` `c8cd80a`) holds on the global library. The FR library has no policy entry, so it resolves `fallback_strictest` (`T1`) and sends most lines to review. The live session runs an unseen BoQ on the FR library (exercise brief). No smoke file, label or scorer exists. Owner decision, Fri 9 Oct, option A: run the A10 smoke, timeboxed to 13:00, separately from the frozen claim.
+
+1. **The configuration certified is the frozen operating point, applied to the FR library:** `T8`, `verifier_adopted: true`, and the FR enrichment `data/enrichment/fr.yaml`. A68.6 said that file ships only after the FR smoke check. Nothing is tuned for the FR library.
+2. **The pass rule is §6's, unchanged:** 0 closed-world violations, 0 false `not_a_material`, 0 decoy matches, and at least 9 of the 18 base positive lines correctly matched. A pass adds the `(claude-haiku-4-5-20251001, <FR library sha256>)` entry `{policy_id: T8, certified_by: smoke_A10, verifier_adopted: true, enrichment: data/enrichment/fr.yaml, enrichment_sha256}` to `config/policy.yaml`. A fail adds nothing.
+3. **The set follows §6 and G3-T12:** 10 base lines with an exact FR row, from dev items only; 8 lines on FR-only leaves; about 7 decoys; the 4 A10 extras; and hand-written lines.
+   - An agent drafts the lines and labels from the dev items and the FR library only, never from lockbox text.
+   - The owner reviews every label, and the labels are frozen (SHA-256) before the first call.
+   - If the timebox forces it, the number of hand-written lines may be cut; the cut is recorded.
+4. **What a pass means:** readiness evidence for FR → FR on a builder-labelled set, not a held-out accuracy claim. It does not change `v1.0` or the lockbox result. The work is released separately, as `v1.2.0`, and recorded in `docs/gates/G6.md`.
+5. **Spend:** a $0.50 cap for the live smoke, smoke-first (an offline full run with `--llm fake` before it).
+
+Changed: §6 (the smoke set made concrete), §10.6 (a possible `smoke_A10` entry), §14 (a post-freeze gate, G6).
+
 ---
 
 ## 17. Results
