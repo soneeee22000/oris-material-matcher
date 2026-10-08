@@ -1705,3 +1705,20 @@ Dev only, before `eval-freeze`: 162 items per language, 139 labelled, FR input s
   - `header_context`: triggered, not run before the freeze (O25).
 - **Fallback (G2-T10):** gpt-4o-mini is not certified; at its best threshold, `T5`, EN P .714 (10/14) and FR P .619 (13/21). The A33 fallback stays at the strictest threshold (O26).
 - **Live spend at G2:** $3.4621 billed, of a cap raised by owner decisions from $3.00 to $3.75 (O23) and then to $4.25 (O25).
+
+### 2026-10-08 · G4 (lockbox), the claim
+
+`eval-freeze` was tagged on `c8cd80a` at 04:28, ahead of the 12:00 deadline. The single lockbox session ran B2 then B3 on both full files, live with `--no-cache`, once each. The lockbox has 120 items per language, 113 labelled. Record: `docs/evaluation.md`, `eval/lockbox_log.md`.
+
+- **B3, shipped:**
+  - EN P **.989 (88/89)**, one-sided 95% CP lower bound **.948**, C₂₅₂ .779;
+  - FR P **.988 (79/80)**, lower bound **.942**, C₂₅₂ .699;
+  - F_NM 0;
+  - **certified at 95% confidence in both languages** (lower bound ≥ .90).
+- **B2:** EN P .809 (89/110), lower bound .737; FR .876 (99/113), lower bound .813.
+- **Paired coverage, B3 against B2 (McNemar exact):** EN p = 1.0 (10 against 11 discordant items). FR p = .0002 (4 against 24): in French, abstention costs about 18 points of coverage.
+- **Excluding lines touched by `dev_error` terms:** EN .989 (86/87), lower bound .947; FR .987 (74/75), lower bound .938.
+- **Cost and latency:** $0.22 (EN) and $0.21 (FR) per 100 lines; 0.63 s and 0.68 s per routed line.
+- **Checks:** `check_requirements` STRICT and RQ1–RQ11 are green on both outputs, and the replay is byte-identical.
+- **Live spend at G4:** $1.7982 of a $3.00 cap. The G3 cold dev run added $0.9703.
+

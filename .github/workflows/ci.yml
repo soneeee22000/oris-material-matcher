@@ -36,3 +36,8 @@ jobs:
         run: |
           uv run oris --input tests/fixtures/cli/small_boq.csv --library data/oris_materials_global.csv --output "$RUNNER_TEMP/b0.csv" --profile b0 --run-dir "$RUNNER_TEMP/runs"
           uv run python eval/check_requirements.py --output "$RUNNER_TEMP/b0.csv" --input tests/fixtures/cli/small_boq.csv --library data/oris_materials_global.csv --reference "$RUNNER_TEMP/no-ground-truth.csv" --checks RQ1,RQ2,RQ3,RQ4,RQ5
+      - name: RQ11, the lockbox outputs replay byte-identical at $0 (G4)
+        shell: bash
+        run: |
+          uv run oris replay runs/submission/20261008T023928Z-56f85fb8 --check output/improved_output_en.csv
+          uv run oris replay runs/submission/20261008T024244Z-de394c39 --check output/improved_output_fr.csv
