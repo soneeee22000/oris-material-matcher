@@ -25,7 +25,7 @@ Start with [`DESIGN.md`](DESIGN.md), whose §0 is a one-page summary. The design
 | False "not a material" | 0 | 0 |
 | Cost per 100 lines; seconds per routed line | $0.22; 0.63 | $0.21; 0.68 |
 
-In French, the abstention that buys this precision costs about 18 points of coverage against the B2 baseline. Those lines go to review with a reason, never to a wrong match.
+In French, the abstention that buys this precision costs about 18 points of coverage against the B2 baseline. Those lines go to review with a reason, never to a wrong match. Accuracy at each hierarchy level, the share of lines per decision, and the figures over the whole output files are in [`docs/evaluation.md`](docs/evaluation.md#the-full-output-files-as-the-brief-asks).
 
 ## Quick start
 
