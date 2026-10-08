@@ -10,7 +10,10 @@ Usage::
 
     python eval/check_requirements.py --output OUT.csv --input IN.csv --library LIB.csv
         [--run runs/<run_id>] [--reference data/boq_dataset_matched_GT.csv] [--config config]
-        [--oris oris] [--no-skips] [--json report.json]
+        [--oris oris] [--no-skips] [--json report.json] [--checks RQ1,RQ2,...]
+
+``--checks`` runs only the named checks; without STRICT the reference is never read, so CI
+can gate a B0 output on RQ1-RQ5 before ``eval-freeze`` without the ground truth (§10.3).
 
 RQ6-RQ10 need ``--run`` and are skipped without it; RQ7 and RQ8 are skipped unless the
 manifest is a cold live run (``mode = live``, ``cache_hits = 0``); RQ11 runs
@@ -859,11 +862,13 @@ def run_one(rq: str, check: Callable[[Context], str], context: Context) -> Resul
         return Result(rq=rq, status=SKIP, detail=str(error))
 
 
-def run_checks(inputs: Inputs) -> list[Result]:
-    """Run STRICT and RQ1-RQ11.
+def run_checks(inputs: Inputs, only: frozenset[str] | None = None) -> list[Result]:
+    """Run STRICT and RQ1-RQ11, or only the named ones.
 
     Args:
         inputs: The paths to check.
+        only: The check ids to run; None runs every check. Leaving out STRICT never reads
+            the reference.
 
     Returns:
         One result per check, in order.
@@ -873,7 +878,30 @@ def run_checks(inputs: Inputs) -> list[Result]:
 
     """
     context = build_context(inputs)
-    return [run_one(rq, check, context) for rq, check in CHECKS]
+    chosen = [(rq, check) for rq, check in CHECKS if only is None or rq in only]
+    return [run_one(rq, check, context) for rq, check in chosen]
+
+
+def parse_checks(text: str | None) -> frozenset[str] | None:
+    """Parse ``--checks RQ1,RQ2``: the ids to run, or None for every check.
+
+    Args:
+        text: The comma-separated check ids, or None.
+
+    Returns:
+        The ids, or None when the option is absent.
+
+    Raises:
+        InputError: An id is not a known check.
+
+    """
+    if text is None:
+        return None
+    named = frozenset(item.strip() for item in text.split(",") if item.strip())
+    unknown = sorted(named - {rq for rq, _ in CHECKS})
+    if unknown or not named:
+        raise InputError(f"--checks names unknown checks: {unknown or text!r}")
+    return named
 
 
 def render(results: Sequence[Result]) -> str:
@@ -906,6 +934,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--oris", nargs="+", default=list(DEFAULT_ORIS))
     parser.add_argument("--no-skips", action="store_true")
     parser.add_argument("--json", dest="json_path", type=Path)
+    parser.add_argument("--checks")
     return parser
 
 
@@ -933,7 +962,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         oris=tuple(args.oris),
     )
     try:
-        results = run_checks(inputs)
+        results = run_checks(inputs, parse_checks(args.checks))
     except InputError as error:
         print(f"error: {error}", file=sys.stderr)
         return EXIT_ERROR
