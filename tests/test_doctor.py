@@ -443,3 +443,19 @@ def test_measured_prefix_tokens_are_empty_without_a_matching_measurement(
     library = load_catalogue("fr", make_settings())
 
     assert measured_prefix_tokens(library, HAIKU, tmp_path / "evidence") == {}
+
+
+def test_a_second_doctor_run_on_the_same_day_never_overwrites_the_evidence(
+    tmp_path: Path,
+) -> None:
+    """G5 fact-check: a quick-start `oris doctor` must not destroy the day's live evidence."""
+    first = run_doctor(make_settings(), options(tmp_path, live=False), runtime_for(tmp_path))
+    kept = first.evidence_path.read_bytes()
+    second = run_doctor(make_settings(), options(tmp_path, live=False), runtime_for(tmp_path))
+    third = run_doctor(make_settings(), options(tmp_path, live=False), runtime_for(tmp_path))
+
+    assert first.evidence_path.read_bytes() == kept
+    assert second.evidence_path == tmp_path / "evidence" / "doctor_2026-10-05_02.json"
+    assert third.evidence_path == tmp_path / "evidence" / "doctor_2026-10-05_03.json"
+    newest_first = sorted((tmp_path / "evidence").glob("doctor_*.json"), reverse=True)
+    assert newest_first[0] == third.evidence_path
