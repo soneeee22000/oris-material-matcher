@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -77,18 +78,31 @@ def _label(
     ]
 
 
-def _positives() -> list[list[str]]:
+RUN_CONFIGURATION = {
+    "threshold_id": "T8",
+    "requested_model": "claude-haiku-4-5-20251001",
+    "enrichment_sha256": "f" * 64,
+    "fallback_engaged": False,
+    "decision_profile.verifier_adopted": True,
+}
+
+
+def _positives(count: int) -> list[list[str]]:
     exact = [_label(f"01.01.{i:04d}.", "base_exact", "match", LIBRARY[0]) for i in range(10)]
     fr_only = [_label(f"01.02.{i:04d}.", "base_fr_only", "match", LIBRARY[1]) for i in range(8)]
-    return exact + fr_only
+    return (exact + fr_only)[:count]
 
 
-def _world(tmp_path: Path, decisions: dict[str, tuple[str, tuple[str, ...]]]) -> dict[str, Path]:
+def _world(
+    tmp_path: Path,
+    decisions: Mapping[str, tuple[str, tuple[str, ...]]],
+    positives: int = 18,
+) -> dict[str, Path]:
     """Write a frozen smoke set, a library and a run whose output carries the given decisions."""
     smoke_dir = tmp_path / "smoke"
     smoke_dir.mkdir(parents=True)
     labels = [
-        *_positives(),
+        *_positives(positives),
         _label("01.03.0001.", "base_decoy", "no_match"),
         _label("01.03.0002.", "service", "no_match"),
     ]
@@ -102,6 +116,7 @@ def _world(tmp_path: Path, decisions: dict[str, tuple[str, tuple[str, ...]]]) ->
         "input_sha256": _sha(smoke_dir / "input.csv"),
         "labels_sha256": _sha(smoke_dir / "labels.csv"),
         "library_sha256": _sha(library),
+        "run_configuration": RUN_CONFIGURATION,
     }
     (smoke_dir / "freeze.json").write_text(json.dumps(freeze), encoding="utf-8")
     run = tmp_path / "run"
@@ -122,6 +137,11 @@ def _world(tmp_path: Path, decisions: dict[str, tuple[str, tuple[str, ...]]]) ->
         "library_sha256": freeze["library_sha256"],
         "spend_usd": 0.01,
         "run_id": "smoke-run",
+        "threshold_id": "T8",
+        "requested_model": "claude-haiku-4-5-20251001",
+        "enrichment_sha256": "f" * 64,
+        "fallback_engaged": False,
+        "decision_profile": {"drop_conflicting_votes": False, "verifier_adopted": True},
     }
     (run / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     return {"smoke": smoke_dir, "library": library, "run": run}
@@ -194,6 +214,66 @@ def test_edited_labels_are_refused(tmp_path: Path) -> None:
         handle.write("01.09.0001.,handwritten,no_match,,,,true,false,false,,agent,owner,\n")
     with pytest.raises(smoke.RefusedError, match="labels"):
         _verdict(world)
+
+
+def _rewrite_output(world: dict[str, Path], edit: Any) -> None:
+    """Apply ``edit`` to the run's output rows (header excluded) and write them back."""
+    path = world["run"] / "output.csv"
+    with path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    _write_csv(path, rows[0], edit(rows[1:]))
+
+
+def test_an_unlabelled_output_line_is_refused(tmp_path: Path) -> None:
+    world = _world(tmp_path, {})
+    extra = ["01.09.0001.", "matched", "Bétons", "Inventé", "X"]
+    _rewrite_output(world, lambda rows: [*rows, extra])
+    with pytest.raises(smoke.RefusedError, match="not labelled"):
+        _verdict(world)
+
+
+def test_a_duplicate_output_item_is_refused(tmp_path: Path) -> None:
+    world = _world(tmp_path, {})
+    bad = ["01.03.0001.", "matched", *LIBRARY[0]]
+    _rewrite_output(world, lambda rows: [bad, *rows])
+    with pytest.raises(smoke.RefusedError, match="duplicate"):
+        _verdict(world)
+
+
+def test_a_label_set_without_eighteen_base_positives_is_refused(tmp_path: Path) -> None:
+    world = _world(tmp_path, {}, positives=17)
+    with pytest.raises(smoke.RefusedError, match="18"):
+        _verdict(world)
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("threshold_id", "T1"),
+        ("requested_model", "gpt-4o-mini-2024-07-18"),
+        ("enrichment_sha256", "0" * 64),
+        ("fallback_engaged", True),
+        ("decision_profile.verifier_adopted", False),
+    ],
+)
+def test_a_run_of_another_configuration_is_refused(tmp_path: Path, key: str, value: Any) -> None:
+    world = _world(tmp_path, {})
+    path = world["run"] / "manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    head, _, tail = key.partition(".")
+    if tail:
+        manifest[head][tail] = value
+    else:
+        manifest[head] = value
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(smoke.RefusedError, match=key):
+        _verdict(world)
+
+
+def test_a_matched_service_line_is_reported_not_a_decoy(tmp_path: Path) -> None:
+    result = _verdict(_world(tmp_path, {"01.03.0002.": ("matched", LIBRARY[0])}))
+    assert result["matched_non_material"] == 1
+    assert result["decoy_matches"] == 0
 
 
 def test_main_writes_the_result_files(tmp_path: Path) -> None:

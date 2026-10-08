@@ -10,8 +10,15 @@ library, this script applies the pre-registered rule mechanically:
 - at least 9 of the 18 base positive lines (``base_exact`` + ``base_fr_only``) matched to their
   labelled row.
 
-It refuses (exit 4) a run of another input or library, and labels whose bytes changed after the
-freeze. It reads only the smoke folder, the library and the run folder; it never calls a model.
+A decoy is a material line labelled ``no_match`` (§6: "no-match decoys"); a matched non-material
+line is reported apart and is not part of the rule.
+
+It refuses (exit 4) a run of another input, library or configuration (``run_configuration`` in
+``freeze.json``: manifest values by dotted path), labels whose bytes changed after the freeze, a
+duplicate item number, an output line without a label (or the reverse), and a label set without
+exactly 18 base positives. ``output.csv`` itself is not hashed by the manifest, so the run folder
+is trusted as written; commit it with the result. It reads only the smoke folder, the library and
+the run folder; it never calls a model.
 
 Usage::
 
@@ -54,6 +61,7 @@ PASS = "pass"
 FAIL = "fail"
 JSON_INDENT = 2
 CONCRETE_KEY = "signal_b_agree_on_a_concrete_positive"
+CONFIGURATION_KEY = "run_configuration"
 EXIT_OK = 0
 EXIT_ERROR = 2
 EXIT_REFUSED = 4
@@ -105,6 +113,43 @@ def check_freeze(smoke: Path, library: Path, manifest: Mapping[str, Any]) -> Non
     for key in ("input_sha256", "library_sha256"):
         if manifest.get(key) != frozen[key]:
             raise RefusedError(f"the run's {key.removesuffix('_sha256')} is not the frozen one")
+    for path, expected in frozen[CONFIGURATION_KEY].items():
+        if manifest_value(manifest, path) != expected:
+            raise RefusedError(f"the run's {path} is not the certified {expected!r}")
+
+
+def manifest_value(manifest: Mapping[str, Any], path: str) -> Any:
+    """Return a manifest value by dotted path, or ``None`` when any part is missing."""
+    value: Any = manifest
+    for part in path.split("."):
+        value = value.get(part) if isinstance(value, Mapping) else None
+    return value
+
+
+def unique_items(items: Sequence[str], where: str) -> set[str]:
+    """Return the item numbers as a set, refusing any duplicate."""
+    seen: set[str] = set()
+    for item in items:
+        if item in seen:
+            raise RefusedError(f"duplicate item {item!r} in {where}")
+        seen.add(item)
+    return seen
+
+
+def check_coverage(
+    labels: Sequence[Mapping[str, str]], output_rows: Sequence[Mapping[str, str]]
+) -> None:
+    """Refuse unless each output line has exactly one label and there are 18 base positives."""
+    labelled = unique_items([row["item_no"] for row in labels], LABELS_FILE)
+    produced = unique_items([row[ITEM_COLUMN] for row in output_rows], OUTPUT_FILE)
+    if labelled != produced:
+        missing = sorted(produced - labelled) or sorted(labelled - produced)
+        raise RefusedError(f"output and labels differ: {missing[:5]} not labelled or not produced")
+    base_n = sum(1 for r in labels if r["subset"] in BASE_SUBSETS and r["expected"] == EXPECT_MATCH)
+    if base_n != BASE_POSITIVES_EXPECTED:
+        raise RefusedError(
+            f"labels hold {base_n} base positives, the rule needs {BASE_POSITIVES_EXPECTED}"
+        )
 
 
 def concrete_agrees(labels: Sequence[Mapping[str, str]], run: Path) -> bool:
@@ -125,7 +170,7 @@ def counts(
     labels: Sequence[Mapping[str, str]], output: Mapping[str, Mapping[str, str]], rows: set[Triple]
 ) -> dict[str, Any]:
     """Count the four conditions and the per-subset k/n."""
-    violations = false_nm = decoys = base_ok = 0
+    violations = false_nm = decoys = base_ok = matched_nm = 0
     subsets: dict[str, dict[str, int]] = {}
     for label in labels:
         line = output[label["item_no"]]
@@ -136,6 +181,7 @@ def counts(
         violations += decision == MATCHED and got not in rows
         false_nm += material and decision == NOT_A_MATERIAL
         decoys += material and not positive and decision == MATCHED
+        matched_nm += not material and decision == MATCHED
         base_ok += label["subset"] in BASE_SUBSETS and positive and right
         tally = subsets.setdefault(label["subset"], dict.fromkeys(_TALLY_KEYS, 0))
         tally["positive"] += positive
@@ -147,6 +193,7 @@ def counts(
         "closed_world_violations": violations,
         "false_not_a_material": false_nm,
         "decoy_matches": decoys,
+        "matched_non_material": matched_nm,
         "base_correct": base_ok,
         "subsets": subsets,
     }
@@ -173,10 +220,11 @@ def evaluate(smoke: Path, library: Path, run: Path) -> dict[str, Any]:
     manifest = json.loads((run / MANIFEST_FILE).read_text(encoding=ENCODING))
     check_freeze(smoke, library, manifest)
     labels = read_rows(smoke / LABELS_FILE)
-    output = {row[ITEM_COLUMN]: row for row in read_rows(run / OUTPUT_FILE)}
+    output_rows = read_rows(run / OUTPUT_FILE)
+    check_coverage(labels, output_rows)
+    output = {row[ITEM_COLUMN]: row for row in output_rows}
     rows = {triple(row) for row in read_rows(library)}
     found = counts(labels, output, rows)
-    base_n = sum(1 for r in labels if r["subset"] in BASE_SUBSETS and r["expected"] == EXPECT_MATCH)
     passed = (
         found["closed_world_violations"] == 0
         and found["false_not_a_material"] == 0
@@ -190,7 +238,8 @@ def evaluate(smoke: Path, library: Path, run: Path) -> dict[str, Any]:
         "closed_world_violations": found["closed_world_violations"],
         "false_not_a_material": found["false_not_a_material"],
         "decoy_matches": found["decoy_matches"],
-        "base_positives_correct": {"k": found["base_correct"], "n": base_n},
+        "matched_non_material": found["matched_non_material"],
+        "base_positives_correct": {"k": found["base_correct"], "n": BASE_POSITIVES_EXPECTED},
         "base_positives_expected": BASE_POSITIVES_EXPECTED,
         "subsets": found["subsets"],
         CONCRETE_KEY: concrete_agrees(labels, run),
@@ -211,6 +260,7 @@ def render(result: Mapping[str, Any]) -> str:
         f"- closed-world violations: {result['closed_world_violations']}",
         f"- false not_a_material: {result['false_not_a_material']}",
         f"- decoy matches: {result['decoy_matches']}",
+        f"- matched non-material (reported, not in the rule): {result['matched_non_material']}",
         f"- base positives correct: {base['k']}/{base['n']}",
         f"- signal b agrees on a concrete positive: {result[CONCRETE_KEY]}",
         "",
