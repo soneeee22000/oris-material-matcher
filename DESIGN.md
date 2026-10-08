@@ -1534,6 +1534,26 @@ Owner decision, Tue 6 Oct, option A. Changed: §7.2 (keep rule for precision arm
 Changed: §11.3 (replay miss in a mixed run); docstrings of `src/oris_matcher/cli.py` and `eval/run_experiment.py`.
 
 
+### A66 · 2026-10-08 · G3 before the freeze: the readiness set
+
+**Results existing at the time:** G2 is closed. `v0.2` is tagged on `develop` (`28317a8`), CI is green on Linux and Windows, and the shipped configuration is `T8` with the E-08 verifier and the E-01 enrichment (§17). The G3 sheet (`docs/gates/G3.md`, 27 tickets, owner questions Q1–Q10) was drafted on Tue 6 Oct. At Thu 8 Oct 02:30, the freeze was 9.5 h away.
+
+**Owner decisions, Thu 8 Oct (option A, cap $2.00):**
+1. **Before `eval-freeze`, G3 runs only a readiness set,** none of which changes a decision:
+   - G3-T19, CI hardening, including the clean-clone B0 step on RQ1–RQ5 without the ground truth (`check_requirements --checks`);
+   - the measurement core of G3-T21: a live doctor, then one cold live dev run of the shipped configuration in EN, then FR within 5 minutes;
+   - a readiness check;
+   - the `eval-freeze` tag.
+2. **The G3 spend cap is $2.00,** with one pause (P1) after the cold EN run.
+3. **G3-T21 runs without its tooling preconditions** T1, T7, T9, T10, T11 and T15, which move after the freeze. In particular:
+   - there is no `eval/g3_live_report.py`;
+   - cost and `latency_s_per_routed` come from the runner's own row;
+   - prefix writes come from the manifest;
+   - the noise floor is computed at $0, as the decision flip rate between the cold run and the E-01-C2 live dev runs, which send the same main-pass requests (pairing order Q5, rule 2).
+4. **Everything else in G3 runs after the freeze, or not at all,** including the FR smoke set and its A10 verdict. It is not part of the system the lockbox scores, and the frozen FR library keeps the strictest threshold. Q3–Q10 are answered when that work starts.
+
+Changed: §14 (G3 row, scoped as above).
+
 ### A67 · 2026-10-06 · E-08 kept: the policy entry binds the verifier, and selecting over verifier runs
 
 **Results existing at the time:** the E-08 dev runs, `runs/20261006T203537Z-891d4ff3` (EN) and `runs/20261006T203620Z-a56a890b` (FR). They are mixed runs of the T5 votes at `T8`, with the verifier live, and spent $0.1558.

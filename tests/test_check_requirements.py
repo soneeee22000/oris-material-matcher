@@ -681,3 +681,30 @@ def test_rq9_accepts_every_run_mode_the_service_writes(world: World, mode: str) 
 def test_rq9_fails_on_an_unknown_run_mode(world: World, mode: str) -> None:
     world.manifest["mode"] = mode
     assert _status(world, "RQ9") == "FAIL"
+
+
+def test_checks_runs_only_the_named_checks_without_the_reference(
+    world: World, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """G3-T19: CI runs RQ1-RQ5 on a B0 output and never reads the ground truth (§10.3)."""
+    inputs = world.inputs()
+    argv = ["--output", str(inputs.output), "--input", str(inputs.input)]
+    argv += ["--library", str(inputs.library), "--reference", str(tmp_path / "absent.csv")]
+    argv += ["--checks", "RQ1,RQ2,RQ3,RQ4,RQ5"]
+    assert check.main(argv) == 0
+    printed = capsys.readouterr().out
+    assert [line.split()[0] for line in printed.splitlines()[1:]] == [
+        "RQ1",
+        "RQ2",
+        "RQ3",
+        "RQ4",
+        "RQ5",
+    ]
+    assert "STRICT" not in printed
+
+
+def test_checks_refuses_an_unknown_check(world: World) -> None:
+    inputs = world.inputs()
+    argv = ["--output", str(inputs.output), "--input", str(inputs.input)]
+    argv += ["--library", str(inputs.library), "--checks", "RQ1,RQ99"]
+    assert check.main(argv) == 2

@@ -5,6 +5,10 @@ on:
     branches: [main, develop, "feat/**", "fix/**"]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -12,13 +16,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
+          enable-cache: true
       - run: uv sync --locked --all-extras --no-extra retrieval
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run mypy --strict src
-      - run: uv run pytest --cov
+      - run: uv run mypy --strict eval/*.py scripts/*.py
+        shell: bash
+      - run: uv run pytest -m "not live" --cov=oris_matcher
+      - run: uv run coverage report --include="src/oris_matcher/domain/*,src/oris_matcher/service.py" --fail-under=80
+      - name: Clean-clone B0 run, RQ1-RQ5 only, no ground truth (G3-T19, §10.3)
+        shell: bash
+        run: |
+          uv run oris --input tests/fixtures/cli/small_boq.csv --library data/oris_materials_global.csv --output "$RUNNER_TEMP/b0.csv" --profile b0 --run-dir "$RUNNER_TEMP/runs"
+          uv run python eval/check_requirements.py --output "$RUNNER_TEMP/b0.csv" --input tests/fixtures/cli/small_boq.csv --library data/oris_materials_global.csv --reference "$RUNNER_TEMP/no-ground-truth.csv" --checks RQ1,RQ2,RQ3,RQ4,RQ5
