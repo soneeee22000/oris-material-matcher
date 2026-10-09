@@ -26,10 +26,11 @@ The lockbox is the held-out test set: 120 items per language, 113 of them labell
 | Matched precision                           | 98.9% (88/89) | 98.8% (79/80) |
 | One-sided 95% exact lower bound             | .948          | .942          |
 | Coverage (correct / labelled)               | .779          | .699          |
+| Coverage (correct / all material lines)     | .752          | .675          |
 | False "not a material"                      | 0             | 0             |
 | Cost per 100 lines; seconds per routed line | $0.22; 0.63   | $0.21; 0.68   |
 
-A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English).
+A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English). Seconds per routed line is batch wall clock divided by routed lines; the 2.1–2.4 s that `oris score` prints attributes each call's time to the lines it carried, a different measure ([`docs/evaluation.md`](docs/evaluation.md)). The second coverage row also counts material lines whose material is not in the library.
 
 ![Results from the lockbox runs: precision with its lower bound, coverage, decision shares, cost and latency](docs/media/results.png)
 
@@ -95,7 +96,7 @@ The brief's command on its own French input, offline with the rules-only profile
 uv run oris --input input/boq_dataset_input_fr.csv --library data/oris_materials_global.csv --output improved_output_fr.csv --profile b0
 ```
 
-Without `--profile b0`, a live run on either exercise file is refused unless the `eval-freeze` tag is at HEAD: those files contain the lockbox items, which were scored once, after the freeze.
+Without `--profile b0`, a live run on either exercise file is refused unless the `eval-freeze` tag is at HEAD: those files contain the lockbox items, which were scored once, after the freeze. To rerun one live, check out that tag first (`git checkout eval-freeze`, the code and configuration the lockbox scored); a full file costs about $0.70.
 
 ### Every entry point
 
@@ -231,7 +232,7 @@ The full ladder, including the evidence-cap rung, is in [`docs/development-resul
 - **A bound, not a point.** "Certified" means the one-sided 95% Clopper–Pearson lower bound is at least .90.
 - **Robust to dev-derived knowledge.** Without the lines touched by enrichment entries added from dev errors, precision is EN .989 (86/87) and FR .987 (74/75) ([`docs/evaluation.md`](docs/evaluation.md#robustness)).
 - **Disclosed.** All 252 labelled lines, lockbox included, were profiled during data analysis before the split was frozen. Glossary and enrichment entries carry provenance tags (`standard`, `library`, `dev_error`). The error-cause labels were produced by a panel of two blind labeller agents and an adjudicator, and reviewed by me (Cohen's κ .844 between the two labellers).
-- **Reusable scorer.** `oris score` scores any output CSV against any reference with the three label columns, so ORIS can rerun it on its own labels.
+- **Reusable scorer.** `oris score` scores any output CSV against any reference with the three label columns, so ORIS can rerun it on its own labels. A reference that holds only the three label columns, in the same rows and order as the output, needs `--join row-order`.
 
 ## Trade-offs
 
