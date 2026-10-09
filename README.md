@@ -9,13 +9,11 @@ Maps each line of a construction Bill of Quantities (BoQ) to one exact row of an
 
 ![Pipeline: a BoQ is read (headers decided there), planned into batches, read twice by the model, validated against the decision table, re-checked by the sibling verifier where it would match, then decided and written](docs/media/pipeline.gif)
 
-[Project page](https://oris-material-matcher.vercel.app) · [Results](docs/evaluation.md) · [How it works](#how-it-works) · [Why this exists](#why-this-exists) · [Design](DESIGN.md) · [Data analysis](docs/data-analysis.md) · [Traced cases](docs/traced-cases.md)
+[Project page](https://oris-material-matcher.vercel.app) · [Results](docs/evaluation.md) · [How it works](#how-it-works) · [Operator UI](#operator-ui) · [Why this exists](#why-this-exists) · [Design](DESIGN.md) · [Data analysis](docs/data-analysis.md) · [Traced cases](docs/traced-cases.md)
 
-The [project page](https://oris-material-matcher.vercel.app) shows committed output from the lockbox runs; it does not run the matcher.
+The [project page](https://oris-material-matcher.vercel.app) shows committed output from the lockbox runs; it does not run the matcher. The [operator UI](#operator-ui) does, on your machine.
 
-Each line gets exactly one decision: `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library; `not_a_material`; or `needs_review`, with a reason code and two suggested rows.
-
-The design, the split and the acceptance rule were pre-registered before any model call (tag `prereg-v1`; [`DESIGN.md`](DESIGN.md) §0 is a one-page summary).
+Each line gets exactly one decision: `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library; `not_a_material`; or `needs_review`, with a reason code and two suggested rows. The design, the split and the acceptance rule were pre-registered before any model call (tag `prereg-v1`; [`DESIGN.md`](DESIGN.md) §0 is a one-page summary).
 
 ## The result
 
@@ -53,6 +51,7 @@ Each BoQ line has to be tied to one library row, because that row carries the en
 | Is it engineered                     | Seven stages, one module each, closed-world validation, fail-closed error paths, an audit record per line, byte-identical replay              | [How it works](#how-it-works), [Engineering](#engineering)                                             |
 | Were other models and methods tried  | GPT-4o-mini measured; a post-freeze cross-model vote fails the pre-registered rule; Gemini Flash, embeddings and a local model were not run   | [`docs/alternatives.md`](docs/alternatives.md)                                                         |
 | Can the choices be defended          | Any decision can be explained from the stored calls at $0                                                                                     | [A traced wrong match](#a-traced-wrong-match), [`docs/traced-cases.md`](docs/traced-cases.md)          |
+| Optional web UI                      | After submission (`v1.4.0`): CSV or `.xlsx` upload, run, decision and labels per line, `needs_review` rows marked and filterable              | [Operator UI](#operator-ui), [`docs/ui-spec.md`](docs/ui-spec.md)                                      |
 | How to run it; weaknesses; more time | $0 commands, the live-session command, known weaknesses and what I would do with more time                                                    | [Run it at $0](#run-it-at-0), [Known weaknesses](#known-weaknesses), [With more time](#with-more-time) |
 
 Every requirement in the brief is mapped to its evidence in [`docs/requirements-traceability.md`](docs/requirements-traceability.md).
@@ -98,17 +97,18 @@ Without `--profile b0`, a live run on either exercise file is refused unless the
 
 ### Operator UI
 
-`oris serve` puts the same service behind a browser UI at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, filter the `needs_review` lines, open any line's audit record and download the CSV. At $0 it replays the recorded English lockbox run, and no model is called:
+The brief's optional web UI, added after submission in `v1.4.0` (the submitted `v1.3.0` does not have it). `oris serve` puts the same service behind a browser page at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, and read every line with its decision and three labels. `needs_review` rows are marked, counted and filtered in one click, and any line opens its audit record. At $0 it replays a recorded lockbox run, and no model is called:
 
 ```bash
 uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8
 ```
 
-Open http://127.0.0.1:8000/ui/ and upload `input/boq_dataset_input_en.csv`; the downloaded CSV is byte-identical to `output/improved_output_en.csv`. A line that is not in the recording goes to review as `LLM_FAILURE:replay_miss`. With `ANTHROPIC_API_KEY` set, `uv run oris serve` calls the pinned model and is paid. It is a local tool (one worker, jobs kept in memory for an hour), not part of the submitted `v1.3.1` (it follows in `v1.4.0`); custom library upload is not built.
+Open http://127.0.0.1:8000/ui/ and upload `input/boq_dataset_input_en.csv`. It ends with 185 matched, 90 `needs_review` and 44 `not_a_material`, and the downloaded CSV is byte-identical to `output/improved_output_en.csv`; the French run `runs/submission/20261008T024244Z-de394c39`, given `input/boq_dataset_input_fr.csv` with the library left on Global, does the same for `output/improved_output_fr.csv`. A banner states replay mode before the run, and cost reads "Recorded cost (replay, $0 spent)". A line not in the recording goes to review as `LLM_FAILURE:replay_miss`. With `ANTHROPIC_API_KEY` set, `uv run oris serve` calls the pinned model and is paid. It runs locally (one worker, jobs kept in memory for an hour) and is not hosted; its gaps are under [Known weaknesses](#known-weaknesses).
 
-![Operator UI after a replay of the English lockbox run: decision counts, recorded cost, and the results table with needs_review rows marked](docs/media/ui-done.png)
+| ![Operator UI after a replay of the English lockbox run: decision counts, recorded cost, and the results table with needs_review rows marked](docs/media/ui-done.png) | ![Operator UI with the needs_review filter on: only review lines, each with its reason code](docs/media/ui-review-filter.png) |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 
-_Local replay of recorded answers at $0 (2026-10-09). No model was called; the wall clock shown is the replay's, not model latency._
+_Local replay of recorded answers at $0 (2026-10-09): the finished run, and the `needs_review` filter. No model was called; the wall clock shown is the replay's, not model latency._
 
 ### Every entry point
 
@@ -261,7 +261,7 @@ One cost was accepted knowingly. On dev, the same enriched votes without the ver
 - **Audit trail.** Each run writes `runs/<run_id>/` with `calls.jsonl` (one record per attempt, OTel GenAI field names, provider request id, served model, finish reasons, cost, latency), `audit.jsonl` (one record per line), `manifest.json` and the stored system prompts under `prompts/`.
 - **API.** FastAPI, `POST /v1/match` on the same `MatchService` as the CLI, plus `GET /health` and `GET /ready`; `/v1/*` needs a Bearer token when `ORIS_API_TOKEN` is set to a non-blank value. Run it with `uv run uvicorn --factory oris_matcher.api.app:create_app`, or `uv run oris serve` for the same app with the async jobs API and the operator UI.
 - **LLM boundary.** Two thin adapters (Anthropic, OpenAI) behind one port; retry, budget, cost, recording and the response cache live in one wrapper, with no LLM framework or gateway (D-17).
-- **CI** ([`ci.yml`](.github/workflows/ci.yml)). Ubuntu and Windows: ruff check and format, `mypy --strict`, the test suite with an 80% coverage floor on the domain and the service, a clean-clone B0 run checked against the requirements, a byte-identical replay of both lockbox outputs, and a drift check on the project page data. A `ui` job type-checks and rebuilds the UI, fails if the committed bundle differs, and runs a Chromium smoke test.
+- **CI** ([`ci.yml`](.github/workflows/ci.yml)). Ubuntu and Windows: ruff check and format, `mypy --strict`, the test suite with an 80% coverage floor on the domain and the service, a clean-clone B0 run checked against the requirements, a byte-identical replay of both lockbox outputs, and a drift check on the project page data. A `ui` job type-checks and rebuilds the UI, fails if the committed bundle differs, and runs a Chromium smoke test against a mocked API.
 
 ```text
 src/oris_matcher/   CLI, service, domain (parsing, validators, decision table), llm/ adapters, api/, io/
