@@ -2,6 +2,12 @@
 
 Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`. Later releases leave it unchanged.
 
+## Unreleased
+
+Project page only; no matcher code, configuration or number changed.
+
+- Chapter 09 rebuilt: a dev-ladder chart drawn from `site/data.json`, with the problem, decision and effect at each rung; an incident board of bad results, bugs, own mistakes and trade-offs, each linked to the source line it comes from; the decision register kept below.
+
 ## v1.4.0 (2026-10-09)
 
 Operator UI. No matching, decision, configuration, output or scored number changed.

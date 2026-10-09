@@ -992,17 +992,91 @@ GET  /ready      readiness, with no model call</pre>
 
       <section id="decisions" aria-labelledby="h-dec">
         <span class="tag">09 · Decisions</span>
-        <h2 id="h-dec">What was chosen, what was rejected, and why</h2>
+        <h2 id="h-dec">Where it went wrong, and what was decided</h2>
         <p class="lead">
-          Choices the data already settled went into the decision register
-          before any model call. The rest were experiments with a keep rule
-          fixed in advance, scored on dev only.
+          Bad results, bugs and mistakes, each with the decision taken and its
+          measured effect, or a note that none was measured. Reverts,
+          retractions and costs that were kept stay on the record.
+        </p>
+
+        <h3 class="mt" id="h-climb">The climb on dev</h3>
+        <p class="small muted">
+          Each rung of the dev ladder, plotted as coverage against matched
+          precision, one panel per language on the same axes. Pick a numbered
+          rung to see the problem it hit, the decision taken in response, and
+          its effect.
+        </p>
+        <p class="climb-take" id="climb-take"></p>
+        <div class="climb-wrap">
+          <figure class="climb panel">
+            <div
+              class="climb-panels"
+              id="climb"
+              role="group"
+              aria-label="Dev ladder, one panel per language"
+            ></div>
+            <figcaption>
+              <div class="legend" id="climb-legend"></div>
+              <p class="tiny muted" id="climb-note"></p>
+              <p class="vh" id="climb-desc"></p>
+            </figcaption>
+          </figure>
+          <div class="climb-side">
+            <div
+              class="rung-steps"
+              id="rung-steps"
+              role="group"
+              aria-label="Dev ladder rungs"
+            ></div>
+            <div
+              class="panel rung-panel"
+              id="rung-panel"
+              aria-live="polite"
+            ></div>
+          </div>
+        </div>
+
+        <h3 class="mt" id="h-board" tabindex="-1">Incident board</h3>
+        <p class="small muted">
+          Each card is traced to the record that logged it: a gate document,
+          <code>docs/evaluation.md</code> or <code>docs/alternatives.md</code>.
+          The scope badge says what the effect was measured on: dev, the
+          lockbox, a test or a smoke, or nothing yet. Each card shows the
+          decision, its effect, how that effect was attributed and what it does
+          not prove; the problem and its cause fold out. The board opens on a
+          key set; the chips and the toggle below show the rest.
+        </p>
+        <div
+          class="chips inc-filter"
+          id="inc-filter"
+          role="group"
+          aria-label="Filter incidents by kind"
+        ></div>
+        <p class="tiny muted inc-status" id="inc-status" aria-live="polite"></p>
+        <div class="cards inc-board" id="incidents"></div>
+        <button
+          type="button"
+          class="inc-toggle"
+          id="inc-toggle"
+          aria-controls="incidents"
+          aria-expanded="false"
+        ></button>
+
+        <h3 class="mt register-h" id="h-register">Decision register</h3>
+        <p class="small muted">
+          Choices the data already settled went into the register before any
+          model call. The rest were experiments with a keep rule fixed in
+          advance, scored on dev only.
         </p>
         <div class="cards" id="register" style="margin-top: 14px"></div>
         <p class="tiny muted" style="margin-top: 10px">
-          Sources: DESIGN.md §5.3 (decision register), §16 (amendments) and §17
-          (results);
-          <code>eval/experiments.jsonl</code>; README "Known weaknesses".
+          Sources: the dev ladder in <code>site/data.json</code>, read from
+          <code>eval/experiments.jsonl</code>; the observation logs in
+          <code>docs/gates/</code> G1, G2, G3, G5 and G6;
+          <code>docs/evaluation.md</code>; <code>docs/alternatives.md</code>;
+          DESIGN.md §5.3 (decision register), §10.6 (dev bar), §16 (amendments)
+          and §17 (results); README "Known weaknesses". Each incident card links
+          to its source line.
         </p>
       </section>
 
