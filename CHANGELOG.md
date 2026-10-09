@@ -4,7 +4,7 @@ Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evalu
 
 ## v1.4.0 (2026-10-09)
 
-Operator UI. It is not part of the submitted `v1.3.1`. No matching, decision, configuration, output or scored number changed, and the `v1.4.0` tag is not created yet.
+Operator UI. No matching, decision, configuration, output or scored number changed.
 
 - `oris serve` runs the API and the operator UI at `/ui` (`docs/ui-spec.md`) in one worker on `127.0.0.1:8000`. `--llm` picks the model: `live` (the pinned primary, paid), `fake` (offline, not a measurement) or `replay:<run_dir>` (recorded answers at $0; a line not in the recording goes to review as `LLM_FAILURE:replay_miss`, and only the recorded library is accepted). It warns when the UI build is missing, or when it binds beyond loopback without a token.
 - The UI is vanilla TypeScript bundled by esbuild into `src/oris_matcher/api/static/ui/`, so serving it needs no Node. It covers U1–U4: upload, progress, the results table with `needs_review` rows marked, filters, search, sort, the per-line audit drawer, a banner naming each failure reason, "Retry failed lines" (live and fake only), shareable `#job=` links and the CSV download. A banner states replay or fake mode before the run, and replay figures are labelled as recorded, not measured.

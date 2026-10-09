@@ -97,7 +97,7 @@ Without `--profile b0`, a live run on either exercise file is refused unless the
 
 ### Operator UI
 
-The brief's optional web UI, added in `v1.4.0` (the submitted `v1.3.1` does not have it). `oris serve` puts the same service behind a browser page at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, and read every line with its decision and three labels. `needs_review` rows are marked, counted and filtered in one click, and any line opens its audit record. At $0 it replays a recorded lockbox run, and no model is called:
+The brief's optional web UI, added in `v1.4.0`. `oris serve` puts the same service behind a browser page at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, and read every line with its decision and three labels. `needs_review` rows are marked, counted and filtered in one click, and any line opens its audit record. At $0 it replays a recorded lockbox run, and no model is called:
 
 ```bash
 uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8
@@ -303,6 +303,6 @@ tests/              unit, contract, property and replay tests
 
 ## Releases, data and licence
 
-Each release is an annotated git tag; the submitted version is `v1.3.1`, and the operator UI follows in `v1.4.0`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
+Each release is an annotated git tag; the submitted version is `v1.4.0`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
 
 The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license. Author: Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)
