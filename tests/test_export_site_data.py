@@ -350,3 +350,15 @@ def test_architecture_counts_come_from_the_run(payload: dict[str, Any]) -> None:
     assert stages["write"]["not_a_material"] == 44
     assert sum(stages["passes"]["pass_calls"]) + stages["verify"]["calls"] == 124
     assert payload["architecture"]["inactive"] == ["fallback"]
+
+
+def test_concurrency_comes_from_the_run_manifest(payload: dict[str, Any]) -> None:
+    run_id = payload["pipeline_en"]["run_id"]
+    manifest_path = ROOT / "runs" / "submission" / run_id / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    concurrency = manifest["settings_effective"]["concurrency"]
+    stages = {stage["id"]: stage["counts"] for stage in payload["architecture"]["stages"]}
+    assert concurrency == 4
+    assert payload["pipeline_en"]["batches"]["concurrency"] == concurrency
+    assert stages["passes"]["concurrency"] == concurrency
+    assert stages["verify"]["concurrency"] == concurrency

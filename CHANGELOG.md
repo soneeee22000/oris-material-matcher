@@ -2,6 +2,14 @@
 
 Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`. Later releases leave it unchanged.
 
+## v1.3.1 (2026-10-09)
+
+Project page only. No code, configuration or number changed.
+
+- The pipeline hero is ported from the original blueprint scene and corrected to the seven stages of `MatchService.match`: read (headers decided there), plan, two passes, the fallback (not engaged), validate + decision table, the sibling verifier on would-be matches only, decide + write. Every count comes from `site/data.json`.
+- The exporter adds the run's call concurrency (`settings_effective.concurrency`) to the page data.
+- The page opens in the dark theme; the light theme stays one click away.
+
 ## v1.3.0 (2026-10-09)
 
 Docs and project page only. No code, configuration or number changed.

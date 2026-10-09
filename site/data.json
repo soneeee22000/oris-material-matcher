@@ -175,6 +175,7 @@
           }
         ],
         "counts": {
+          "concurrency": 4,
           "model": "claude-haiku-4-5-20251001",
           "pass_calls": [
             42,
@@ -246,6 +247,7 @@
         ],
         "counts": {
           "calls": 40,
+          "concurrency": 4,
           "lines": 206,
           "sent_to_review": 21
         },
@@ -3138,6 +3140,7 @@
   "pipeline_en": {
     "batches": {
       "batch_size": 10,
+      "concurrency": 4,
       "pass_calls": [
         42,
         42
@@ -5729,6 +5732,11 @@
     }
   ],
   "releases": [
+    {
+      "date": "2026-10-09",
+      "summary": "Project page only.",
+      "version": "v1.3.1"
+    },
     {
       "date": "2026-10-09",
       "summary": "Docs and project page only.",
