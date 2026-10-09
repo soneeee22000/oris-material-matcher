@@ -80,11 +80,16 @@
       .reduce((node, key) => (node == null ? undefined : node[key]), source);
   }
 
-  /** @param {number} value @returns {string} A rate such as .948 (1.000 kept whole). */
-  function rate(value) {
-    const fixed = value.toFixed(DECIMALS_RATE);
-    return value < 1 ? fixed.replace(/^0/, "") : fixed;
+  /**
+   * @param {number} value @param {number} digits Decimal places.
+   * @returns {string} The value without a leading zero, such as .95 (1.0 kept whole).
+   */
+  function shortDecimal(value, digits) {
+    return value.toFixed(digits).replace(/^0\./, ".");
   }
+
+  /** @param {number} value @returns {string} A rate such as .948 (1.000 kept whole). */
+  const rate = (value) => shortDecimal(value, DECIMALS_RATE);
 
   /** @param {number} value @returns {string} A percentage with one decimal. */
   const pct = (value) => `${(value * PERCENT).toFixed(DECIMALS_PCT)}%`;
@@ -806,6 +811,75 @@
 
   /* ---------- chapter 09: decisions ---------- */
 
+  /**
+   * DESIGN.md §10.6: matched dev precision of at least .95, with at least 40 matched
+   * dev lines, in each language.
+   */
+  const DEV_BAR = 0.95;
+  const DEV_BAR_MIN_MATCHED = 40;
+  const DEV_BAR_SOURCE = ["DESIGN.md", 838];
+  const DECIMALS_BAR = 2;
+  const DEV_BAR_LABEL = shortDecimal(DEV_BAR, DECIMALS_BAR);
+  const DECIMALS_TICK = 1;
+
+  /** Geometry of one climb panel, in viewBox units. */
+  const CHART = {
+    height: 320,
+    padLeft: 40,
+    padRight: 12,
+    padTop: 30,
+    padBottom: 40,
+    minWidth: 260,
+    maxWidth: 560,
+    tickStep: 0.1,
+    pointRadius: 9,
+    numberBaseline: 4,
+    xLabelGap: 16,
+    squareRadius: 2,
+    labelOffset: 6,
+    axisTitleGap: 14,
+    noteInset: 8,
+    noteLine: 14,
+    notePad: 4,
+    lossOffsetX: 6,
+    lossBelow: 14,
+    lossAbove: 6,
+    lossCharWidth: 6.6,
+    lossAscent: 10,
+    lossDescent: 4,
+    lossGap: 6,
+    lossTries: 3,
+    ringGap: 4,
+  };
+
+  /** Ledger ids of the EN side of each dev-ladder rung, as data.dev_ladder.rows carries them. */
+  const RUNG = {
+    b1: "B1-dev",
+    b2: "B2-dev-en",
+    cap: "R-10.9-evidence",
+    sel: "B3-dev-sel",
+    e08: "B3-dev-e08",
+    e01: "B3-dev-e01",
+  };
+
+  /** B2's lockbox counts from docs/evaluation.md; data.json carries the shipped B3 only. */
+  const LOCKBOX_B2 = {
+    en: { correct: 89, matched: 110 },
+    fr: { correct: 99, matched: 113 },
+  };
+
+  /** E-01-C, the reverted first enrichment arm, EN dev counts (docs/gates/G2.md line 504). */
+  const E01_C_EN = { correct: 102, matched: 109 };
+
+  /** Correct dev matches of E-01-C2 replayed at $0 with the verifier forced off (docs/gates/G2.md line 506). */
+  const VERIFIER_OFF_CORRECT = 218;
+
+  /** FR dev precision of the best E-02(d) cross-model policy (docs/alternatives.md line 44). */
+  const CROSS_MODEL_FR_PRECISION = 0.972;
+
+  /** Selected rung of the climb chart and the data it draws; set on render. */
+  const climbState = { data: null, selected: 0, width: 0 };
+
   /** @param {object} data @param {number} index Ladder row. @returns {string} "EN x, FR y" precision. */
   function ladderPrecision(data, index) {
     const rung = data.dev_ladder.rows[index];
@@ -813,6 +887,1359 @@
       ? `dev precision EN ${precisionCell(rung.en)}, FR ${precisionCell(rung.fr)}`
       : "";
   }
+
+  /**
+   * @param {object} data @param {string} enId EN ledger id.
+   * @returns {object} That ladder row. Throws when the exporter no longer carries it.
+   */
+  function ladderRow(data, enId) {
+    const row = data.dev_ladder.rows.find((rung) => rung.en.id === enId);
+    if (!row) throw new Error(`dev_ladder row ${enId} missing`);
+    return row;
+  }
+
+  /** @param {object} rung @returns {number} EN plus FR correct matches. */
+  const summedCorrect = (rung) => rung.en.correct + rung.fr.correct;
+
+  /** @param {object} data @returns {number} Correct dev matches the shipped verifier costs. */
+  const verifierCost = (data) =>
+    VERIFIER_OFF_CORRECT - summedCorrect(ladderRow(data, RUNG.e01));
+
+  /**
+   * @param {object} from @param {object} to Ladder rows. @param {string} field
+   * @returns {string} "EN a → b, FR c → d" for one rate field.
+   */
+  const stepText = (from, to, field) =>
+    `EN ${rate(from.en[field])} → ${rate(to.en[field])}, FR ${rate(from.fr[field])} → ${rate(to.fr[field])}`;
+
+  /** @param {object} rung @param {string} field @returns {string} "EN a, FR b" for one rate field. */
+  const bothRates = (rung, field) =>
+    `EN ${rate(rung.en[field])}, FR ${rate(rung.fr[field])}`;
+
+  /** @param {object} side {correct, matched} @returns {number} Matched precision. */
+  const sidePrecision = (side) => side.correct / side.matched;
+
+  /**
+   * What each rung ran into, keyed by its EN ledger id. Text fields are strings or
+   * functions of the page data; `cards` names incident ids on the board, and the
+   * optional `register` names an entry of the decision register below.
+   */
+  const RUNG_STORIES = {
+    [RUNG.b1]: {
+      problem: (data) => {
+        const b1 = ladderRow(data, RUNG.b1);
+        return `TF-IDF gets few lines right: matched precision EN ${precisionCell(b1.en)}, FR ${precisionCell(b1.fr)}.`;
+      },
+      decision:
+        "Already decided before any run, from lexical recall@20 (D-01): no retrieval shortlist inside the matcher. The model sees the whole library, so the right row is never filtered out. TF-IDF stays as the floor to beat.",
+      effect: (data) =>
+        `One Haiku pass (B2) lifts dev coverage: ${stepText(ladderRow(data, RUNG.b1), ladderRow(data, RUNG.b2), "coverage")}.`,
+      cards: [],
+      register: "D-01",
+    },
+    [RUNG.b2]: {
+      problem: (data) =>
+        `One pass matches every valid answer, so precision stays at ${bothRates(ladderRow(data, RUNG.b2), "precision")}. Separately, 17 lines failed the 12-word evidence cap, and 14 of them were correct.`,
+      decision:
+        "The pre-registered trigger was met (14 > 3). Amendment A59.1, written after these results, widened only the validator to 25 words and kept the prompt at 12, rather than bumping the prompt version, so the same votes could be re-scored by a $0 replay.",
+      effect: (data) =>
+        `Coverage ${stepText(ladderRow(data, RUNG.b2), ladderRow(data, RUNG.cap), "coverage")}, with no new wrong match.`,
+      cards: ["o10", "b2-single"],
+    },
+    [RUNG.cap]: {
+      problem: (data) =>
+        `Still no abstention: precision ${bothRates(ladderRow(data, RUNG.cap), "precision")}, far under the ${DEV_BAR_LABEL} dev bar.`,
+      decision:
+        "B3: two passes over two fixed renderings must agree, with quoted evidence, at a threshold selected on dev. On the way, the contiguous-quote rule (D5a) was found rejecting grounded answers and was made word-based (A62).",
+      effect: (data) =>
+        `At the selected T8: precision ${stepText(ladderRow(data, RUNG.cap), ladderRow(data, RUNG.sel), "precision")}; coverage ${stepText(ladderRow(data, RUNG.cap), ladderRow(data, RUNG.sel), "coverage")}.`,
+      cards: ["b2-single", "o15"],
+    },
+    [RUNG.sel]: {
+      problem:
+        "No threshold reaches the dev bar, and precision does not even rise as the threshold tightens. T8 is selected below the bar. A cause panel of LLM labeller agents puts usage confusions behind about half of the errors.",
+      decision:
+        "E-08, a sibling verifier that vetoes a would-be match when a narrower question names another usage. It was kept under a precision-arm rule written before it was measured; the standard keep rule would have reverted it.",
+      effect: (data) => {
+        const sel = ladderRow(data, RUNG.sel);
+        const e08 = ladderRow(data, RUNG.e08);
+        return `Precision ${stepText(sel, e08, "precision")}. The price: correct matches ${summedCorrect(sel)} → ${summedCorrect(e08)}, coverage ${stepText(sel, e08, "coverage")}.`;
+      },
+      cards: ["o17", "e08"],
+    },
+    [RUNG.e08]: {
+      problem: (data) =>
+        `The bar is met, but coverage is the lowest of the B3 rungs: ${bothRates(ladderRow(data, RUNG.e08), "coverage")}. Terms the system did not bridge are the second cause in the panel.`,
+      decision:
+        "E-01, deterministic bilingual library enrichment. The first arm missed the EN bar on one concrete section and was iterated once, as E-01-C2.",
+      effect: (data) => {
+        const e08 = ladderRow(data, RUNG.e08);
+        const e01 = ladderRow(data, RUNG.e01);
+        return `Correct matches ${summedCorrect(e08)} → ${summedCorrect(e01)}; coverage ${stepText(e08, e01, "coverage")}; precision ${bothRates(e01, "precision")}, still over the bar.`;
+      },
+      cards: ["o23"],
+    },
+    [RUNG.e01]: {
+      problem: (data) =>
+        `With the enrichment in, the verifier now costs ${verifierCost(data)} correct dev matches: ${VERIFIER_OFF_CORRECT} in a $0 replay with it forced off, ${summedCorrect(ladderRow(data, RUNG.e01))} with it on.`,
+      decision:
+        "Kept anyway: the registered path stands, and French precision without the verifier, .958, sits close to the bar. Frozen at eval-freeze, then scored once on the lockbox.",
+      effect: (data) =>
+        `Lockbox: EN ${precisionCell(data.lockbox.en)}, FR ${precisionCell(data.lockbox.fr)}; one-sided lower bounds ${bothRates(data.lockbox, "cp_lower_95")}. Both wrong matches are usage confusions the verifier let through.`,
+      cards: ["o24", "lockerr", "b2-single"],
+    },
+  };
+
+  /* ---------- chapter 09: the climb chart ---------- */
+
+  /** Leading rungs left off the axes and given as a corner note, so the axes fit the rungs the story is about. */
+  const OFF_SCALE_RUNGS = 1;
+
+  /** The two small-multiple panels, drawn on the same axes. */
+  const CLIMB_PANELS = [
+    { lang: "en", label: "EN", name: "English", square: false },
+    { lang: "fr", label: "FR", name: "French", square: true },
+  ];
+
+  /**
+   * @param {Array<object>} rows Ladder rows. @param {string} field coverage or precision.
+   * @returns {{low: number, high: number}} Tick indices that bound the in-scale rungs of both languages.
+   */
+  function tickRange(rows, field) {
+    const values = rows
+      .slice(OFF_SCALE_RUNGS)
+      .flatMap((rung) => [rung.en[field], rung.fr[field]]);
+    return {
+      low: Math.floor(Math.min(...values) / CHART.tickStep),
+      high: Math.ceil(Math.max(...values) / CHART.tickStep),
+    };
+  }
+
+  /**
+   * @param {Array<object>} rows Ladder rows. @param {number} width ViewBox width.
+   * @returns {object} Tick ranges and the x and y mappings, shared by both panels.
+   */
+  function climbScales(rows, width) {
+    const xRange = tickRange(rows, "coverage");
+    const yRange = tickRange(rows, "precision");
+    const [xMin, xMax] = [xRange.low, xRange.high].map(
+      (i) => i * CHART.tickStep,
+    );
+    const [yMin, yMax] = [yRange.low, yRange.high].map(
+      (i) => i * CHART.tickStep,
+    );
+    const plotWidth = width - CHART.padLeft - CHART.padRight;
+    const plotHeight = CHART.height - CHART.padTop - CHART.padBottom;
+    return {
+      width,
+      xRange,
+      yRange,
+      x: (value) =>
+        CHART.padLeft + ((value - xMin) / (xMax - xMin)) * plotWidth,
+      y: (value) =>
+        CHART.padTop + ((yMax - value) / (yMax - yMin)) * plotHeight,
+    };
+  }
+
+  /** @param {number} value @returns {string} An axis tick such as .4 (1.0 kept whole). */
+  const tickLabel = (value) => shortDecimal(value, DECIMALS_TICK);
+
+  /** @param {object} scales @returns {string} Vertical grid lines and x ticks; the first tick starts at its line. */
+  function climbXAxis(scales) {
+    const bottom = CHART.height - CHART.padBottom;
+    const parts = [];
+    for (let i = scales.xRange.low; i <= scales.xRange.high; i += 1) {
+      const x = scales.x(i * CHART.tickStep);
+      const anchor = i === scales.xRange.low ? "start" : "middle";
+      parts.push(
+        `<line class="grid" x1="${x}" y1="${CHART.padTop}" x2="${x}" y2="${bottom}"/><text class="tick" x="${x}" y="${bottom + CHART.xLabelGap}" text-anchor="${anchor}">${tickLabel(i * CHART.tickStep)}</text>`,
+      );
+    }
+    return parts.join("");
+  }
+
+  /** @param {object} scales @returns {string} Horizontal grid lines and y ticks. */
+  function climbYAxis(scales) {
+    const right = scales.width - CHART.padRight;
+    const parts = [];
+    for (let i = scales.yRange.low; i <= scales.yRange.high; i += 1) {
+      const y = scales.y(i * CHART.tickStep);
+      parts.push(
+        `<line class="grid" x1="${CHART.padLeft}" y1="${y}" x2="${right}" y2="${y}"/><text class="tick" x="${CHART.padLeft - CHART.labelOffset}" y="${y + CHART.numberBaseline}" text-anchor="end">${tickLabel(i * CHART.tickStep)}</text>`,
+      );
+    }
+    return parts.join("");
+  }
+
+  /** @param {object} scales @returns {string} Grid lines, ticks and axis titles. */
+  function climbAxes(scales) {
+    const right = scales.width - CHART.padRight;
+    return `${climbXAxis(scales)}${climbYAxis(scales)}<text class="axis" x="${right}" y="${CHART.height - CHART.labelOffset}" text-anchor="end">Coverage →</text><text class="axis" x="${CHART.padLeft}" y="${CHART.padTop - CHART.axisTitleGap}" text-anchor="start">↑ Matched precision</text>`;
+  }
+
+  /** @param {object} scales @returns {string} The dashed dev-bar line and its label. */
+  function climbDevBar(scales) {
+    const y = scales.y(DEV_BAR);
+    return `<line class="devbar" x1="${CHART.padLeft}" y1="${y}" x2="${scales.width - CHART.padRight}" y2="${y}"/><text class="devbar-label halo" text-anchor="end" x="${scales.width - CHART.padRight - CHART.labelOffset}" y="${y - CHART.labelOffset}">${DEV_BAR_LABEL} dev bar</text>`;
+  }
+
+  /** @param {object} side One language of a rung. @param {object} scales @returns {{x: number, y: number}} Its plotted point. */
+  const sidePoint = (side, scales) => ({
+    x: scales.x(side.coverage),
+    y: scales.y(side.precision),
+  });
+
+  /** @param {Array<object>} rows @returns {Array<number>} Ladder indices of the rungs drawn on the axes. */
+  const plottedIndices = (rows) =>
+    rows.map((rung, index) => index).slice(OFF_SCALE_RUNGS);
+
+  /** @param {Array<object>} rows @param {object} scales @param {string} lang @returns {string} One polyline through the plotted rungs. */
+  function climbPath(rows, scales, lang) {
+    const points = plottedIndices(rows)
+      .map((index) => sidePoint(rows[index][lang], scales))
+      .map(({ x, y }) => `${x},${y}`)
+      .join(" ");
+    return `<polyline class="path path-${lang}" points="${points}"/>`;
+  }
+
+  /** @param {object} first @param {object} second Boxes {left, right, top, bottom}. @returns {boolean} Whether they overlap. */
+  const boxesOverlap = (first, second) =>
+    first.left < second.right &&
+    second.left < first.right &&
+    first.top < second.bottom &&
+    second.top < first.bottom;
+
+  /** @param {{x: number, y: number}} point A marker centre. @returns {object} The marker's box with a small gap. */
+  function markerBox({ x, y }) {
+    const reach = CHART.pointRadius + CHART.lossGap;
+    return {
+      left: x - reach,
+      right: x + reach,
+      top: y - reach,
+      bottom: y + reach,
+    };
+  }
+
+  /** @param {object} from @param {object} to Step endpoints. @param {object} scales @returns {Array<object>} Boxes a loss label must not touch: both markers and the dev bar. */
+  function lossObstacles(from, to, scales) {
+    const devY = scales.y(DEV_BAR);
+    const devBand = {
+      left: CHART.padLeft,
+      right: scales.width - CHART.padRight,
+      top: devY - CHART.lossGap,
+      bottom: devY + CHART.lossGap,
+    };
+    return [markerBox(from), markerBox(to), devBand];
+  }
+
+  /**
+   * @param {number} x @param {number} y End anchor and baseline. @param {number} width
+   * @returns {object} The box of an end-anchored loss label.
+   */
+  const lossBox = (x, y, width) => ({
+    left: x - width,
+    right: x,
+    top: y - CHART.lossAscent,
+    bottom: y + CHART.lossDescent,
+  });
+
+  /**
+   * @param {object} from @param {object} to Step endpoints. @param {number} width Label width.
+   * @param {object} scales @returns {{x: number, y: number}} An end-anchored baseline beside the step, clear of the
+   *   y ticks, both markers and the dev bar: below the step when precision rose, else above, flipping or stepping away on a collision.
+   */
+  function lossAnchor(from, to, width, scales) {
+    const x = Math.max(
+      CHART.padLeft + width,
+      (from.x + to.x) / 2 - CHART.lossOffsetX,
+    );
+    const midY = (from.y + to.y) / 2;
+    const away = to.y <= from.y ? 1 : -1;
+    const near = midY + (away > 0 ? CHART.lossBelow : -CHART.lossAbove);
+    const far = midY - (away > 0 ? CHART.lossAbove : -CHART.lossBelow);
+    const step = CHART.lossAscent + CHART.lossDescent;
+    const candidates = [...Array(CHART.lossTries).keys()].flatMap((tries) => [
+      near + away * tries * step,
+      far - away * tries * step,
+    ]);
+    const obstacles = lossObstacles(from, to, scales);
+    const clear = (y) =>
+      !obstacles.some((obstacle) =>
+        boxesOverlap(lossBox(x, y, width), obstacle),
+      );
+    return { x, y: candidates.find(clear) ?? near };
+  }
+
+  /**
+   * @param {object} before @param {object} after One language of two consecutive rungs.
+   * @param {object} scales @returns {string} A muted "−x cov" label beside the step, or "" when coverage held.
+   */
+  function coverageLoss(before, after, scales) {
+    const lost = before.coverage - after.coverage;
+    if (lost <= 0) return "";
+    const text = `−${rate(lost)} cov`;
+    const { x, y } = lossAnchor(
+      sidePoint(before, scales),
+      sidePoint(after, scales),
+      text.length * CHART.lossCharWidth,
+      scales,
+    );
+    return `<text class="loss halo" x="${x}" y="${y}" text-anchor="end">${esc(text)}</text>`;
+  }
+
+  /** @param {Array<object>} rows @param {object} scales @param {string} lang @returns {string} A label on every plotted step where coverage fell. */
+  const coverageLosses = (rows, scales, lang) =>
+    plottedIndices(rows)
+      .slice(1)
+      .map((index) =>
+        coverageLoss(rows[index - 1][lang], rows[index][lang], scales),
+      )
+      .join("");
+
+  /**
+   * @param {object} point Marker centre. @param {number} index Ladder row. @param {object} panel
+   * @returns {string} One numbered marker, a circle for EN and a square for FR, with a ring shown when selected.
+   */
+  function climbMarker(point, index, panel) {
+    const { x, y } = point;
+    const shape = (klass, r) =>
+      panel.square
+        ? `<rect class="${klass}" x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="${CHART.squareRadius}"/>`
+        : `<circle class="${klass}" cx="${x}" cy="${y}" r="${r}"/>`;
+    const selected = index === climbState.selected ? " on" : "";
+    return `<g class="pt pt-${panel.lang}${selected}" data-rung="${index}">${shape("ring", CHART.pointRadius + CHART.ringGap)}${shape("mk", CHART.pointRadius)}<text x="${x}" y="${y + CHART.numberBaseline}" text-anchor="middle">${index + 1}</text></g>`;
+  }
+
+  /** @param {Array<object>} rows @param {object} scales @param {object} panel @returns {string} The plotted rungs' markers. */
+  const climbMarkers = (rows, scales, panel) =>
+    plottedIndices(rows)
+      .map((index) =>
+        climbMarker(sidePoint(rows[index][panel.lang], scales), index, panel),
+      )
+      .join("");
+
+  /**
+   * @param {Array<object>} rows @param {string} lang
+   * @returns {string} The off-scale rungs as a text note in the plot's lower-left corner, no line to them.
+   */
+  function offScaleNote(rows, lang) {
+    const x = CHART.padLeft + CHART.noteInset;
+    const bottom = CHART.height - CHART.padBottom - CHART.noteInset;
+    const notes = rows.slice(0, OFF_SCALE_RUNGS).map((rung, index) => ({
+      index,
+      lines: [
+        `${index + 1} · ${rung.rung}, off scale`,
+        `P ${rate(rung[lang].precision)} at coverage ${rate(rung[lang].coverage)}`,
+      ],
+    }));
+    const lines = notes.flatMap((note) =>
+      note.lines.map((text) => ({ index: note.index, text })),
+    );
+    const placed = lines.map(({ index, text }, position) => ({
+      index,
+      svg: `<text class="offnote" x="${x}" y="${bottom - (lines.length - 1 - position) * CHART.noteLine}">${esc(text)}</text>`,
+    }));
+    return notes
+      .map(({ index }) => {
+        const texts = placed.filter((line) => line.index === index);
+        const selected = index === climbState.selected ? " on" : "";
+        return `<g class="note${selected}" data-rung="${index}">${texts.map((line) => line.svg).join("")}</g>`;
+      })
+      .join("");
+  }
+
+  /** @param {SVGElement} svg Puts a panel-coloured box behind each off-scale note, so it reads as a label. */
+  function backOffScaleNotes(svg) {
+    svg.querySelectorAll(".note").forEach((note) => {
+      const box = note.getBBox();
+      const pad = CHART.notePad;
+      const back = document.createElementNS(svg.namespaceURI, "rect");
+      back.setAttribute("class", "offnote-bg");
+      back.setAttribute("x", String(box.x - pad));
+      back.setAttribute("y", String(box.y - pad));
+      back.setAttribute("width", String(box.width + 2 * pad));
+      back.setAttribute("height", String(box.height + 2 * pad));
+      back.setAttribute("rx", String(CHART.squareRadius));
+      note.prepend(back);
+    });
+  }
+
+  /** @param {Array<object>} rows @param {object} panel @returns {string} Screen-reader text for one panel. */
+  function climbDescription(rows, panel) {
+    const rungs = rows.map(
+      (rung, i) =>
+        `Rung ${i + 1}, ${rung.rung}: precision ${rate(rung[panel.lang].precision)} at coverage ${rate(rung[panel.lang].coverage)}.`,
+    );
+    return `${panel.name}. ${rungs.join(" ")}`;
+  }
+
+  /** @returns {number} A panel's viewBox width: the drawn width of the first panel, clamped. */
+  function climbWidth() {
+    const svg = $("climb").querySelector("svg");
+    const drawn = svg ? svg.getBoundingClientRect().width : CHART.minWidth;
+    return Math.round(
+      Math.min(CHART.maxWidth, Math.max(CHART.minWidth, drawn)),
+    );
+  }
+
+  /**
+   * @param {Array<object>} rows @param {object} scales @param {object} panel
+   * @returns {string} One panel: axes, dev bar, the language's path, coverage-loss labels, note and markers.
+   */
+  function climbPanel(rows, scales, panel) {
+    const title = `${panel.name}: dev matched precision against coverage, rungs ${OFF_SCALE_RUNGS + 1} to ${rows.length}`;
+    return `<title id="climb-title-${panel.lang}">${esc(title)}</title>${climbAxes(scales)}${climbDevBar(scales)}${climbPath(rows, scales, panel.lang)}${coverageLosses(rows, scales, panel.lang)}${offScaleNote(rows, panel.lang)}${climbMarkers(rows, scales, panel)}`;
+  }
+
+  /** Draws both panels at the width of the first; same axes, so the two read side by side. */
+  function drawClimb() {
+    const rows = climbState.data.dev_ladder.rows;
+    const width = climbWidth();
+    const scales = climbScales(rows, width);
+    climbState.width = width;
+    CLIMB_PANELS.forEach((panel) => {
+      const svg = $(`climb-${panel.lang}`);
+      svg.setAttribute("viewBox", `0 0 ${width} ${CHART.height}`);
+      svg.innerHTML = climbPanel(rows, scales, panel);
+      backOffScaleNotes(svg);
+    });
+  }
+
+  /** @param {object} side One language of a rung. @returns {boolean} Whether it meets the §10.6 dev bar. */
+  const meetsBar = (side) =>
+    side.precision >= DEV_BAR && side.matched >= DEV_BAR_MIN_MATCHED;
+
+  /**
+   * @param {Array<object>} rows @param {number} upTo Last ladder row considered. @param {string} lang
+   * @returns {number} The row with the highest coverage up to that row.
+   */
+  const coveragePeak = (rows, upTo, lang) =>
+    rows
+      .slice(0, upTo + 1)
+      .reduce(
+        (best, rung, index) =>
+          rung[lang].coverage > rows[best][lang].coverage ? index : best,
+        0,
+      );
+
+  /** @param {Array<object>} rows @param {number} first Row that first met the bar. @param {string} lang @returns {string} Coverage given up from the peak, such as "EN .201 from its rung-3 peak". */
+  function coverageCost(rows, first, lang) {
+    const peak = coveragePeak(rows, first, lang);
+    const lost = rows[peak][lang].coverage - rows[first][lang].coverage;
+    return `${lang.toUpperCase()} ${rate(lost)} from its rung-${peak + 1} peak`;
+  }
+
+  /** @param {Array<object>} rows @returns {string} The chart's one-line takeaway, computed from the ladder. */
+  function climbTakeaway(rows) {
+    const first = rows.findIndex(
+      (rung) => meetsBar(rung.en) && meetsBar(rung.fr),
+    );
+    if (first < 0)
+      return `No rung met the ${DEV_BAR_LABEL} dev bar in both languages.`;
+    const last = rows.length - 1;
+    const gain = (lang) =>
+      `${lang.toUpperCase()} +${rate(rows[last][lang].coverage - rows[first][lang].coverage)}`;
+    const kept =
+      last > first && meetsBar(rows[last].en) && meetsBar(rows[last].fr)
+        ? ` The shipped rung ${last + 1} won back ${gain("en")} and ${gain("fr")} coverage and stayed above it.`
+        : "";
+    return `Precision first met the ${DEV_BAR_LABEL} dev bar in both languages at rung ${first + 1}. Getting there cost coverage: ${coverageCost(rows, first, "en")}, ${coverageCost(rows, first, "fr")}.${kept}`;
+  }
+
+  /** @param {object} panel @returns {string} The panel shell: a heading and an empty SVG. */
+  const panelShell = (panel) =>
+    `<div class="climb-panel"><div class="climb-h"><i class="sw lang-${panel.lang}${panel.square ? " sq" : ""}"></i>${panel.label} · ${panel.name}</div><svg id="climb-${panel.lang}" role="img" aria-labelledby="climb-title-${panel.lang}" aria-describedby="climb-desc-${panel.lang}"></svg><p class="vh" id="climb-desc-${panel.lang}"></p></div>`;
+
+  /** @param {object} data Fills the panel shells, the legend, the caption and the rung buttons. */
+  function renderClimbFrame(data) {
+    const [path, line] = DEV_BAR_SOURCE;
+    const rows = data.dev_ladder.rows;
+    $("climb").innerHTML = CLIMB_PANELS.map(panelShell).join("");
+    $("climb-take").textContent = climbTakeaway(rows);
+    CLIMB_PANELS.forEach((panel) => {
+      $(`climb-desc-${panel.lang}`).textContent = climbDescription(rows, panel);
+    });
+    $("climb-legend").innerHTML =
+      '<span><i class="sw lang-en"></i>EN path</span><span><i class="sw sq lang-fr"></i>FR path</span><span><i class="sw dash"></i>dev bar</span><span><span class="mono loss-key">−x cov</span>coverage lost on that step</span>';
+    $("climb-note").innerHTML =
+      `Numbers are each rung's last ledger row (<code>${esc(data.dev_ladder.source)}</code>). Both panels share the same axes. The dev bar is the selection rule of <a href="${blob(path)}?plain=1#L${line}">DESIGN.md §10.6</a>: matched precision of at least ${DEV_BAR_LABEL}, with at least ${DEV_BAR_MIN_MATCHED} matched lines, in each language. The axes fit rungs ${OFF_SCALE_RUNGS + 1} to ${rows.length}; rung ${OFF_SCALE_RUNGS} sits far below them, so its figures are given as a note in the corner. The rung buttons drive both panels. Dev figures, not the lockbox.`;
+    $("climb-desc").textContent =
+      `A dashed line marks the ${DEV_BAR_LABEL} dev bar. Labels mark the steps where coverage fell.`;
+    $("rung-steps").innerHTML = rows
+      .map(
+        (rung, i) =>
+          `<button type="button" data-rung="${i}" aria-pressed="false"><span class="n">${i + 1}</span>${esc(rung.rung.replace(" (shipped)", ""))}</button>`,
+      )
+      .join("");
+  }
+
+  /** @param {object} rung @returns {string} The rung's EN and FR figures. */
+  const rungFigures = (rung) =>
+    ["en", "fr"]
+      .map(
+        (lang) =>
+          `${lang.toUpperCase()} P ${precisionCell(rung[lang])} · coverage ${rate(rung[lang].coverage)}`,
+      )
+      .join("<br>");
+
+  /**
+   * @param {object} story A RUNG_STORIES entry.
+   * @returns {string} Links to its incident cards, then its register entry if any.
+   */
+  function cardLinks(story) {
+    const links = story.cards
+      .map((id) => INCIDENTS.find((incident) => incident.id === id))
+      .filter(Boolean)
+      .map(
+        (incident) =>
+          `<a href="#inc-${incident.id}" data-inc="${incident.id}">${esc(incident.ref)}</a>`,
+      );
+    const cards = links.length
+      ? `<div class="tiny">Incident cards: ${links.join(" · ")}</div>`
+      : "";
+    const register = story.register
+      ? `<div class="tiny muted">Decision register: ${esc(story.register)}, below.</div>`
+      : "";
+    return cards + register;
+  }
+
+  /** Headings of the three steps in the rung panel. */
+  const RUNG_LABELS = {
+    problem: "Problem hit at this rung",
+    decision: "Decision",
+    effect: "Effect",
+  };
+
+  /** @param {number} index Shows the problem, decision and effect of one rung. */
+  function showRung(index) {
+    const data = climbState.data;
+    const rows = data.dev_ladder.rows;
+    const rung = rows[index];
+    const story = RUNG_STORIES[rung.en.id];
+    climbState.selected = index;
+    $("rung-steps")
+      .querySelectorAll("button")
+      .forEach((button) =>
+        button.setAttribute(
+          "aria-pressed",
+          String(Number(button.dataset.rung) === index),
+        ),
+      );
+    $("climb")
+      .querySelectorAll("[data-rung]")
+      .forEach((mark) =>
+        mark.classList.toggle("on", Number(mark.dataset.rung) === index),
+      );
+    const flow = story
+      ? `<ol class="rung-flow">${["problem", "decision", "effect"].map((key) => `<li><b>${RUNG_LABELS[key]}</b>${esc(resolveText(story[key], data))}</li>`).join("")}</ol>${cardLinks(story)}`
+      : "";
+    $("rung-panel").innerHTML =
+      `<div class="k">Rung ${index + 1} of ${rows.length}${rung.shipped ? " · shipped" : ""}</div><h4>${esc(rung.rung)}</h4><div class="mono tiny">${rungFigures(rung)}</div>${flow}`;
+  }
+
+  /** @param {object} data Wires rung selection on the chart, the buttons and the card links. */
+  function wireClimb(data) {
+    const pick = (event) => {
+      const target = event.target.closest("[data-rung]");
+      if (target) showRung(Number(target.dataset.rung));
+      return target;
+    };
+    $("climb").addEventListener("click", (event) => {
+      const target = pick(event);
+      const button =
+        target &&
+        $("rung-steps").querySelector(
+          `button[data-rung="${target.dataset.rung}"]`,
+        );
+      if (button) button.focus();
+    });
+    $("rung-steps").addEventListener("click", pick);
+    $("rung-panel").addEventListener("click", (event) => {
+      const link = event.target.closest("a[data-inc]");
+      const card = link && $(`inc-${link.dataset.inc}`);
+      if (card && card.hidden) applyIncidentFilter("all");
+    });
+    window.addEventListener("resize", () => {
+      if (climbWidth() !== climbState.width) drawClimb();
+    });
+    if (!data.dev_ladder.rows.length) return;
+    const first = data.dev_ladder.rows.findIndex(
+      (rung) => (RUNG_STORIES[rung.en.id] || { cards: [] }).cards.length,
+    );
+    showRung(Math.max(0, first));
+  }
+
+  /** @param {object} data Renders the climb chart and its rung panel. */
+  function renderClimb(data) {
+    climbState.data = data;
+    renderClimbFrame(data);
+    drawClimb();
+    wireClimb(data);
+  }
+
+  /* ---------- chapter 09: the incident board ---------- */
+
+  const INCIDENT_KINDS = {
+    bad: "Bad result",
+    trap: "Data trap",
+    bug: "Bug",
+    infra: "Infra",
+    mistake: "Own mistake",
+    tradeoff: "Trade-off",
+  };
+
+  /** Filter chips: the curated key set, every incident, then one chip per kind. */
+  const FILTERS = [
+    ["key", "Key"],
+    ["all", "All"],
+    ["bad", "Bad results"],
+    ["trap", "Data traps"],
+    ["bug", "Bugs"],
+    ["infra", "Infra"],
+    ["mistake", "Own mistakes"],
+    ["tradeoff", "Trade-offs"],
+  ];
+
+  /** The board opens on these: the incidents that best show a judgement call and how it was checked. */
+  const KEY_INCIDENTS = [
+    "o10",
+    "o15",
+    "e08",
+    "o24",
+    "e02d",
+    "o5",
+    "gate",
+    "o11",
+  ];
+  const DEFAULT_FILTER = "key";
+
+  /** Rows shown on every card, then the rows folded under "Problem and cause". */
+  const INCIDENT_ROWS = [
+    ["decision", "Decision"],
+    ["effect", "Effect"],
+    ["known", "How we know"],
+    ["limit", "Does not prove"],
+  ];
+  const INCIDENT_FOLDED_ROWS = [
+    ["problem", "Problem"],
+    ["cause", "Cause"],
+  ];
+
+  /** Before → after colour: up is better, down is a cost paid, fix is a correction. */
+  const PAIR_CLASS = { up: "ok", down: "hot", fix: "fix" };
+
+  /** How a pair's numbers print: a rate such as .988, or the number as written. */
+  const PAIR_FORMATS = { rate, count: String, plain: String };
+
+  /**
+   * Incidents from the gate records, fact-checked against the repo.
+   * Each: {id, ref, kind (an INCIDENT_KINDS key), scope, title, problem, cause, decision, effect,
+   * known, limit, pairs?, sources}. `known` is how the effect was attributed (or "Not
+   * measured"/"Not isolated"), `limit` what it does not prove; both say only what the
+   * source line supports. Text fields, the title included, are strings or functions of the
+   * page data; `pairs` is a list of [label, before, after, direction, format] (a
+   * PAIR_CLASS and a PAIR_FORMATS key), or a function returning one;
+   * `sources` is a list of [repo path, line].
+   * @type {Array<object>}
+   */
+  const INCIDENTS = [
+    {
+      id: "b2-single",
+      ref: "G4 · like for like",
+      kind: "bad",
+      scope: "dev, then lockbox",
+      title: "One pass matches every guess",
+      problem: (data) =>
+        `B2 matches every valid answer and never abstains. On dev its precision was EN ${precisionCell(ladderRow(data, RUNG.b2).en)}, FR ${precisionCell(ladderRow(data, RUNG.b2).fr)}.`,
+      cause:
+        "By design B2 has no threshold, so every model guess becomes a match. The pre-registration expected it (§7.1 step 3).",
+      decision:
+        "From the dev evidence, before the freeze: B3 abstains unless two passes over two fixed renderings agree, with quoted evidence, at a threshold selected on dev. The verifier and the enrichment came later. The configuration was frozen, then B2 and B3 were scored once each in the same lockbox session.",
+      effect: (data) =>
+        `Lockbox wrong matches, EN: ${LOCKBOX_B2.en.matched - LOCKBOX_B2.en.correct} under B2, ${data.lockbox.en.matched - data.lockbox.en.correct} under B3. EN coverage shows no significant change (McNemar p = 1.0). French pays for it: coverage falls about 18 points (p = .0002), and those lines go to review, not to wrong matches.`,
+      pairs: (data) => [
+        [
+          "EN lockbox precision",
+          sidePrecision(LOCKBOX_B2.en),
+          data.lockbox.en.precision,
+          "up",
+          "rate",
+        ],
+        [
+          "FR lockbox precision",
+          sidePrecision(LOCKBOX_B2.fr),
+          data.lockbox.fr.precision,
+          "up",
+          "rate",
+        ],
+        [
+          "FR lockbox coverage",
+          LOCKBOX_B2.fr.correct / data.lockbox.fr.labelled,
+          data.lockbox.fr.coverage,
+          "down",
+          "rate",
+        ],
+      ],
+      known:
+        "Both configurations were frozen, then scored once each on the same lockbox lines in one session; coverage was compared line by line with a paired McNemar test.",
+      limit:
+        "It compares whole configurations, so it does not say which part removed the errors. The decision rests on dev evidence; the lockbox only confirms it afterwards.",
+      sources: [["docs/evaluation.md", 58]],
+    },
+    {
+      id: "o10",
+      ref: "G1 O10",
+      kind: "bad",
+      scope: "dev, $0 replay",
+      title: "A 12-word evidence cap threw away 14 correct answers",
+      problem:
+        "On the B2 dev runs, 10 EN and 7 FR lines failed as malformed and went to review. Every one quoted 13 to 15 words of evidence; 14 of the 17 were correct.",
+      cause:
+        "The prompt asks for evidence of at most 12 words, and the validator rejected anything longer. The cap was too tight in both languages, not only in French.",
+      decision:
+        "The pre-registered trigger (more than 3 correct answers rejected) was met: 14 > 3. Its remedy also said to bump the prompt version; that was not done. Amendment A59.1, written after these results and before any G2 model call, widened only the validator to 25 words and kept the prompt at 12, so the same votes could be re-scored by a $0 replay. Its recorded argument: in B3, D5a still requires the quote to come from the line.",
+      effect: (data) =>
+        `Correct/matched: EN ${frac(ladderRow(data, RUNG.b2).en.correct, ladderRow(data, RUNG.b2).en.matched)} → ${frac(ladderRow(data, RUNG.cap).en.correct, ladderRow(data, RUNG.cap).en.matched)}, FR ${frac(ladderRow(data, RUNG.b2).fr.correct, ladderRow(data, RUNG.b2).fr.matched)} → ${frac(ladderRow(data, RUNG.cap).fr.correct, ladderRow(data, RUNG.cap).fr.matched)}.`,
+      pairs: (data) => [
+        [
+          "EN dev coverage",
+          ladderRow(data, RUNG.b2).en.coverage,
+          ladderRow(data, RUNG.cap).en.coverage,
+          "up",
+          "rate",
+        ],
+        [
+          "FR dev coverage",
+          ladderRow(data, RUNG.b2).fr.coverage,
+          ladderRow(data, RUNG.cap).fr.coverage,
+          "up",
+          "rate",
+        ],
+      ],
+      known:
+        "The same recorded B2 answers were replayed at $0 with only the validator limit changed, so the model's answers stayed fixed and the recovery is the rule's. Every change falls inside the 17 rejected lines.",
+      limit:
+        "B2 has no evidence-in-line check, so the replay did not test whether the longer quotes are grounded; precision stays far under the dev bar. 25 words is a tolerance chosen after the results, not a tested optimum, and the prompt still asks for 12.",
+      sources: [["docs/gates/G1.md", 264]],
+    },
+    {
+      id: "o15",
+      ref: "G2 O15",
+      kind: "trap",
+      scope: "dev, $0 replay",
+      title: "The evidence check rejected grounded answers",
+      problem:
+        "On the B3 dev runs, D5a (quote not in the line) was the largest reason for review: 52 of 162 EN and 71 of 162 FR lines. On 43 EN and 60 FR of them, the suggested triple was the reference.",
+      cause:
+        "D5a required one contiguous substring. The model stitches its quote from the short and long descriptions and drops connecting words, probably because the prompt says 12 words. On 51 of 52 EN and 71 of 71 FR lines, every quoted word is a word of the line.",
+      decision:
+        "Every quote was classified first: contiguous, skipped words, reordered, punctuation, paraphrase. Amendment A62, written before the replay that measured it: a quote passes when each of its words is a whole word of the line, in any order.",
+      effect:
+        "At the replay's threshold (T1), matches barely moved (EN 2 → 2, FR 2 → 3): the recovered lines mostly became LOW_SIGNAL, and the ledger did not keep it as a gain. At the threshold selected later (T8), D5a wrongly rejects 1 EN line and 0 FR.",
+      pairs: [
+        ["EN D5a rejections ($0 replay at T1)", 52, 1, "fix", "count"],
+        ["FR D5a rejections ($0 replay at T1)", 71, 0, "fix", "count"],
+      ],
+      known:
+        "Every rejected quote was classified before any fix. A62 was written before the $0 replay that re-scored the same recorded votes under it.",
+      limit:
+        "Lifting a false rejection is not a match: at T1 most recovered lines fell to LOW_SIGNAL. One EN quote is a paraphrase and stays rejected. Dev only.",
+      sources: [
+        ["docs/gates/G2.md", 575],
+        ["docs/gates/G2.md", 493],
+      ],
+    },
+    {
+      id: "o17",
+      ref: "G2 O17",
+      kind: "trap",
+      scope: "dev, not tuned on",
+      title: "Precision did not rise as the threshold tightened",
+      problem: (data) =>
+        `Stricter thresholds that need the passes to agree were less precise than the looser T8: EN T2 .862 (25/29) against ${precisionCell(ladderRow(data, RUNG.sel).en)}; FR T2 .800 (24/30) against ${precisionCell(ladderRow(data, RUNG.sel).fr)}.`,
+      cause:
+        "Not diagnosed. Agreement and high confidence did not separate right from wrong the way the score order assumes. With 29 to 43 lines per cell this is within noise: directional, not a finding.",
+      decision:
+        "Reported and never tuned on. The pre-registered selection rule stands, so T8 was selected, below the dev bar. Signal value is left to the calibration battery, which is deferred and has not run.",
+      effect: "Not measured. Nothing changed, by design.",
+      known:
+        "Read off the dev selection table, one cell per threshold, with no change made.",
+      limit:
+        "Cells of 29 to 43 lines are within noise, so this is directional, not a finding about the signals. The calibration battery that would test them has not run.",
+      sources: [["docs/gates/G2.md", 604]],
+    },
+    {
+      id: "e08",
+      ref: "G2 §5 · O18 · E-08",
+      kind: "bad",
+      scope: "dev",
+      title: "No threshold reached the bar; a verifier did, at a price",
+      problem: (data) =>
+        `At T8 dev precision was EN ${precisionCell(ladderRow(data, RUNG.sel).en)}, FR ${precisionCell(ladderRow(data, RUNG.sel).fr)}. Two LLM labeller agents and an LLM adjudicator, with the owner reviewing every disagreement, classified the 93 errors (kappa .844): usage confusions came first, 23 of 49 EN and 22 of 44 FR.`,
+      cause:
+        "A usage confusion is a known confusable pair, such as piers and piles or base and binder. The panel also counts missed and safely reviewed lines, which a veto cannot touch: it acts only on would-be matches.",
+      decision:
+        "E-08 asks a narrower second question on every would-be match, showing only the sibling usages of the agreed type, and sends the line to review when the answer differs. A veto never adds a correct match, so the standard keep rule reverts it. It was kept under a precision-arm rule (A65.1) written before it was measured.",
+      effect: (data) =>
+        `It removed 18 EN would-be matches (10 wrong, 8 correct) and 22 FR (8 wrong, 14 correct): more correct than wrong. Coverage ${stepText(ladderRow(data, RUNG.sel), ladderRow(data, RUNG.e08), "coverage")}; review load up to 36.7 per 100 lines; cost per line up 27%. Latency not measured.`,
+      pairs: (data) => [
+        [
+          "EN dev precision",
+          ladderRow(data, RUNG.sel).en.precision,
+          ladderRow(data, RUNG.e08).en.precision,
+          "up",
+          "rate",
+        ],
+        [
+          "FR dev precision",
+          ladderRow(data, RUNG.sel).fr.precision,
+          ladderRow(data, RUNG.e08).fr.precision,
+          "up",
+          "rate",
+        ],
+        [
+          "Correct matches, EN + FR",
+          summedCorrect(ladderRow(data, RUNG.sel)),
+          summedCorrect(ladderRow(data, RUNG.e08)),
+          "down",
+          "count",
+        ],
+      ],
+      known:
+        "The main votes were replayed unchanged and only the verifier was asked, so the precision change is the veto's. The keep rule (A65.1) was written before it was measured.",
+      limit:
+        "The gain comes from abstaining: the veto removed more correct matches than wrong ones, and the standard keep rule would have reverted it. The cause panel was LLM agents, so kappa .844 is agreement between models. Dev only.",
+      sources: [
+        ["docs/gates/G2.md", 513],
+        ["docs/gates/G2.md", 611],
+      ],
+    },
+    {
+      id: "o23",
+      ref: "G2 O23",
+      kind: "bad",
+      scope: "dev",
+      title: "Enrichment won 35 matches but broke the EN bar",
+      problem: () =>
+        `The first enrichment arm, E-01-C, gained 35 correct matches over 56 changed lines, but EN precision fell to ${precisionCell({ ...E01_C_EN, precision: sidePrecision(E01_C_EN) })}, below the bar. It was not kept.`,
+      cause:
+        "Six of the 7 EN errors were one section: concrete pavement slabs matched to general ready-mix where the reference is wearing-course concrete. All 7 had been sent to review before; the enrichment turned abstentions into wrong matches.",
+      decision:
+        'The owner allowed one iteration and raised the G2 cap from $3.00 to $3.75. The hypothesis was written before the run: concrete that forms a trafficked surface is wearing-course concrete. One general entry, tagged dev_error. Its stated risk: few slab lines say "pavement". The keep rule did not change.',
+      effect: (data) =>
+        `E-01-C2 was kept and shipped: EN ${precisionCell(ladderRow(data, RUNG.e01).en)}, FR ${precisionCell(ladderRow(data, RUNG.e01).fr)}. EN gave up ${E01_C_EN.correct - ladderRow(data, RUNG.e01).en.correct} correct matches to get there, and the slab lines stayed in review.`,
+      pairs: (data) => [
+        [
+          "EN dev precision",
+          sidePrecision(E01_C_EN),
+          ladderRow(data, RUNG.e01).en.precision,
+          "up",
+          "rate",
+        ],
+        [
+          "EN dev correct",
+          E01_C_EN.correct,
+          ladderRow(data, RUNG.e01).en.correct,
+          "down",
+          "count",
+        ],
+      ],
+      known:
+        "Fresh live dev runs of both arms, judged by an unchanged keep rule. The hypothesis and its risk were written before E-01-C2 ran.",
+      limit:
+        "The entry was written from these dev errors and kept on the same dev lines, so the gain is in-sample. Both arms are fresh votes, so part of the difference is sampling, and EN precision rose partly because 15 fewer EN lines were matched.",
+      sources: [["docs/gates/G2.md", 672]],
+    },
+    {
+      id: "o24",
+      ref: "G2 O24",
+      kind: "bad",
+      scope: "dev, $0 replay",
+      title: (data) =>
+        `The verifier now costs ${verifierCost(data)} correct matches. Kept anyway`,
+      problem: (data) =>
+        `With the enrichment in, the same votes replayed with the verifier forced off give ${VERIFIER_OFF_CORRECT} correct matches (EN .972, FR .958). With it on, as shipped: ${summedCorrect(ladderRow(data, RUNG.e01))}.`,
+      cause:
+        "The verifier was adopted before the enrichment arm ran. The record states the trade but no mechanism for why it got worse.",
+      decision:
+        "Owner decision: keep it. The registered path stands, and French precision without it, .958, sits close to the bar. Dropping it was not registered before the result was seen, so the verifier-off figures are a sensitivity and never shipped.",
+      effect: (data) =>
+        `Accepted cost: ${verifierCost(data)} correct dev matches. The README lists it under "With more time".`,
+      pairs: (data) => [
+        [
+          "Correct, verifier off → on",
+          VERIFIER_OFF_CORRECT,
+          summedCorrect(ladderRow(data, RUNG.e01)),
+          "down",
+          "count",
+        ],
+      ],
+      known:
+        "The same E-01-C2 votes were replayed at $0 with the verifier forced off, so the gap between 218 and the shipped count is the verifier's alone.",
+      limit:
+        "A dev sensitivity, never tested blind or on the lockbox. The record gives no mechanism for why the verifier's cost grew.",
+      sources: [["docs/gates/G2.md", 686]],
+    },
+    {
+      id: "e02d",
+      ref: "E-02(d)",
+      kind: "bad",
+      scope: "dev, after the freeze",
+      title: "A second model does not buy coverage",
+      problem:
+        "The run spends about a ninth of its budget while French sends about 30% of lines to review. The pre-registered E-02(d) arm asked whether a GPT-4o-mini vote could use the rest. It did not run before the freeze.",
+      cause:
+        "GPT-4o-mini agrees with Haiku mostly where Haiku is already right: on review lines it named Haiku's row 0 of 45 times in EN and 4 of 36 in FR, 2 of those wrong. It ran on Haiku's prompt, without the verifier or the enrichment.",
+      decision:
+        "Measured after the freeze, for $0, from recorded votes, against the pre-registered rule: at least 3 more correct matches at equal precision. Not adopted. A stronger second model is untested.",
+      effect:
+        "The best policy adds 2 correct matches and lowers French precision. Rule not met; nothing changed.",
+      pairs: (data) => [
+        [
+          "FR dev precision",
+          ladderRow(data, RUNG.e01).fr.precision,
+          CROSS_MODEL_FR_PRECISION,
+          "down",
+          "rate",
+        ],
+      ],
+      known:
+        "Recorded votes of both models, combined at $0 and judged against a rule fixed before the run: at least 3 more correct matches at equal precision.",
+      limit:
+        "One second model, on Haiku's prompt, with no verifier or enrichment. It says nothing about a stronger or tuned second model.",
+      sources: [
+        ["docs/alternatives.md", 29],
+        ["docs/alternatives.md", 44],
+      ],
+    },
+    {
+      id: "o26",
+      ref: "G2 O26",
+      kind: "bad",
+      scope: "dev",
+      title: "The fallback model was not certified",
+      problem:
+        "FB-dev ran gpt-4o-mini as the primary on all dev items. No threshold met the dev bar; the best, T5, gave EN .714 (10/14) and FR .619 (13/21).",
+      cause:
+        "Not diagnosed beyond reason codes: most lines were LOW_SIGNAL (EN 90, FR 107), then invalid row codes and attribute conflicts. It ran on the Haiku prompt with no verifier and no enrichment, so it is not like for like.",
+      decision:
+        "The ticket fixed the rule before the run: a policy entry only if the model meets the bar. None was written, and the fallback stays at its default, the strictest threshold. Nothing was tightened in response.",
+      effect:
+        "With the primary down, the fallback made 1 match over the 324 dev items and sends nearly every other line to review, at about $0.0004 per line. It keeps the service up and never inflates matches.",
+      known:
+        "Live dev runs, EN and FR, of the fallback as the primary, judged by a ticket rule fixed before the run.",
+      limit:
+        "Not like for like: the Haiku prompt, with no verifier and no enrichment. It shows this setup misses the bar, not why, and not that the model cannot match materials.",
+      sources: [
+        ["docs/gates/G2.md", 705],
+        ["docs/development-results.md", 24],
+      ],
+    },
+    {
+      id: "lockerr",
+      ref: "G4 · two wrong matches",
+      kind: "bad",
+      scope: "lockbox",
+      title: "Both lockbox errors are the class the verifier targets",
+      problem: (data) =>
+        `Shipped B3 made one wrong match per language: EN ${frac(data.lockbox.en.correct, data.lockbox.en.matched)}, FR ${frac(data.lockbox.fr.correct, data.lockbox.fr.matched)}. EN sub-ballast went to ballast aggregates; FR couche de fondation, the sub-base as the glossary states, went to the base layer.`,
+      cause:
+        "Both are usage confusions inside the right material type. The verifier vetoed neither, and the repo does not analyse why.",
+      decision:
+        "No change after the lockbox, by the pre-registered once-only rule. Both are reported as a known weakness.",
+      effect:
+        "Not measured; no fix was attempted. The verifier's effect on this class is measured on dev only.",
+      known: "Read line by line from the once-only lockbox scores.",
+      limit:
+        "Two wrong matches out of 169. The repo does not analyse why the verifier let them through, and its effect on this class is measured on dev only.",
+      sources: [["docs/evaluation.md", 86]],
+    },
+    {
+      id: "o5",
+      ref: "G1 O5",
+      kind: "bug",
+      scope: "test",
+      title: "One invalid line failed its whole batch",
+      problem:
+        "Found by reading the code, not in a run: the batch answer was validated as one object, so one line breaking a rule made the whole batch malformed. The batch was then split and every half asked again.",
+      cause: "Validation at batch level instead of per line.",
+      decision:
+        "Fixed before the full dev runs: parse the envelope once and validate each line alone. The offending line fails as malformed with its raw JSON kept, and is not asked again, since the same prompt would produce the same violation. Splitting stays only for a broken envelope.",
+      effect:
+        "On the B2 dev runs, 10 EN and 7 FR lines failed as malformed, and each run still made 40 calls, all first calls, with no splits.",
+      known:
+        "A fault-matrix unit test pins it: 1 bad line in 10 gives 9 accepted, 1 malformed and no extra call. The slice runs before the fix did not show the bug, because their batches were mostly single lines.",
+      limit:
+        "No spend or latency saving was measured, and the invalid line's own answer is still lost.",
+      sources: [["docs/gates/G1.md", 236]],
+    },
+    {
+      id: "o12",
+      ref: "G2 O12",
+      kind: "bug",
+      scope: "5-line smoke",
+      title: "The budget cap refused work that fit",
+      problem:
+        "A 5-line smoke with a $0.10 cap sent 4 of 5 second-pass calls to review as BUDGET_CAP. About $0.015 had been spent when they were refused; the run ended at $0.0215.",
+      cause:
+        "Four first-pass calls in flight each reserved a worst case of about $0.021, mostly the 4,096-token output limit. With the spend, the ledger stood at about $0.099, so each second-pass reservation (about $0.027) failed, and the ledger refused for good instead of waiting.",
+      decision:
+        "NO-GO at owner pause #1. Amendment A61: a reservation waits for in-flight calls to settle and refuses only when spend plus the reservation exceeds the cap. Test first: the smoke reproduced in miniature was red before the fix, and two tests from the review were red before theirs.",
+      effect:
+        "The same smoke re-run ($0.0396, cache off): 10 first attempts, replay exact. One small run, not an eval-scale measurement. A call within about one worst-case reservation of the cap is still refused.",
+      pairs: [["Declined calls", 4, 0, "up", "count"]],
+      known:
+        "Test first: the smoke reproduced in miniature failed before the fix and passes after. One live re-run of the same 5-line smoke refused nothing.",
+      limit:
+        "One small smoke, not an eval-scale result, and not like for like: the re-run wrote both prompt prefixes fresh, where the failing run read the canonical prefix warm. A call within about one worst-case reservation of the cap is still refused.",
+      sources: [["docs/gates/G2.md", 537]],
+    },
+    {
+      id: "gate",
+      ref: "G2 O27 · G3-T17",
+      kind: "bug",
+      scope: "tests; guard planned",
+      title: "The once-only lockbox gate could be bypassed",
+      problem:
+        "The close-out review found the gate refused `--policy` and `--enrichment` but let other routes through: verifier and vote flags, their `ORIS_*` settings (even from a gitignored `.env`), another model, `passes_k` or batch size, another `policy.yaml`, an `--llm` naming another model or provider.",
+      cause:
+        "The gate refused some routes to a different configuration, not all of them. The once-only session could have scored an uncertified configuration.",
+      decision:
+        "Each named route is now refused before any model call, with a test per route. A separate guard, the pre-freeze refusal of live runs on exercise inputs, was audited later (G3-T17). It matches a whole-file hash only, so a copy with one row removed, or a live API request, gets through.",
+      effect:
+        "The lockbox session ran once afterwards, under the frozen configuration, and nothing shows a bypass was tried.",
+      known:
+        "A read-only review ran three lenses, each checked by a separate skeptic pass, and two of them found the routes. A test per named route shows it is refused before any model call.",
+      limit:
+        "The tests cover only the routes named, so nothing proves the gate is complete. The line-level exercise guard is specified, not built.",
+      sources: [
+        ["docs/gates/G2.md", 720],
+        ["docs/gates/G3.md", 755],
+      ],
+    },
+    {
+      id: "replay",
+      ref: "G2 O27 · replay",
+      kind: "bug",
+      scope: "test",
+      title: "Replay quietly re-decided old runs at today's threshold",
+      problem:
+        "Replaying the T5 runs, decided at T1, without `--policy` re-decided them at T8 with no warning: 99 decisions changed, per the 387e035 commit message (squashed into 28317a8 before eval-freeze).",
+      cause:
+        "A run resolved through `config/policy.yaml` records no policy file, so replay used whatever the current `policy.yaml` held.",
+      decision:
+        "Rated minor by the close-out review. Replay now refuses when today's policy would resolve a different threshold from the one recorded, and the message names both and how to reproduce the run. The reproduction procedure already existed; this enforces it.",
+      effect: "Covered by a test. Not a metric.",
+      known:
+        "A regression test shows replay refuses when the threshold would differ. The size, 99 changed decisions, comes from a commit message only.",
+      limit:
+        "No before and after metric. It enforces a reproduction procedure that already existed; it is not a new one.",
+      sources: [["docs/gates/G2.md", 725]],
+    },
+    {
+      id: "t14",
+      ref: "G3-T14",
+      kind: "infra",
+      scope: "planned, not built",
+      title: "Concurrent API requests multiply the budget exposure",
+      problem:
+        "A read-only audit of `/v1/match` found no body size cap, uncapped fields that reach the prompt, a 500 without the request id, and blocking writes inside async code.",
+      cause:
+        "Each request builds its own semaphore and budget cap, so N requests mean 4N calls in flight and N times the cap.",
+      decision:
+        "Proposed, not decided: owner question Q7 is pending, deferred until after the freeze. The recommended option: one active match per process, a second request gets 429 with Retry-After, a 4 MiB body cap, and length caps on unit, qty and section path.",
+      effect: "Not implemented and not measured.",
+      known:
+        "Not measured: a finding of a read-only code audit, with no incident observed.",
+      limit:
+        "Nothing is built and the owner question is pending, so this is a proposal, not a mitigation.",
+      sources: [["docs/gates/G3.md", 618]],
+    },
+    {
+      id: "t3",
+      ref: "G3-T3",
+      kind: "infra",
+      scope: "predicted, not observed",
+      title: "A long 429 storm would send the whole file to review",
+      problem:
+        "By the spec, a rate-limit storm longer than two retry-after windows (about 40 s) uses up each line's retries, so every line would go to review as rate_limited. Nothing would be lost.",
+      cause:
+        "Throttled attempts share the retry budget (2) with real failures. They never count toward the circuit breaker.",
+      decision:
+        "Planned: a storm test over a synthetic 300-line BoQ asserting nothing is lost and every wait honours Retry-After. Owner question Q9 is pending; the recommendation is to keep the spec, since no dev run has seen a 429 at the recorded tier.",
+      effect: "Nothing changed yet; no storm has been seen.",
+      known:
+        "Not observed: predicted from the spec. The cold live dev runs recorded 0 rate-limit responses in both languages.",
+      limit:
+        "The storm tests are not written, so the whole-file outcome is predicted, not tested; only single-call pieces (Retry-After waits, the breaker ignoring throttling) have unit tests.",
+      sources: [["docs/gates/G3.md", 238]],
+    },
+    {
+      id: "g6",
+      ref: "G6 §1",
+      kind: "infra",
+      scope: "did not recur",
+      title: "A reported demo stall did not recur when re-run",
+      problem:
+        "An external review saw `oris demo` stall after the EN replay began.",
+      cause:
+        "Not found. The stall did not recur in one local run; G6 attributes it to the reviewer's environment.",
+      decision:
+        "Re-run it before any change: `timeout 600`, with faulthandler set to dump stacks at 120 s. Change nothing without a defect.",
+      effect:
+        "Finished in 10.4 s, exit 0, output byte-identical to the committed English output, no stack dump. The later fresh-clone check also exited 0, byte-identical.",
+      known:
+        "One local re-run under a 600 s timeout with stack dumps armed, its output compared byte for byte with the committed file.",
+      limit:
+        "Not reproducing a stall does not find its cause: the reviewer's environment is G6's attribution, not a diagnosis. 10.4 s is one run, not the demo's runtime.",
+      sources: [["docs/gates/G6.md", 5]],
+    },
+    {
+      id: "o11",
+      ref: "G1 O11",
+      kind: "mistake",
+      scope: "test",
+      title: "A review probe wrote a fake row into the lockbox log",
+      problem:
+        "During the G1 adversarial review, a probe checked whether the lockbox session accepted `--llm fake`. It did, and it appended a fake row to the real, uncommitted lockbox log. No model was called and no lockbox item reached any model.",
+      cause:
+        "The lockbox session accepted fake or replayed providers, a dirty tree and any log path.",
+      decision:
+        "The row was removed before any commit. The session now refuses fake and replay providers, needs a clean tree at the eval-freeze tag (runs and the log exempt), writes only to `eval/lockbox_log.md`, and records mode, provider and dirty flag.",
+      effect:
+        'At G4 the one lockbox session wrote four rows, each "mode live; llm anthropic; code_dirty False".',
+      known:
+        "Three regression tests: a fake or replayed provider is refused, a dirty tree is refused, and run folders and the log are exempt from the clean-tree check.",
+      limit:
+        "code_dirty False relies on that exemption: three of the four run manifests say code_dirty true, because the appended log dirtied git status.",
+      sources: [["docs/gates/G1.md", 271]],
+    },
+    {
+      id: "o16",
+      ref: "G2 O16 · G3",
+      kind: "mistake",
+      scope: "dev, warm cache",
+      title: "A reported failure was the check's own error",
+      problem:
+        "The G2-T5 ledger rows were first reported as missing their latency, one failed acceptance item.",
+      cause:
+        "The check read the field from `manifest.json`, which never holds it; it lives in the ledger row.",
+      decision:
+        "Retracted in the gate record as its own entry. The G3 audit then found the 0.4603 and 0.4951 s figures were warm-prefix (0 cache writes). The cold run G2 had already named as the latency gate (G3-T21) waits out the 5-minute cache first. The planned prompt-cache field in the ledger was not built before the freeze.",
+      effect:
+        "Cold run, shipped configuration: EN 0.78 s per routed line with the prefix cold; FR 0.83 s with the prefix already warm from EN. Both under the 2.0 s target. A different configuration from G2-T5, so not a clean warm-against-cold comparison.",
+      known:
+        "The field was found in the ledger row, where it is written; `manifest.json` never holds it.",
+      limit:
+        "The 0.46 and 0.50 s figures were warm-prefix. The later cold run used another configuration and FR was still warm, so the gap is not the cost of a cold cache.",
+      sources: [
+        ["docs/gates/G2.md", 598],
+        ["docs/gates/G2.md", 602],
+        ["docs/gates/G3.md", 1117],
+      ],
+    },
+    {
+      id: "facts",
+      ref: "G2 O27 · facts",
+      kind: "mistake",
+      scope: "docs",
+      title: "A fact-check found 13 errors in the gate write-up",
+      problem:
+        "Three fact-checkers checked about 450 claims in the G2 record, DESIGN.md, the README and `policy.yaml` against the ledger, the manifests and the selection files. They found 13 errors, among them EN and FR swapped in the fallback result, a spend total summed from rounded rows, a cached smoke called live, a wrong T7 spend and a README that overstated the fallback.",
+      cause: "Not stated in the record.",
+      decision:
+        "Correct every one in one commit before closing G2. The spend total is now summed from the manifests.",
+      effect:
+        "13 errors corrected before v0.2. Review load moved to the protocol's basis.",
+      pairs: [
+        ["EN review load per 100", 38.9, 31.7, "fix", "plain"],
+        ["FR review load per 100", 32.1, 26.1, "fix", "plain"],
+      ],
+      known:
+        "Three fact-checkers compared about 450 claims with the ledger, the manifests and the selection files.",
+      limit:
+        "The record gives no cause for the errors, and the check covered the named documents only.",
+      sources: [["docs/gates/G2.md", 728]],
+    },
+    {
+      id: "g5",
+      ref: "G5 §2",
+      kind: "mistake",
+      scope: "spent, not undone",
+      title: "A rehearsal in a $0 gate spent $0.0665",
+      problem:
+        "The first key-unset rehearsal ran live on 6 lines of a test fixture and spent $0.0665, in a gate declared $0.",
+      cause:
+        "Unsetting the environment variables did not help: `oris` also reads the API keys from `.env` in the working directory.",
+      decision:
+        "Recorded in the spend table as unplanned spend outside any cap, then repeated from a folder without `.env`. A procedural workaround; the `.env` loading was not changed.",
+      effect:
+        "The repeat stopped before any call (exit 2, no run folder) and spent $0. No lockbox or exercise line was involved. G5 still ends at $0.0665.",
+      known:
+        "The repeat ran from a folder without `.env` and stopped before any call: exit 2, no run folder.",
+      limit:
+        "Procedural only: `oris` still reads keys from `.env`, nothing prevents a repeat, and the $0.0665 stays spent.",
+      sources: [["docs/gates/G5.md", 21]],
+    },
+    {
+      id: "o25",
+      ref: "G2 O25",
+      kind: "tradeoff",
+      scope: "not run",
+      title: "A triggered fix was not run before the freeze",
+      problem:
+        "The cause panel triggered header_context in EN, with 6 rows. At 00:20 on the freeze day, $0.43 of the $3.75 cap was left and the freeze was 11.5 h away.",
+      cause:
+        "The arm needed an amendment, a build, a review, a smoke and two live runs: about 4 to 5 h and about $1.00, up from about $0.60 planned, because the enriched prompt is about twice as long.",
+      decision:
+        "Owner option B: raise the cap to $4.25 for the fallback certification and the close, and log header_context as triggered but not run. This broke, for this one arm, the earlier rule that every triggered arm runs. It is disclosed in the README.",
+      effect:
+        "The 6 EN rows stay errors or abstentions in the frozen configuration. Nothing was mitigated.",
+      known: "Not measured: the arm never ran.",
+      limit:
+        "Nothing was mitigated. The time and cost figures that decided it are estimates, not measurements.",
+      sources: [["docs/gates/G2.md", 697]],
+    },
+  ];
+
+  /** @param {string|Function} value @param {object} data @returns {string} The text, computed when it is a function. */
+  const resolveText = (value, data) =>
+    typeof value === "function" ? value(data) : value;
+
+  /** @param {Array} pair [label, before, after, direction, format] @returns {string} Two bars and "a → b". */
+  function pairHtml([label, before, after, direction, format]) {
+    const scale = Math.max(1, before, after);
+    const tone = PAIR_CLASS[direction];
+    const pairValue = PAIR_FORMATS[format];
+    const bar = (value, klass) =>
+      `<i class="${klass}" style="width:${(value / scale) * PERCENT}%"></i>`;
+    return `<div class="ba"><span class="ba-l">${esc(label)}</span><span class="ba-bars" aria-hidden="true">${bar(before, "was")}${bar(after, tone)}</span><span class="mono ba-n">${esc(pairValue(before))} → <b class="${tone}">${esc(pairValue(after))}</b></span></div>`;
+  }
+
+  /** @param {Array<[string, number]>} sources @returns {string} Line-anchored links at the tag. */
+  function sourceLinks(sources) {
+    const links = sources.map(
+      ([path, line]) =>
+        `<a href="${blob(path)}?plain=1#L${line}"><code>${esc(path)}</code> line ${line}</a>`,
+    );
+    return `<div class="tiny inc-src">Source: ${links.join(" · ")}</div>`;
+  }
+
+  /**
+   * @param {object} incident @param {Array<[string, string]>} rows [key, label] pairs.
+   * @param {object} data @returns {string} Those labelled rows of the card.
+   */
+  const incidentRows = (incident, rows, data) =>
+    rows
+      .map(
+        ([key, label]) =>
+          `<div class="row row-${key}"><b>${label}</b>${inlineCode(resolveText(incident[key], data))}</div>`,
+      )
+      .join("");
+
+  /** @param {object} incident @param {object} data @returns {string} One incident card; problem and cause fold away. */
+  function incidentCard(incident, data) {
+    const pairs = incident.pairs
+      ? `<div class="ba-list" role="group" aria-label="Before and after">${resolveText(incident.pairs, data).map(pairHtml).join("")}</div>`
+      : "";
+    return `<article class="card inc" id="inc-${incident.id}" data-id="${incident.id}" data-kind="${incident.kind}" tabindex="-1">
+        <div class="inc-head"><span class="id">${esc(incident.ref)}</span><span class="st k-${incident.kind}">${esc(INCIDENT_KINDS[incident.kind])}</span><span class="scope">${esc(incident.scope)}</span></div>
+        <h4>${esc(resolveText(incident.title, data))}</h4>${pairs}${incidentRows(incident, INCIDENT_ROWS, data)}<details class="inc-more"><summary>Problem and cause</summary>${incidentRows(incident, INCIDENT_FOLDED_ROWS, data)}</details>${sourceLinks(incident.sources)}</article>`;
+  }
+
+  /** @param {object} incident @param {string} filter A FILTERS key. @returns {boolean} Whether the filter shows it. */
+  function filterShows(incident, filter) {
+    if (filter === "all") return true;
+    if (filter === "key") return KEY_INCIDENTS.includes(incident.id);
+    return incident.kind === filter;
+  }
+
+  /** @param {string} filter A FILTERS key. @returns {number} Incidents that filter shows. */
+  const filterCount = (filter) =>
+    INCIDENTS.filter((incident) => filterShows(incident, filter)).length;
+
+  /** Renders the filter buttons, each with the number of cards it shows. */
+  function renderIncidentFilter() {
+    $("inc-filter").innerHTML = FILTERS.filter(
+      ([filter]) => filterCount(filter) > 0,
+    )
+      .map(
+        ([filter, label]) =>
+          `<button type="button" data-kind="${filter}" aria-pressed="false">${esc(label)}<span class="mono tiny">${filterCount(filter)}</span></button>`,
+      )
+      .join("");
+  }
+
+  /**
+   * @param {string} filter A FILTERS key. @param {number} shown @param {number} total
+   * @returns {string} The board status line, such as "Showing 4 of 22 incidents: Bugs."
+   */
+  function statusText(filter, shown, total) {
+    if (filter === "all") return `Showing all ${total} incidents.`;
+    if (filter === DEFAULT_FILTER)
+      return `Showing the ${shown} key incidents of ${total}.`;
+    const label = FILTERS.find(([key]) => key === filter)[1];
+    return `Showing ${shown} of ${total} incidents: ${label}.`;
+  }
+
+  /** @param {string} filter Sets the status line and the show-all toggle to match the filter. */
+  function syncIncidentToggle(filter) {
+    const shown = filterCount(filter);
+    const total = INCIDENTS.length;
+    const expanded = filter === "all";
+    const toggle = $("inc-toggle");
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.textContent = expanded
+      ? `Show the ${filterCount(DEFAULT_FILTER)} key incidents only`
+      : `Show all ${total} incidents`;
+    $("inc-status").textContent = statusText(filter, shown, total);
+  }
+
+  /** @param {string} filter A FILTERS key. Shows only the cards that filter selects. */
+  function applyIncidentFilter(filter) {
+    $("inc-filter")
+      .querySelectorAll("button")
+      .forEach((button) =>
+        button.setAttribute(
+          "aria-pressed",
+          String(button.dataset.kind === filter),
+        ),
+      );
+    $("incidents")
+      .querySelectorAll(".inc")
+      .forEach((card) => {
+        const incident = INCIDENTS.find((item) => item.id === card.dataset.id);
+        card.hidden = !filterShows(incident, filter);
+      });
+    syncIncidentToggle(filter);
+  }
+
+  /** Wires the filter chips and the show-all toggle: it shows all from any other view, and from all returns to the key set with focus on the board heading. */
+  function wireIncidentBoard() {
+    $("inc-filter").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-kind]");
+      if (button) applyIncidentFilter(button.dataset.kind);
+    });
+    $("inc-toggle").addEventListener("click", () => {
+      const expanded = $("inc-toggle").getAttribute("aria-expanded") === "true";
+      applyIncidentFilter(expanded ? DEFAULT_FILTER : "all");
+      if (!expanded) return;
+      $("h-board").scrollIntoView({ block: "start" });
+      $("h-board").focus({ preventScroll: true });
+    });
+  }
+
+  /** @param {object} data Renders the incident board on its key set and wires its controls. */
+  function renderIncidents(data) {
+    renderIncidentFilter();
+    $("incidents").innerHTML = INCIDENTS.map((incident) =>
+      incidentCard(incident, data),
+    ).join("");
+    wireIncidentBoard();
+    applyIncidentFilter(DEFAULT_FILTER);
+  }
+
+  /* ---------- chapter 09: the decision register ---------- */
 
   /** [id, status, title, rejected, why]; a function "why" quotes the dev ladder from data.json. */
   const REGISTER = [
@@ -828,7 +2255,7 @@
       "kept",
       "No examples taken from the labels",
       "few-shot examples, retrieval memory",
-      "The labels are close to one line per leaf, so an example leaks its own answer, and the live French library shares no labelled row.",
+      "The labels are close to one line per leaf, so an example transfers conventions, not answers, and the live French library shares no labelled row.",
     ],
     [
       "D-03 / D-04",
@@ -878,7 +2305,7 @@
       "Two passes and the frozen threshold T8, selected on dev",
       "a single pass; per-language tuning",
       (data) =>
-        `Abstention alone was not enough: ${ladderPrecision(data, 3)}, below the .95 dev bar.`,
+        `Abstention alone was not enough: ${ladderPrecision(data, 3)}, below the ${DEV_BAR_LABEL} dev bar.`,
     ],
     [
       "E-08",
@@ -944,7 +2371,7 @@
         const alt = rejected
           ? `<div class="row"><b>Rejected</b>${esc(rejected)}</div>`
           : "";
-        return `<article class="card"><div class="id">${esc(id)}</div><span class="st ${status}">${status}</span><h3>${esc(title)}</h3>${alt}<div class="row"><b>Why</b>${esc(why)}</div></article>`;
+        return `<article class="card"><div class="id">${esc(id)}</div><span class="st ${status}">${status}</span><h4>${esc(title)}</h4>${alt}<div class="row"><b>Why</b>${esc(why)}</div></article>`;
       })
       .join("");
   }
@@ -3659,6 +5086,8 @@
     renderTraced(data);
     renderResults(data);
     renderFrench(data);
+    renderClimb(data);
+    renderIncidents(data);
     renderRegister(data);
     renderFooter(data);
   }
