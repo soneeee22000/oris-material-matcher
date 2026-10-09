@@ -1,0 +1,17 @@
+{
+  "name": "oris-operator-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Operator UI for the BoQ matcher: vanilla TypeScript, bundled by esbuild into the FastAPI static folder.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "npm run typecheck && node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0",
+    "typescript": "6.0.3"
+  }
+}
