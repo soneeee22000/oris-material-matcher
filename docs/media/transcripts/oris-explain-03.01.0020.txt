@@ -1,0 +1,20 @@
+$ uv run oris explain --run runs/submission/20261008T024244Z-de394c39 --item 03.01.0020.
+# replay of a real local run, 2026-10-09
+item 03.01.0020. (line 3be715cf5fe899e9, position 78, transport L78) in run 20261008T024244Z-de394c39 [mode live, library global]
+input: 'Couche de fondation en GNT recyclée 0/45, 300 mm, bretelles' | unit m³ | qty 3400 | kind item
+long: 'Granulats de béton recyclé 0/45, bretelles B1–B4.'
+section path: 3 Chaussées > 03.01. Couches non liées
+decision: matched, reason SIGNAL:T8, rule D9 (score s is at or above the frozen threshold)
+policy T8 (exact, certified by dev_selection), profile b3, k 2; threshold T8: s >= (v 2, b no_evidence, confidence <70), compared lexicographically
+signals: v 2, b no_evidence, confidence 80-89; attributes no_evidence; flags none
+pass 1: kind material, top1 T03.U11.S02, top2 T03.U15.S02, confidence 80, evidence 'Granulats de béton recyclé 0/45, bretelles B1–B4'
+pass 2: kind material, top1 T03.U11.S02, top2 T03.U15.S02, confidence 80, evidence 'Granulats de béton recyclé 0/45, bretelles B1–B4'
+verifier: flagged, so asked (the line would match without it); its top1 T03.U11.S02 agrees with top1 T03.U11.S02, evidence 'Granulats béton recyclé, couche fondation'
+matched row: T03.U11.S02 Aggregates / unbound aggregates for base layer / Recycled Aggregates
+suggestion 1: T03.U11.S02 Aggregates / unbound aggregates for base layer / Recycled Aggregates
+suggestion 2: T03.U15.S02 Aggregates / unbound aggregates for subbase / Recycled Aggregates
+attributed cost $0.002218, latency 2253 ms, model claude-haiku-4-5-20251001
+call 26ac5b333f82f677 (main, first, attempt 1): HTTP 200; request sha256 dd3d499ee842a0675916dc3d8421b663289fa13a13fba86a1e023d1a63099a29, system prompt prompts/5fa37bb3a7606b0f06af1e1d76f24509ee88191f05e0c7af37acb4e237fa939a.txt, provider request id req_011CfozyzGdBeJEFT3rudAbE
+call ba727f8a15eb0348 (main, first, attempt 1): HTTP 200; request sha256 3c44390ce0ac1d9bc1de57ddd8ff515ba732d304f609736f00ea40a2450feeb4, system prompt prompts/9808d9428f95eddb0f06c75d2775a8f6d71beb570a0ec9cc962450481b39ea9d.txt, provider request id req_011Cfp15DP42idBWogf2FxMQ
+call bad60571807c856e (verifier, first, attempt 1): HTTP 200; request sha256 94bfd73676eed817f93b96b385199fd6a154f63ba8e10adaee0b8aa3786ae161, system prompt prompts/d4612f363c84e75a4418dd74523f30678f8d4176a7e1e416a6d005950db21549.txt, provider request id req_011Cfp19tXNpNuVXzdZVzVZw
+user message and raw response of each call: --full, --json or calls.jsonl
