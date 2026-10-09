@@ -316,7 +316,7 @@ This rule replaces both the v1 selection rule and A18's certified walk; neither 
 
 - Dev precision by v, and the share of errors with v = k (systematic errors that agreement cannot catch). [A-46]
 - A precision / coverage / review-load / cost table for every threshold, produced by $0 replay. This is the explicit trade-off curve.
-- D5a's false-reject rate on dev, by $0 replay. If it rejects more than 3 correct matches, the evidence length is widened and the prompt version bumped (logged). [A-43]
+- D5a's false-reject rate on dev, by $0 replay. If it rejects more than 3 correct matches, the validator's evidence tolerance is widened (A59.1); the prompt and prompt_version are unchanged because the limit is not part of the generated schema (logged). [A-43]
 
 **Risk–coverage curves** (reported with the selection, G2)
 
@@ -489,7 +489,7 @@ The scorer is the deliverable ORIS reruns on its own labels, so it is lenient on
 - **Report:** matched precision with its one-sided 95% CP lower bound (§3); C₂₅₂ (C_labelled); cumulative per-level accuracy over matched rows and over all labelled rows; decision shares over all rows and over item rows; the false not_a_material count; hit@1/2 on review lines (A21); mean `cost_usd` and attributed `latency_ms`. Bootstrap, McNemar, risk–coverage and plots stay in `eval/report.py`.
 - The scorer never writes the experiment ledger (§6).
 
-### Offline in pytest (no network, `--disable-socket`, runs in CI on every commit)
+### Offline in pytest (no network: pytest-socket, loopback only [A53], runs in CI on every commit)
 
 - **Scorer fixtures** [A-34]:
   - a hand-computed reference/output pair of about 15 rows: blank subtype in both directions; a match on a blank-GT line; a `whitespace_only_mismatch`; `n/a` precision when nothing is matched; both denominators; CP lower bounds and Wilson values to 3 decimals;

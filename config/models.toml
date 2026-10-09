@@ -1,0 +1,10 @@
+# Model allowlist (DESIGN.md §11.3, A33). The port refuses any model that matches no pattern.
+# Glob patterns use fnmatch semantics, case-sensitive. "local:<=8B" admits ids of the form
+# "local:<name>:<size>b" whose parameter count is at most 8 billion.
+
+[allowlist]
+patterns = ["claude-haiku-*", "gpt-4o-mini*", "gemini-*-flash*", "local:<=8B"]
+
+[pinned]
+primary = "claude-haiku-4-5-20251001"
+fallback = "gpt-4o-mini-2024-07-18"

@@ -1,0 +1,32 @@
+# Test fixture: a small term map over tests/fixtures/prompts/small_library.csv. Not domain content.
+entries:
+  - term: Concrete
+    lang: en
+    equivalents: [béton, BPE]
+    source: library
+  - term: footings
+    lang: en
+    equivalents: [semelles]
+    source: library
+  - term: foot
+    lang: en
+    equivalents: [pied]
+    source: library
+  - term: unbound mixtures
+    lang: en
+    equivalents: [grave non traitée, GNT]
+    source: standard
+    ref: NF EN 13285, unbound mixtures
+  - term: Rebar
+    lang: en
+    equivalents: [armatures]
+    source: library
+  - term: REBAR
+    lang: en
+    equivalents: [Armatures, aciers HA]
+    source: dev_error
+  - term: c30/37
+    lang: en
+    equivalents: [classe C30/37]
+    source: standard
+    ref: NF EN 206, concrete

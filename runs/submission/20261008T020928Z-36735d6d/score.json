@@ -1,0 +1,114 @@
+{
+  "join": "key",
+  "outputs": [
+    {
+      "cascade": {
+        "subtype_given_type_usage": 0.9758064516129032,
+        "usage_given_type": 0.9612403100775194
+      },
+      "confusion": {
+        "E": {
+          "needs_review": 9
+        },
+        "L": {
+          "matched": 94,
+          "needs_review": 45
+        },
+        "S": {
+          "needs_review": 9,
+          "not_a_material": 5
+        }
+      },
+      "counts": {
+        "items": 162,
+        "labelled": 139,
+        "missing": 0,
+        "no_equivalent": 9,
+        "rows": 162,
+        "unclassed": 0,
+        "unscored": 0
+      },
+      "coverage_labelled": {
+        "correct": 92,
+        "denominator": 139,
+        "value": 0.6618705035971223
+      },
+      "coverage_material": {
+        "correct": 92,
+        "denominator": 148,
+        "value": 0.6216216216216216
+      },
+      "decision_shares": {
+        "all_rows": null,
+        "item_rows": {
+          "counts": {
+            "matched": 94,
+            "needs_review": 63,
+            "not_a_material": 5
+          },
+          "denominator": 162,
+          "shares": {
+            "matched": 0.5802469135802469,
+            "needs_review": 0.3888888888888889,
+            "not_a_material": 0.030864197530864196
+          }
+        }
+      },
+      "f_nm_scope": "labelled+no_equivalent",
+      "false_not_a_material": 0,
+      "hit_at_1": {
+        "denominator": 45,
+        "hits": 29,
+        "value": 0.6444444444444445
+      },
+      "hit_at_2": {
+        "denominator": 45,
+        "hits": 31,
+        "value": 0.6888888888888889
+      },
+      "label": "en",
+      "lenient": {
+        "coverage_labelled": 0.6618705035971223,
+        "precision": 0.9787234042553191
+      },
+      "mean_cost_usd": 0.0030008456790123457,
+      "mean_latency_ms": 2803.703703703704,
+      "missing_keys": [],
+      "not_a_material_with_unit": 5,
+      "path": "runs/20261008T020928Z-36735d6d/output.csv",
+      "per_level_labelled": {
+        "source": "suggested",
+        "triple": 0.8705035971223022,
+        "type": 0.9280575539568345,
+        "type_usage": 0.8920863309352518
+      },
+      "per_level_matched": {
+        "triple": 0.9787234042553191,
+        "type": 0.9893617021276596,
+        "type_usage": 0.9893617021276596
+      },
+      "precision": {
+        "correct": 92,
+        "cp_lower_95": 0.9345375957643229,
+        "matched": 94,
+        "value": 0.9787234042553191,
+        "wilson_95": [
+          0.9257083451044751,
+          0.9941457864714599
+        ]
+      },
+      "unscored_keys": [],
+      "warnings": [],
+      "whitespace_only_mismatch": 0
+    }
+  ],
+  "reference": {
+    "item_rule": "labels, then the class list, then the reference key shape",
+    "nan_literals": 0,
+    "path": "data/boq_dataset_matched_GT.csv",
+    "rows": 319
+  },
+  "side": "dev",
+  "strict": true,
+  "warnings": []
+}

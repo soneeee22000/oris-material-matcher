@@ -1,0 +1,3 @@
+<boq_lines>
+$lines
+</boq_lines>

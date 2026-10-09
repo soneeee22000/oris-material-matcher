@@ -1,0 +1,94 @@
+item_id,lang,cause,cause_2,usage_split,evidence
+01.02.0010.,en,header_context,usage_confuser,,"Section 'Demolition, dismantling and waste' points to EWC 17 01 01 but both passes chose 'Concrete arisings for use as aggregates', with GT row only as top2."
+01.02.0110.,fr,llm_failure,,,"P1 returned an invalid row ID T13.U04.S11 (D5 INVALID_ROW_ID, top1 triple None); P2 had the correct 17 04 11."
+01.02.0140.,en,lexical_gap,,,Both passes said no_equivalent for creosoted timber although '17 02 04 ... wood contaminated with hazardous substances' exists; 'creosote' was not bridged to that row.
+01.02.0140.,fr,usage_confuser,lexical_gap,element_right_usage_wrong,P1 identified creosoted timber waste but chose the catch-all 17 09 03 over 17 02 04 hazardous wood; P2 said no_equivalent.
+01.02.0150.,en,llm_failure,,,"Missed row: P1 was correct (17 02 02 Glass) but P2 returned no_equivalent with no row, which broke agreement v."
+01.02.0150.,fr,llm_failure,,,"Missed row: P1 was correct (17 02 02 Glass) but P2 returned no_equivalent with conf 20, an empty element and no row."
+01.02.0160.,en,llm_failure,,,Missed row: P1 was correct (17 02 03 Plastic) but P2 returned no_equivalent with no row for plainly plastic pipes.
+01.02.0160.,fr,llm_failure,,,Missed row: P2 labelled the item no_equivalent (conf 35) while its own top1 was the correct 17 02 03 Plastic.
+01.02.0170.,en,usage_confuser,,,Missed row: P2 chose sibling 17 06 01 (insulation containing asbestos) instead of 17 06 05 (construction materials containing asbestos) for asbestos-cement pipes and sheets.
+01.04.0070.,en,lexical_gap,subtype_parse,,"'CL 90-Q' (Q = quicklime) was read by P1 as hydrated lime, and no lime-type attribute was extracted."
+01.04.0070.,fr,lexical_gap,subtype_parse,,P1 read 'CL 90-Q' as hydrated lime instead of quicklime; no lime-type attribute was extracted.
+02.01.0030.,en,gt_convention,llm_failure,,"There is no manhole row, so GT maps it to the catch-all 'Other prefabricated concrete elements'; both passes said no_equivalent with conf 0 and an empty element."
+02.01.0030.,fr,gt_convention,llm_failure,,There is no manhole row and GT uses the 'Other prefabricated' catch-all; both passes said no_equivalent with conf 0 and an empty element.
+02.02.0010.,en,usage_confuser,,,"P1 matched the C12/15 bedding concrete (ready-mix) instead of the precast slot drain element (Prefab), which P2 chose."
+02.02.0020.,en,usage_confuser,,element_right_usage_wrong,P1 identified 'filtration layer' but picked 'Sand for concrete mixtures' over the sibling 'Filtration layer of sand'.
+02.02.0030.,en,usage_confuser,,element_right_usage_wrong,"P1 element 'filtration layer' was right but it chose 'Sand for concrete mixtures', and P2 confused the material with 'Concrete arisings'."
+02.02.0030.,fr,usage_confuser,,,Missed row: P2 treated recycled concrete fines as 'Concrete arisings' instead of 'Filtration layer of sand - Recycled'.
+03.02.0050.,en,usage_confuser,,element_right_usage_wrong,P1 chose 'Lean concrete C16/20' instead of 'concrete mixture for base course C8/10' despite base layer and the extracted C8/10.
+03.02.0050.,fr,usage_confuser,lexical_gap,,Missed row: P2 mapped 'béton maigre' to 'Lean concrete C16/20' instead of 'base course C8/10'.
+03.02.0060.,en,llm_failure,,,"Missed row with v=2 and the correct triple, blocked by D5a EVIDENCE_NOT_IN_LINE: the pass's evidence quote did not match the line."
+03.02.0060.,fr,usage_confuser,,,Missed row: P2 chose 'General Ready mixed concrete C12/15' over 'concrete mixture for base course'.
+03.02.0070.,fr,usage_confuser,,,Missed row: P2 chose generic ready-mix C20/25 for the base course layer.
+03.02.0080.,fr,usage_confuser,,,Missed row: P2 chose generic ready-mix C30/37 instead of the base course row.
+03.02.0110.,fr,usage_confuser,,,Missed row: P2 chose the mixture 'Cement bound granular mixture' instead of the constituent 'cement for hydraulically bound mixtures CEM I'.
+03.02.0120.,en,subtype_parse,,,cem_type V/A was extracted but P1 picked CEM V/B (ATTR_CONFLICT); P2 had CEM V/A.
+03.02.0120.,fr,usage_confuser,,,Missed row: P2 chose the 'Cement bound granular mixture' composite instead of the CEM V/A cement row.
+03.02.0150.,en,lexical_gap,,,P1 read 'CL 90-S' / calcium hydroxide as quicklime instead of hydrated lime.
+03.02.0160.,en,lexical_gap,,,Missed row: P2 did not map 'CBGM' to hydraulically bound mixtures and chose 'unbound aggregates for base layer'.
+03.02.0160.,fr,lexical_gap,,,Missed row: P2 did not bridge 'grave-ciment' to hydraulically bound and chose 'unbound aggregates for base layer'.
+03.02.0170.,en,lexical_gap,,,Missed row: P2 did not bridge 'CBGM' and chose 'Sand for concrete mixtures' over hydraulically bound.
+03.02.0170.,fr,lexical_gap,,,Missed row: P2 did not bridge 'grave-ciment' and chose 'Sand for concrete mixtures'.
+03.03.0030.,fr,lexical_gap,,,P1 mapped 'GB 3' to EME2 high-modulus instead of Asphalt Concrete; the 'GB' acronym was not bridged.
+03.03.0050.,en,lexical_gap,subtype_parse,,Missed row: P2 chose HMA 50% RAP; 'reduced temperature' was not bridged to WMA although process=wma was extracted.
+03.03.0110.,en,lexical_gap,subtype_parse,,"Missed row: P2 chose HMA 30% RAP, missing that 'reduced temperature / <=130 C' means WMA."
+03.03.0110.,fr,lexical_gap,,,"Missed row: P2 chose HMA 30% RAP, not bridging 'tiède' to WMA."
+03.03.0150.,en,usage_confuser,lexical_gap,element_wrong,"'SMA 16 B S' intermediate layer is binder course, but P1 took it as a surface course (el 'pavement surface course')."
+03.03.0150.,fr,lexical_gap,,,Missed row: P2 chose 'SMA - HMA' for 'SMA liaison tiède'; 'tiède' was not bridged to WMA.
+03.03.0190.,fr,subtype_parse,lexical_gap,,Missed row: P2 chose 'AC - WMA' and dropped the '10 % AE' recycled content.
+03.03.0210.,en,subtype_parse,,,recycled_pct 20 was extracted but P1 chose 'SMA - WMA 10% RAP' (ATTR_CONFLICT); P2 had 20%.
+03.03.0230.,en,subtype_parse,,,Missed row: P2 dropped 'RA 10 %' and chose 'PA - WMA' without RAP.
+03.03.0230.,fr,lexical_gap,,,"Missed row: P2 chose 'PA - 10% RAP' without WMA, missing 'tiède / température abaissée'."
+03.03.0250.,fr,lexical_gap,,,Missed row: P2 mapped 'Asphalte coulé' to Asphalt Concrete instead of Mastic Asphalt.
+03.04.0010.,en,usage_confuser,header_context,element_right_usage_wrong,"Both passes chose 'General Ready mixed concrete' for a top slab under 'Rigid pavement', and GT is 'wearing course'."
+03.04.0020.,en,usage_confuser,header_context,element_right_usage_wrong,"A surface yard slab under 'Rigid pavement' was matched to generic ready-mix, with the wearing-course row only as P1 top2."
+03.04.0030.,en,usage_confuser,header_context,element_right_usage_wrong,Bus lane surface slabs were matched to 'General Ready mixed concrete' instead of 'Concrete mixture for wearing course'.
+03.04.0040.,en,usage_confuser,header_context,element_right_usage_wrong,The JPCP top layer was identified but the generic ready-mix row was chosen over the wearing-course row.
+03.04.0050.,en,usage_confuser,header_context,element_right_usage_wrong,Toll plaza surface slabs were matched to generic ready-mix instead of the wearing course.
+03.04.0060.,en,usage_confuser,header_context,element_right_usage_wrong,The container area top layer was matched to 'General Ready mixed concrete' instead of the wearing course.
+03.05.0010.,en,usage_confuser,,,P1 matched the C12/15 kerb bed (ready-mix base course) instead of the precast kerb element (Prefab).
+03.05.0020.,en,usage_confuser,,,P1 chose ready-mix C12/15 for precast edging units on a concrete bed instead of Prefab.
+03.05.0040.,en,lexical_gap,gt_convention,element_right_usage_wrong,'Clay pavers 200x100x52' was mapped to 'Tile (clay)' by both passes; GT treats pavers as 'Brick (clay)'.
+03.05.0040.,fr,lexical_gap,gt_convention,element_right_usage_wrong,'Pavés en terre cuite' were mapped to 'Tile (clay)' by both passes; GT treats them as 'Brick (clay)'.
+04.01.0060.,en,usage_confuser,,,Missed row: P2 chose 'General Ready mixed concrete' for pile caps instead of 'Concrete for footings' (pile caps -> footings).
+04.01.0080.,en,subtype_parse,,,Strength C35/45 was extracted but P1 chose footings C30/37 (ATTR_CONFLICT).
+04.01.0080.,fr,usage_confuser,,element_right_usage_wrong,P1 identified the pylon footing but chose 'General Ready mixed concrete C35/45' over 'Concrete for footings'.
+04.01.0100.,en,usage_confuser,,element_right_usage_wrong,The capping beam to sheet piles was identified but P1 chose 'Concrete for footings' instead of 'excavation beam'.
+04.01.0100.,fr,usage_confuser,,element_right_usage_wrong,"Both passes identified the sheet-pile cap beam but chose generic ready-mix, with footings as top2, instead of excavation beam."
+04.01.0110.,en,subtype_parse,,,C25/30 was extracted but P1 chose 'excavation beam C30/37' (ATTR_CONFLICT).
+04.01.0110.,fr,lexical_gap,usage_confuser,element_wrong,"'Liernes' (walings) was read as a 'temporary retaining wall / secant pile wall', leading to generic ready-mix."
+04.01.0120.,en,subtype_parse,,,Missed row: P2 chose 'excavation beam C30/37' despite the stated C35/45.
+04.01.0120.,fr,usage_confuser,,element_right_usage_wrong,Temporary bracing beams were identified but generic ready-mix was chosen over 'Concrete for excavation beam' (top2).
+04.03.0020.,en,subtype_parse,,,Missed row: P2 chose 'bridge deck C40/50' while the line says C45/55.
+04.03.0050.,en,usage_confuser,,element_right_usage_wrong,Cross-girders of a post-tensioned deck were matched to 'Concrete for bridge deck' rather than 'beam in prestressed concrete'.
+04.03.0050.,fr,usage_confuser,,element_right_usage_wrong,The bridge deck cross-beam of a prestressed deck was matched to 'Concrete for bridge deck' instead of 'beam in prestressed concrete'.
+04.03.0060.,fr,usage_confuser,,,Missed row: P2 chose 'Concrete for bridge deck' for prestressed longitudinal beams.
+04.03.0070.,en,usage_confuser,,element_right_usage_wrong,Box-girder webs with tendon ducts were matched to bridge deck / concrete girder instead of a prestressed beam.
+04.03.0070.,fr,usage_confuser,,element_right_usage_wrong,Box girder webs with prestressing ducts were matched to 'Concrete for bridge deck' by both passes.
+04.03.0080.,en,usage_confuser,,element_right_usage_wrong,Conventionally reinforced edge beams went to 'Concrete for bridge deck' in P1; P2 had 'beam in steel reinforced concrete'.
+04.03.0080.,fr,usage_confuser,,element_right_usage_wrong,Reinforced edge and tie beams were matched to 'Concrete for bridge deck' instead of 'beam in steel reinforced concrete'.
+04.03.0090.,en,usage_confuser,,element_right_usage_wrong,Reinforced downstand beams were matched by P1 to bridge deck instead of 'beam in steel reinforced concrete'.
+04.03.0090.,fr,usage_confuser,,element_right_usage_wrong,"Drop beams 'béton armé, sans précontrainte' were matched to bridge deck by both passes."
+04.03.0100.,en,usage_confuser,gt_convention,element_right_usage_wrong,Both passes chose 'Concrete for bridge deck' for composite deck beams; GT is the reinforced beam row and the row is flagged gt_suspect.
+04.03.0100.,fr,usage_confuser,gt_convention,element_right_usage_wrong,Composite deck beams were matched to 'Concrete for bridge deck' by both passes; the row is flagged gt_suspect.
+04.03.0110.,fr,usage_confuser,,element_right_usage_wrong,Precast beams were matched by P1 to 'beam in prestressed concrete' instead of 'Concrete for concrete girder' (P2 correct).
+04.03.0120.,fr,usage_confuser,,element_right_usage_wrong,"Main-span beams were matched by P1 to the prestressed beam row, though the line does not say prestressed; P2 chose concrete girder."
+04.03.0130.,fr,usage_confuser,,element_right_usage_wrong,Overpass beams were matched by P1 to 'beam in prestressed concrete' over 'Concrete for concrete girder'.
+05.01.0010.,en,header_context,lexical_gap,,"Drill and blast under 'Tunnel Kalkberg' should give 'from tunnel blasting', but both passes chose 'from rock cutting'."
+05.01.0010.,fr,header_context,lexical_gap,,P1 chose 'from rock cutting' despite 'Abattage à l'explosif' under the tunnel header; P2 had tunnel blasting.
+05.01.0020.,en,header_context,,,"Missed row: P2 chose 'Average quality rock from rock cutting', ignoring the tunnel / drill-and-blast context."
+05.01.0030.,en,usage_confuser,lexical_gap,element_right_usage_wrong,"'Spoil as bulk fill' was routed to 'For landfill' (P1 Soil Excavation, P2 tunnel rock), not 'For use as aggregates'."
+05.01.0030.,fr,usage_confuser,lexical_gap,element_right_usage_wrong,'Remblai de masse' was routed by P1 to 'For landfill - Soil Excavation' instead of 'For use as aggregates - Low quality tunnel rock'.
+05.01.0040.,en,header_context,gt_convention,,P1 chose 'For landfill - Waste' instead of 'Low quality rock from tunnel blasting' despite the tunnel context; P2 was right.
+05.01.0040.,fr,header_context,gt_convention,,P1 chose 'For landfill - Waste' instead of 'Low quality rock from tunnel blasting' despite the tunnel context.
+05.01.0070.,en,usage_confuser,gt_convention,element_right_usage_wrong,Lattice girders (tunnel support) went to generic 'Structural steel' instead of 'Steel for tunnel lining'; the row is flagged gt_suspect.
+05.01.0070.,fr,usage_confuser,gt_convention,element_right_usage_wrong,Lattice tunnel arches were matched by P1 to generic 'Structural steel' over 'Steel for tunnel lining' (P2 correct).
+07.01.0010.,fr,llm_failure,,,P1 returned non_material/labour with conf 0 and empty fields for a galvanised steel guardrail (D3 NM_UNCONFIRMED); P2 was correct.
+07.01.0020.,fr,llm_failure,,,P1 returned degenerate non_material/labour with conf 0 for a timber handrail; P2 found 'Handrail in wood/timber'.
+07.01.0060.,en,lexical_gap,usage_confuser,element_right_usage_wrong,'Cable troughs' were not bridged to 'Concrete cable ducts' (only P1 top2); P1 chose the 'Other prefabricated' catch-all.
+07.01.0060.,fr,lexical_gap,usage_confuser,,'Caniveaux à câbles' was not bridged to 'Concrete cable ducts': P1 said no_equivalent and P2 chose the 'Other prefabricated' catch-all.
+08.04.0040.,en,lexical_gap,,,Missed row: P2 did not map 'surfactant-based' to chemical WMA and chose 'organic additives'.
+08.04.0040.,fr,lexical_gap,,,Missed row: P2 mapped 'additif tensioactif' to organic rather than chemical WMA additives.
+08.04.0130.,en,gt_convention,,,Missed row: P2 chose the textually apt 'Filler for use in asphalt mixtures'; GT follows the 'Limestone / for all usage' convention.
+08.04.0130.,fr,gt_convention,,,Missed row: P2 chose 'Filler for use in asphalt mixtures' for 'filler calcaire'; GT uses the 'Limestone / for all usage' convention.

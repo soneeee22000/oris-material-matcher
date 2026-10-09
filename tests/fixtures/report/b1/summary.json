@@ -1,0 +1,9 @@
+{
+  "rung": "B1",
+  "side": "dev",
+  "threshold": 0.1126,
+  "cosine_scores": {
+    "en": [],
+    "fr": []
+  }
+}

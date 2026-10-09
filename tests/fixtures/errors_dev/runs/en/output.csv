@@ -1,0 +1,13 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty,decision,material_type,material_usage,material_subtype,reason,model,prompt_version,latency_ms,cost_usd,suggested_type,suggested_usage,suggested_subtype,library_row_id,call_ids,suggested2_type,suggested2_usage,suggested2_subtype
+0,Earthworks and structures,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.,Structures,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.01.,Concrete and binders,,,,not_a_material,,,,HEADER,rules,,0,0.000000,,,,,,,,
+01.01.0010.,Lean concrete blinding C12/15,"Blinding under footings, 50 mm",m3,1,matched,Concrete,Lean concrete,C12/15,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Concrete,Lean concrete,C12/15,9a4b8de06ff6,,,,
+01.01.0020.,Lean concrete base C16/20,"Base below block paving, 150 mm",m3,1,matched,Concrete,Lean concrete,C12/15,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Concrete,Lean concrete,C12/15,9a4b8de06ff6,,,,
+01.01.0030.,Structural concrete C30/37 walls,"Retaining walls, formed faces",m3,1,needs_review,,,,LOW_SIGNAL:v,fake-model,v1+fixture,10,0.001000,Concrete,Structural concrete,C30/37,053014b0c057,,,,
+01.01.0040.,Polymer modified binder,For the surface course,t,1,needs_review,,,,ATTR_CONFLICT,fake-model,v1+fixture,10,0.001000,Steel,Reinforcement,B500B,bf05ca12adcf,,,,
+01.01.0050.,Reinforcement bars,"High-yield bars, cut and bent",t,1,needs_review,,,,NO_LIBRARY_EQUIVALENT,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0060.,Traffic management,"Signing and cones, phase 1",LS,1,matched,Bitumen,bitumen for asphalt mixtures,Normal Bitumen,SIGNAL:T8,fake-model,v1+fixture,10,0.001000,Bitumen,bitumen for asphalt mixtures,Normal Bitumen,813a31c8052c,,,,
+01.01.0070.,Demobilise compound,"Remove facilities, reinstate",LS,1,needs_review,,,,NM_UNCONFIRMED,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0080.,Creosoted timber sleepers,Disposed of as hazardous waste,t,1,not_a_material,,,,G2_SERVICE,fake-model,v1+fixture,10,0.001000,,,,,,,,
+01.01.0090.,Bitumen emulsion tack coat,Sprayed at 0.3 kg/m2,t,1,not_a_material,,,,G2_SERVICE,fake-model,v1+fixture,10,0.001000,,,,,,,,

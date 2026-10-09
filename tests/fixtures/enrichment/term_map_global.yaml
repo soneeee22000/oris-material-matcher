@@ -1,0 +1,15 @@
+# Test fixture: a term map over data/oris_materials_global.csv for the wiring tests. Not shipped
+# domain content; the shipped files live under data/enrichment/.
+entries:
+  - term: Quicklime
+    lang: en
+    equivalents: [chaux vive]
+    source: library
+  - term: Hydrated lime
+    lang: en
+    equivalents: [chaux éteinte]
+    source: library
+  - term: Concrete
+    lang: en
+    equivalents: [béton]
+    source: library

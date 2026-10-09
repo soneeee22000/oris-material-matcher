@@ -1,0 +1,13 @@
+Item No.,material_type,material_usage,material_subtype
+0,,,
+01.,,,
+01.01.,,,
+01.01.0010.,Concrete,Lean concrete,C12/15
+01.01.0020.,Concrete,Lean concrete,C16/20
+01.01.0030.,Concrete,Structural concrete,C30/37
+01.01.0040.,Bitumen,bitumen for asphalt mixtures,Polymer Bitumen
+01.01.0050.,Steel,Reinforcement,B500B
+01.01.0060.,,,
+01.01.0070.,,,
+01.01.0080.,,,
+01.01.0090.,Bitumen,bitumen for asphalt mixtures,Normal Bitumen

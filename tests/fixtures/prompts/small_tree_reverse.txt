@@ -1,0 +1,13 @@
+T03 Steel
+  T03.U01 Rebar
+    T03.U01.S01 B500B
+T02 Concrete
+  T02.U02 for walls
+    T02.U02.S01 C30/37
+  T02.U01 for footings
+    T02.U01.S02 C30/37
+    T02.U01.S01 C25/30
+    T02.U01.S00 (no subtype)
+T01 Aggregates
+  T01.U01 Unbound mixtures
+    T01.U01.S01 0/31.5

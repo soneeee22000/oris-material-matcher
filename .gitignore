@@ -15,6 +15,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.hypothesis/
 .coverage
 htmlcov/
 dist/
@@ -34,3 +35,6 @@ Thumbs.db
 .claude/
 .sixth/
 .cursor/
+
+#other like plan.md, etc. (not needed for the repo)
+plan.md

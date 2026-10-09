@@ -1,0 +1,29 @@
+# Policy resolution (DESIGN.md §10.6): model_id -> library_sha256 -> {policy_id, certified_by}.
+# certified_by is one of: dev_selection, smoke_A10. Any pair not listed resolves to the strictest
+# threshold (policy_resolution: fallback_strictest).
+# verifier_adopted (A67, optional, default false): the certification covers the E-08 sibling
+# verifier, so a run deciding under this entry runs it unless ORIS_VERIFIER_ADOPTED forces it.
+# enrichment and enrichment_sha256 (A68, optional, together): the certification covers that
+# arm C enrichment file, so a run deciding under this entry renders it unless ORIS_ENRICHMENT
+# forces another or none.
+# Haiku on the global library: T8 with the E-08 verifier and the E-01 arm C enrichment. E-08 was
+# kept under A65.1 (eval/selection_v1_e08.json) and E-01-C2 under the §7.2 keep rule (O24); the
+# re-selection over the E-01-C2 and E-01-C2-T7 dev runs meets the dev bar at T8 (A67.2,
+# eval/selection_v1_e01.json). T8 alone was below the bar (eval/selection_v1.json, G2.md §5).
+policies:
+  claude-haiku-4-5-20251001:
+    '96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1':
+      policy_id: T8
+      certified_by: dev_selection
+      verifier_adopted: true
+      enrichment: data/enrichment/global.yaml
+      enrichment_sha256: '057f062221ae4cf52c231f22b65b8f6b057b80cc7eeb8ae45a6940cc84a4b7fe'
+    # Haiku on the FR library: the same frozen operating point (T8, E-08 verifier) with the FR
+    # enrichment file, certified by the A10 smoke rule (A70; eval/smoke_fr_v1_result.json,
+    # run 20261008T232623Z-7ac379a8, docs/gates/G6.md). Readiness evidence, not a held-out claim.
+    '6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2':
+      policy_id: T8
+      certified_by: smoke_A10
+      verifier_adopted: true
+      enrichment: data/enrichment/fr.yaml
+      enrichment_sha256: '86a1f4cdc8e780360fe7eaec96c919ec34eb24972df1a6ed071f3a7757c7cb1e'

@@ -1,0 +1,15 @@
+{
+  "input_sha256": "8e96974bdedc5ef00ff1e8ddc689be4e610656c3b7f1837ecf086f0689ed96e9",
+  "labels_sha256": "fe67ab46c1d5c2672afc64ab2e73e1ed095479f25387cea314b6f0c0b091ddba",
+  "library_sha256": "6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2",
+  "run_configuration": {
+    "mode": "live",
+    "threshold_id": "T8",
+    "requested_model": "claude-haiku-4-5-20251001",
+    "enrichment_sha256": "86a1f4cdc8e780360fe7eaec96c919ec34eb24972df1a6ed071f3a7757c7cb1e",
+    "fallback_engaged": false,
+    "decision_profile.verifier_adopted": true
+  },
+  "labelled_by": "owner (reviewed candidates.md, Fri 9 Oct 2026)",
+  "rule": "DESIGN.md §6 / A70"
+}

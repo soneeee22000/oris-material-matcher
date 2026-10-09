@@ -1,0 +1,20 @@
+{
+  "id": "msg_01ABC",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-haiku-4-5-20251001",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"lines\": [{\"id\": \"L1\", \"evidence\": \"concrete C30/37\", \"element_or_application\": \"wall\", \"material_family\": \"concrete\", \"kind\": \"material\", \"nm_category\": \"\", \"top1\": \"T01.U01.S01\", \"top2\": \"\", \"confidence\": 90, \"self_reported_candidate_gap\": \"clear\"}, {\"id\": \"L2\", \"evidence\": \"rebar B500B\", \"element_or_application\": \"wall\", \"material_family\": \"concrete\", \"kind\": \"material\", \"nm_category\": \"\", \"top1\": \"T01.U01.S01\", \"top2\": \"\", \"confidence\": 90, \"self_reported_candidate_gap\": \"clear\"}]}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 120,
+    "output_tokens": 80,
+    "cache_read_input_tokens": 3000,
+    "cache_creation_input_tokens": 0
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "checks": [
+    {
+      "data": {},
+      "detail": "config loads",
+      "name": "config",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "patterns": [
+          "claude-haiku-*",
+          "gpt-4o-mini*",
+          "gemini-*-flash*",
+          "local:<=8B"
+        ]
+      },
+      "detail": "claude-haiku-*, gpt-4o-mini*, gemini-*-flash*, local:<=8B",
+      "name": "allowlist",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "fallback": "gpt-4o-mini-2024-07-18",
+        "primary": "claude-haiku-4-5-20251001"
+      },
+      "detail": "primary claude-haiku-4-5-20251001 (pinned claude-haiku-4-5-20251001), fallback gpt-4o-mini-2024-07-18",
+      "name": "pinned_model",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "providers": {
+          "claude-haiku-4-5-20251001": "anthropic",
+          "gpt-4o-mini-2024-07-18": "openai"
+        }
+      },
+      "detail": "price_date 2026-10-05",
+      "name": "pricing",
+      "status": "pass"
+    },
+    {
+      "data": {},
+      "detail": "ANTHROPIC_API_KEY set",
+      "name": "anthropic_key",
+      "status": "pass"
+    },
+    {
+      "data": {},
+      "detail": "OPENAI_API_KEY set",
+      "name": "openai_key",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "rows": 342,
+        "sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1"
+      },
+      "detail": "342 rows, sha256 96bea2506a61",
+      "name": "library:global",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "rows": 70,
+        "sha256": "6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2"
+      },
+      "detail": "70 rows, sha256 6bfe1857fd36",
+      "name": "library:fr",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "reasons": [
+          "G2_SERVICE",
+          "SIGNAL:T1"
+        ],
+        "run_folder": "runs/doctor-20261005T142931Z-c70eca6b",
+        "served_models": [
+          "claude-haiku-4-5-20251001"
+        ]
+      },
+      "detail": "2 synthetic lines answered; recorded in runs/doctor-20261005T142931Z-c70eca6b",
+      "name": "primary_call",
+      "status": "pass"
+    },
+    {
+      "data": {},
+      "detail": "served claude-haiku-4-5-20251001 (pinned claude-haiku-4-5-20251001)",
+      "name": "pinned_model_served",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "headers": {
+          "anthropic-ratelimit-input-tokens-limit": "5000000",
+          "anthropic-ratelimit-input-tokens-remaining": "4993000",
+          "anthropic-ratelimit-input-tokens-reset": "2026-10-05T14:29:36Z",
+          "anthropic-ratelimit-output-tokens-limit": "1000000",
+          "anthropic-ratelimit-output-tokens-remaining": "1000000",
+          "anthropic-ratelimit-output-tokens-reset": "2026-10-05T14:29:38Z",
+          "anthropic-ratelimit-requests-limit": "5000",
+          "anthropic-ratelimit-requests-remaining": "4999",
+          "anthropic-ratelimit-requests-reset": "2026-10-05T14:29:32Z",
+          "anthropic-ratelimit-tokens-limit": "6000000",
+          "anthropic-ratelimit-tokens-remaining": "5993000",
+          "anthropic-ratelimit-tokens-reset": "2026-10-05T14:29:36Z"
+        },
+        "tier": "custom (above tier 4)"
+      },
+      "detail": "tier custom (above tier 4)",
+      "name": "rate_limit_tier",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "cache_eligible": true,
+        "tokens": 9553
+      },
+      "detail": "9553 tokens, cache-eligible yes",
+      "name": "count_tokens:global",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "cache_eligible": false,
+        "tokens": 3380
+      },
+      "detail": "3380 tokens, cache-eligible no",
+      "name": "count_tokens:fr",
+      "status": "pass"
+    },
+    {
+      "data": {
+        "reasons": [
+          "G2_SERVICE",
+          "SIGNAL:T1"
+        ],
+        "run_folder": "runs/doctor-20261005T142938Z-7d3194f7",
+        "served_models": [
+          "gpt-4o-mini-2024-07-18"
+        ]
+      },
+      "detail": "2 synthetic lines answered; recorded in runs/doctor-20261005T142938Z-7d3194f7",
+      "name": "fallback_call",
+      "status": "pass"
+    }
+  ],
+  "date": "2026-10-05",
+  "generated_at": "2026-10-05T14:29:31.115351+00:00",
+  "live": true,
+  "passed": true
+}

@@ -1,0 +1,11 @@
+Glossary of domain terms:
+<glossary>
+$glossary
+</glossary>
+
+Each BoQ line carries a path: its enclosing section headers, outermost first, joined by " > ". An empty path means no section context. Evidence may also be copied from the path.
+
+The material library follows as a coded tree: a type line (Txx), its usage lines (Txx.Uyy), and under each usage its rows (Txx.Uyy.Szz). Only full row codes Txx.Uyy.Szz are valid answers. A row labelled (no subtype) is the generic row of its usage.
+<library>
+$library
+</library>

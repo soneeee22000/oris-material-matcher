@@ -1,0 +1,17 @@
+{
+  "fr": {
+    "b2:canonical": "1b905e6e14cdef1aea396ebe1687fdd5a08ab2f8909649a76d48b0674fed0f69",
+    "v1:canonical": "78a7ad9b2addfc7f5e8c1728240686efa14feef0cc0537d4a01bd9598f7d2975",
+    "v1:reverse": "0a2f9182b88aeeec78351361db203f4491efdbc9fc72842d66fa4aa73386e4d6"
+  },
+  "global": {
+    "b2:canonical": "466a4f0430805af4ce335f001cabde2a9d5ed454a2d894f30e7ca6af79ac8641",
+    "v1:canonical": "25dd08aa6df5d2bbc79d672928d2633a74e69f1c316b15e7a5da56d745549c18",
+    "v1:reverse": "9373d663cf265cd5d6a1d253303cc74a43781f41f18aa57fd7d21a321c7002c1"
+  },
+  "prompt_version": {
+    "b2:canonical": "v1+79d291d0",
+    "v1:canonical": "v1+d5e2bdb9",
+    "v1:reverse": "v1+a58f410e"
+  }
+}
