@@ -2,6 +2,17 @@
 
 Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`. Later releases leave it unchanged.
 
+## v1.3.0 (2026-10-09)
+
+Docs and project page only. No code, configuration or number changed.
+
+- `site/`: a static project page built from committed output by `scripts/export_site_data.py`, with a CI drift check (`--check`) that fails when the page data no longer matches the committed files.
+- README rewritten in portfolio shape; the development-results ladder and the other long tables it dropped moved verbatim to `docs/development-results.md`.
+- Adds `docs/WHY.md`: the problem, the layer-by-layer answer, and what this project is not.
+- `DESIGN.md`: a dated post-submission orientation note under the title, outside the pre-registered text.
+- `eval/cross_model_dev.py`: a post-freeze, dev-only analysis of the pre-registered cross-model vote (E-02(d)), using recorded GPT-4o-mini votes against the shipped Haiku decisions. It costs $0 and its result is not adopted under the pre-registered rule. The per-item votes are committed (`eval/cross_model_dev_votes.json`), so the report reproduces with `--check`.
+- Adds `docs/alternatives.md`: each alternative model and method, what was measured, what was not, and why.
+
 ## v1.2.1 (2026-10-09)
 
 Docs only. No code, configuration or number changed.

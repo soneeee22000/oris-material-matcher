@@ -1,0 +1,5891 @@
+{
+  "all_labelled": {
+    "en": {
+      "correct": 182,
+      "coverage": 0.7222222222222222,
+      "cp_lower_95": 0.9586240924038283,
+      "decisions_all_rows": {
+        "counts": {
+          "matched": 185,
+          "needs_review": 90,
+          "not_a_material": 44
+        },
+        "denominator": 319,
+        "shares": {
+          "matched": 0.5799373040752351,
+          "needs_review": 0.28213166144200624,
+          "not_a_material": 0.13793103448275862
+        }
+      },
+      "decisions_item_rows": {
+        "counts": {
+          "matched": 185,
+          "needs_review": 90,
+          "not_a_material": 7
+        },
+        "denominator": 282,
+        "shares": {
+          "matched": 0.6560283687943262,
+          "needs_review": 0.3191489361702128,
+          "not_a_material": 0.024822695035460994
+        }
+      },
+      "false_not_a_material": 0,
+      "hit_at_1": 0.6119402985074627,
+      "hit_at_2": 0.6865671641791045,
+      "items": 282,
+      "labelled": 252,
+      "matched": 185,
+      "per_level_labelled": {
+        "source": "suggested",
+        "triple": 0.8849206349206349,
+        "type": 0.9484126984126984,
+        "type_usage": 0.9087301587301587
+      },
+      "per_level_matched": {
+        "triple": 0.9837837837837838,
+        "type": 0.9945945945945946,
+        "type_usage": 0.9891891891891892
+      },
+      "precision": 0.9837837837837838
+    },
+    "fr": {
+      "correct": 179,
+      "coverage": 0.7103174603174603,
+      "cp_lower_95": 0.9579510024881883,
+      "decisions_all_rows": {
+        "counts": {
+          "matched": 182,
+          "needs_review": 91,
+          "not_a_material": 46
+        },
+        "denominator": 319,
+        "shares": {
+          "matched": 0.5705329153605015,
+          "needs_review": 0.2852664576802508,
+          "not_a_material": 0.14420062695924765
+        }
+      },
+      "decisions_item_rows": {
+        "counts": {
+          "matched": 182,
+          "needs_review": 91,
+          "not_a_material": 9
+        },
+        "denominator": 282,
+        "shares": {
+          "matched": 0.6453900709219859,
+          "needs_review": 0.32269503546099293,
+          "not_a_material": 0.031914893617021274
+        }
+      },
+      "false_not_a_material": 0,
+      "hit_at_1": 0.6571428571428571,
+      "hit_at_2": 0.8,
+      "items": 282,
+      "labelled": 252,
+      "matched": 182,
+      "per_level_labelled": {
+        "source": "suggested",
+        "triple": 0.8928571428571429,
+        "type": 0.9603174603174603,
+        "type_usage": 0.9166666666666666
+      },
+      "per_level_matched": {
+        "triple": 0.9835164835164835,
+        "type": 0.9945054945054945,
+        "type_usage": 0.9835164835164835
+      },
+      "precision": 0.9835164835164835
+    }
+  },
+  "architecture": {
+    "inactive": [
+      "fallback"
+    ],
+    "note": "The stages follow the calls in MatchService.match; counts come from the EN lockbox run.",
+    "source": "src/oris_matcher/service.py: MatchService.match",
+    "stages": [
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "read_boq"
+          },
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "classify_rows"
+          },
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "derive_section_paths"
+          }
+        ],
+        "counts": {
+          "headers": 37,
+          "items": 282,
+          "rows": 319
+        },
+        "guarantees": "Headers are decided here, by rule, and never routed to the model. The output keeps the input's length and order; raw strings are kept.",
+        "id": "read",
+        "summary": "Reads the BoQ by column name (UTF-8 first, cp1252 as a recorded fallback), decides which rows are headers and derives every row's section path over the whole file.",
+        "title": "Read"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._plan"
+          },
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._policy"
+          },
+          {
+            "path": "src/oris_matcher/enrichment.py",
+            "symbol": "read_enrichment"
+          },
+          {
+            "path": "src/oris_matcher/domain/batching.py",
+            "symbol": "plan_batches"
+          }
+        ],
+        "counts": {
+          "batch_size": 10,
+          "batches": 42,
+          "certified_by": "dev_selection",
+          "enrichment": "data/enrichment/global.yaml",
+          "items": 282,
+          "threshold": "T8"
+        },
+        "guarantees": "An unknown model or library falls back to the strictest threshold; the enrichment file must match the SHA-256 the policy certifies.",
+        "id": "plan",
+        "summary": "Resolves the policy per (model, library SHA-256) from config/policy.yaml, loads that entry's bilingual enrichment from data/enrichment/, and plans batches of contiguous items under one header, before any call.",
+        "title": "Plan"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._call_passes"
+          },
+          {
+            "path": "src/oris_matcher/prompts/v1/enriched.py",
+            "symbol": "build_enriched_request"
+          }
+        ],
+        "counts": {
+          "model": "claude-haiku-4-5-20251001",
+          "pass_calls": [
+            42,
+            42
+          ]
+        },
+        "guarantees": "No shortlist: the right row is always in the prompt. Every attempt is recorded; a failure becomes needs review with a reason, never a lost line.",
+        "id": "passes",
+        "summary": "Every batch is read twice by the primary model against the whole enriched library: pass 1 over the canonical rendering, pass 2 over the reversed one. Each pass's first batch goes alone to write its cached prefix; the rest fan out.",
+        "title": "Two passes"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._rescue"
+          }
+        ],
+        "counts": {
+          "engaged": false,
+          "lines": 0,
+          "model": "gpt-4o-mini-2024-07-18"
+        },
+        "guarantees": "A rescued line is never decided at the primary model's threshold, and the run records which lines the fallback served.",
+        "id": "fallback",
+        "summary": "Only if the circuit breaker trips: the fallback model re-runs the pending lines at its own policy, the strictest threshold unless certified.",
+        "title": "Fallback rescue"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/domain/validator.py",
+            "symbol": "is_valid_code"
+          },
+          {
+            "path": "src/oris_matcher/domain/decision.py",
+            "symbol": "decide"
+          },
+          {
+            "path": "src/oris_matcher/domain/decision.py",
+            "symbol": "flagged_top1"
+          },
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._flagged"
+          }
+        ],
+        "counts": {
+          "not_a_material": 7,
+          "routed": 282,
+          "to_review": 69,
+          "would_be_matched": 206
+        },
+        "guarantees": "A code that is not a row of the loaded library can never be emitted; below the threshold a line goes to review, never to a guess.",
+        "id": "validate",
+        "summary": "Closed-world check of every answer, evidence quoted from the line, hard attribute vetoes, then the D-rules and the score against the threshold: the lines the table would match.",
+        "title": "Validate + decision table"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._verify"
+          },
+          {
+            "path": "src/oris_matcher/verification.py",
+            "symbol": "verifier_groups"
+          }
+        ],
+        "counts": {
+          "calls": 40,
+          "lines": 206,
+          "sent_to_review": 21
+        },
+        "guarantees": "Only would-be matches are verified. A usage confusion caught here becomes VERIFIER_DISAGREES, not a wrong match.",
+        "id": "verify",
+        "summary": "Each would-be match is asked again among the sibling rows of its material type, in requests grouped by type; a disagreement sends the line to review.",
+        "title": "Sibling verifier (E-08)"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "_Assembly.result"
+          },
+          {
+            "path": "src/oris_matcher/io/writer.py",
+            "symbol": "render_csv"
+          },
+          {
+            "path": "src/oris_matcher/io/audit.py",
+            "symbol": "write_run"
+          }
+        ],
+        "counts": {
+          "headers": 37,
+          "items_not_a_material": 7,
+          "matched": 185,
+          "needs_review": 90,
+          "not_a_material": 44,
+          "rows": 319,
+          "total_calls": 124
+        },
+        "guarantees": "One output row per input row. A replay of the committed run gives a byte-identical CSV at $0.",
+        "id": "write",
+        "summary": "The final decision per line, then the output CSV, one audit record per line and one call record per attempt, written in input order with a manifest.",
+        "title": "Decide + write"
+      }
+    ]
+  },
+  "dev_ladder": {
+    "note": "Rung labels follow the README dev-results table; each figure is the last ledger row with that id and language. B0 (rules only) has no ledger row and makes no matches.",
+    "rows": [
+      {
+        "en": {
+          "correct": 43,
+          "coverage": 0.30935251798561153,
+          "cp_lower_95": 0.3319064739346538,
+          "false_not_a_material": 0,
+          "id": "B1-dev",
+          "matched": 104,
+          "precision": 0.41346153846153844
+        },
+        "fr": {
+          "correct": 12,
+          "coverage": 0.08633093525179857,
+          "cp_lower_95": 0.2691109954903409,
+          "false_not_a_material": 0,
+          "id": "B1-dev",
+          "matched": 28,
+          "precision": 0.42857142857142855
+        },
+        "rung": "B1 TF-IDF",
+        "shipped": false
+      },
+      {
+        "en": {
+          "correct": 103,
+          "coverage": 0.7410071942446043,
+          "cp_lower_95": 0.7127539956839708,
+          "false_not_a_material": 0,
+          "id": "B2-dev-en",
+          "matched": 132,
+          "precision": 0.7803030303030303
+        },
+        "fr": {
+          "correct": 106,
+          "coverage": 0.762589928057554,
+          "cp_lower_95": 0.7373714279818777,
+          "false_not_a_material": 0,
+          "id": "B2-dev-fr",
+          "matched": 132,
+          "precision": 0.803030303030303
+        },
+        "rung": "B2 one Haiku pass",
+        "shipped": false
+      },
+      {
+        "en": {
+          "correct": 110,
+          "coverage": 0.7913669064748201,
+          "cp_lower_95": 0.72661287515895,
+          "false_not_a_material": 0,
+          "id": "R-10.9-evidence",
+          "matched": 139,
+          "precision": 0.7913669064748201
+        },
+        "fr": {
+          "correct": 113,
+          "coverage": 0.8129496402877698,
+          "cp_lower_95": 0.7500737709686591,
+          "false_not_a_material": 0,
+          "id": "R-10.9-evidence",
+          "matched": 139,
+          "precision": 0.8129496402877698
+        },
+        "rung": "B2, 25-word evidence cap",
+        "shipped": false
+      },
+      {
+        "en": {
+          "correct": 90,
+          "coverage": 0.6474820143884892,
+          "cp_lower_95": 0.8261702676328773,
+          "false_not_a_material": 0,
+          "id": "B3-dev-sel",
+          "matched": 101,
+          "precision": 0.8910891089108911
+        },
+        "fr": {
+          "correct": 95,
+          "coverage": 0.6834532374100719,
+          "cp_lower_95": 0.8538486716567255,
+          "false_not_a_material": 0,
+          "id": "B3-dev-sel",
+          "matched": 104,
+          "precision": 0.9134615384615384
+        },
+        "rung": "B3, k = 2, selected T8",
+        "shipped": false
+      },
+      {
+        "en": {
+          "correct": 82,
+          "coverage": 0.5899280575539568,
+          "cp_lower_95": 0.9441180061315639,
+          "false_not_a_material": 0,
+          "id": "B3-dev-e08",
+          "matched": 83,
+          "precision": 0.9879518072289156
+        },
+        "fr": {
+          "correct": 81,
+          "coverage": 0.5827338129496403,
+          "cp_lower_95": 0.9434520336139303,
+          "false_not_a_material": 0,
+          "id": "B3-dev-e08",
+          "matched": 82,
+          "precision": 0.9878048780487805
+        },
+        "rung": "B3 + E-08 verifier",
+        "shipped": false
+      },
+      {
+        "en": {
+          "correct": 92,
+          "coverage": 0.6618705035971223,
+          "cp_lower_95": 0.9345375957643229,
+          "false_not_a_material": 0,
+          "id": "B3-dev-e01",
+          "matched": 94,
+          "precision": 0.9787234042553191
+        },
+        "fr": {
+          "correct": 102,
+          "coverage": 0.7338129496402878,
+          "cp_lower_95": 0.9547716982887455,
+          "false_not_a_material": 0,
+          "id": "B3-dev-e01",
+          "matched": 103,
+          "precision": 0.9902912621359223
+        },
+        "rung": "B3 + verifier + E-01 enrichment (shipped)",
+        "shipped": true
+      }
+    ],
+    "source": "eval/experiments.jsonl"
+  },
+  "generated_from": [
+    "CHANGELOG.md",
+    "config/policy.yaml",
+    "data/boq_dataset_matched_GT.csv",
+    "data/oris_materials_fr.csv",
+    "data/oris_materials_global.csv",
+    "docs/gates/G6.md",
+    "docs/traced-cases.md",
+    "eval/experiments.jsonl",
+    "eval/score.py",
+    "eval/smoke_fr_v1_result.json",
+    "eval/split_v1.json",
+    "input/boq_dataset_input_en.csv",
+    "output/improved_output_en.csv",
+    "output/improved_output_fr.csv",
+    "runs/submission/20261008T023626Z-ea37e3a1/manifest.json",
+    "runs/submission/20261008T023750Z-be2dd33e/manifest.json",
+    "runs/submission/20261008T023928Z-56f85fb8/audit.jsonl",
+    "runs/submission/20261008T023928Z-56f85fb8/manifest.json",
+    "runs/submission/20261008T024244Z-de394c39/manifest.json",
+    "src/oris_matcher/domain/batching.py",
+    "src/oris_matcher/domain/decision.py",
+    "src/oris_matcher/domain/validator.py",
+    "src/oris_matcher/enrichment.py",
+    "src/oris_matcher/io/audit.py",
+    "src/oris_matcher/io/boq_reader.py",
+    "src/oris_matcher/io/writer.py",
+    "src/oris_matcher/prompts/v1/enriched.py",
+    "src/oris_matcher/service.py",
+    "src/oris_matcher/verification.py"
+  ],
+  "libraries": {
+    "fr": {
+      "path": "data/oris_materials_fr.csv",
+      "rows": 70,
+      "sha256": "6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2",
+      "types": 24,
+      "usages": 39
+    },
+    "global": {
+      "path": "data/oris_materials_global.csv",
+      "rows": 342,
+      "sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+      "types": 30,
+      "usages": 108
+    }
+  },
+  "library_tree": {
+    "heat": {
+      "Additives": {
+        "8": 6
+      },
+      "Admixture": {
+        "3": 1,
+        "8": 7
+      },
+      "Aggregates": {
+        "1": 6,
+        "2": 2,
+        "3": 13,
+        "6": 4,
+        "8": 7
+      },
+      "Asphalt": {
+        "3": 28
+      },
+      "Bitumen": {
+        "3": 4,
+        "8": 2
+      },
+      "Blast furnace slag": {
+        "3": 1,
+        "8": 1
+      },
+      "Building Components": {
+        "3": 2
+      },
+      "Cabling Components": {
+        "7": 1
+      },
+      "Cement": {
+        "3": 4,
+        "8": 8
+      },
+      "Cold Recycled Bound Material": {
+        "3": 2
+      },
+      "Composite": {
+        "3": 1,
+        "7": 1
+      },
+      "Concrete": {
+        "3": 11,
+        "4": 38,
+        "5": 14,
+        "6": 3,
+        "9": 9
+      },
+      "Construction and demolition material": {
+        "1": 22,
+        "6": 2
+      },
+      "Drainage Elements": {
+        "2": 1
+      },
+      "Excavations and Rock Cutting": {
+        "1": 9,
+        "5": 4
+      },
+      "Filler": {
+        "3": 1,
+        "8": 2
+      },
+      "Fly Ash": {
+        "3": 1,
+        "8": 1
+      },
+      "Gabion Systems": {
+        "7": 1
+      },
+      "Geotextile": {
+        "1": 1
+      },
+      "Hydrated lime": {
+        "3": 1,
+        "8": 1
+      },
+      "Limestone": {
+        "3": 1,
+        "8": 2
+      },
+      "Prefab": {
+        "2": 2,
+        "3": 3,
+        "6": 1,
+        "7": 1
+      },
+      "Quicklime": {
+        "1": 1
+      },
+      "Recycled Plastic": {
+        "2": 1,
+        "7": 1
+      },
+      "Silica Fume": {
+        "3": 1,
+        "8": 1
+      },
+      "Soil": {
+        "1": 1
+      },
+      "Steel": {
+        "4": 8,
+        "5": 1,
+        "6": 1,
+        "7": 1
+      },
+      "Water": {
+        "8": 1
+      },
+      "Wood": {
+        "7": 1
+      }
+    },
+    "l0": {
+      "0": "Preliminaries and general items",
+      "1": "Site clearance, demolition and earthworks",
+      "2": "Drainage",
+      "3": "Pavement",
+      "4": "River bridge BW-3 and structures",
+      "5": "Tunnel Kalkberg",
+      "6": "Railway underpass EÜ-7 and track works",
+      "7": "Road equipment, retaining systems and ducts",
+      "8": "Materials supplied to batching and mixing plants",
+      "9": "Buildings and minor structures"
+    },
+    "lib_f": [
+      [
+        "Travaux Maritimes",
+        "Équipement maritime",
+        "Défense pneu usagé"
+      ],
+      [
+        "Armatures",
+        "Armatures béton armé",
+        "Armatures de béton armé"
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour bétons",
+        "Métakaloin flashé ARGICEM - ARGECO Développement"
+      ],
+      [
+        "Géotextiles et membranes",
+        "Géotextiles",
+        "Géotextile 250 g/m²"
+      ],
+      [
+        "Additifs",
+        "Additifs pour mélange bitumineux",
+        "Additif pour WMA (organique)"
+      ],
+      [
+        "Canalisations",
+        "Tuyaux",
+        "Tuyau PEHD"
+      ],
+      [
+        "Bétons",
+        "Béton NF EN 206 CN",
+        "Béton X0 C16/20 150kg CEM I"
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in tonne)",
+        ""
+      ],
+      [
+        "Liants bitumineux",
+        "Bitumes purs",
+        "Bitume pur 15/25"
+      ],
+      [
+        "Bétons",
+        "Béton NF EN 206 CN",
+        "Béton XS3-XD3-XA2 C35/45 350kg CEM I"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "SMA (enrobé tiède) 20% AE"
+      ],
+      [
+        "Bétons",
+        "Béton Fascicule 65",
+        "Béton XS3-XC1-XC2-XC3-XC4-XS1-XS2-XD1-XD2-XF1-XA1 C35/45 350kg CEM I"
+      ],
+      [
+        "Canalisations",
+        "Tuyaux",
+        "Tuyau acier nu"
+      ],
+      [
+        "Appareils d'appui",
+        "Appareil d'appui élastomère",
+        ""
+      ],
+      [
+        "Matériaux Sortants",
+        "Traitement des déchets",
+        "Déchets métal non-ferreux "
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "GB1 (enrobé tiède) 40% AE"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBMa (enrobé chaud) 30% AE"
+      ],
+      [
+        "Additifs",
+        "Filler",
+        "Fillers calcaire : Dry ground calcium carbonate (GCC-Dry) Fine"
+      ],
+      [
+        "Matériaux Sortants",
+        "Traitement des déchets",
+        "Déchets dangereux stockage "
+      ],
+      [
+        "Additifs",
+        "Additifs pour mélange bitumineux",
+        "Pigment rouge (oxyde de fer)"
+      ],
+      [
+        "Joints",
+        "Joint bitumineux",
+        "Joint à revêtement amélioré"
+      ],
+      [
+        "Plastiques",
+        "Tubes",
+        "Tube PEHD"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "GB2 (enrobé chaud) 30% AE"
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour bétons",
+        "Accélérateurs de prise"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Asphalte d'étanchéité pour ouvrage d'art",
+        ""
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBSG (enrobé chaud) 10% AE"
+      ],
+      [
+        "Feuilles d'étanchéité",
+        "Feuille EPDM",
+        ""
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour bétons",
+        "Retardateurs"
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour boue de forage",
+        "Carbonates de sodium"
+      ],
+      [
+        "Granulats",
+        "Granulats naturels",
+        "Granulats naturels"
+      ],
+      [
+        "Plastiques",
+        "Polystyrène",
+        "Polystyrène expansé"
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour bétons",
+        "Laitier de haut fourneau"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "EME2 (enrobé chaud) 40% AE"
+      ],
+      [
+        "Produits métalliques",
+        "Profilés",
+        "Profilé à froid brut"
+      ],
+      [
+        "Bois",
+        "Coffrage",
+        "Coffrage bois - local France"
+      ],
+      [
+        "Canalisations",
+        "Canalisations en fonte ductile",
+        "Tuyau fonte ductile ∅ 200"
+      ],
+      [
+        "Géotextiles et membranes",
+        "Géotextiles",
+        "Géotextile 150 g/m²"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBSG (enrobé chaud)"
+      ],
+      [
+        "Bétons",
+        "Béton Fascicule 65",
+        "Béton XC3-XC4-XS1-XS2-XD1-XD2-XF1-XA1 C30/37 330kg CEM I"
+      ],
+      [
+        "Liants bitumineux",
+        "Bitumes modifiés",
+        "Bitume polymère 3.5%"
+      ],
+      [
+        "Armatures",
+        "Pieux",
+        ""
+      ],
+      [
+        "Liants bitumineux",
+        "Emulsions",
+        "Emulsion d'enrobage 65%"
+      ],
+      [
+        "Travaux Maritimes",
+        "Produits métalliques",
+        "Opercule tête de pieu"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBDr (enrobé chaud) 10% AE"
+      ],
+      [
+        "Adjuvants",
+        "Adjuvants pour boue de forage",
+        "Carboxyméthylcellulose"
+      ],
+      [
+        "Granulats",
+        "Granulats naturels",
+        "Gravillons"
+      ],
+      [
+        "Travaux à l'explosif",
+        "Cordeaux",
+        "Cordeau 3.6 g"
+      ],
+      [
+        "Matériaux traités aux Liant hydraulique",
+        "Grave ciment",
+        "Grave Ciment 6%"
+      ],
+      [
+        "Équipements électriques",
+        "Éclairage extérieur",
+        "Mat de candélabre composite - 6 à 12 m"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBME (enrobé tiède)"
+      ],
+      [
+        "Travaux Maritimes",
+        "Équipement maritime",
+        "Bollard Acier 15 T"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "SMA (enrobé chaud) 20% AE"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBDr (enrobé chaud) 30% AE"
+      ],
+      [
+        "Bétons",
+        "Béton NF EN 206 CN",
+        "Béton XS1-XS2-XD2-XA1 C30/37 330kg CEM I"
+      ],
+      [
+        "Géotextiles et membranes",
+        "Géotextiles",
+        "Géotextile 800 g/m²"
+      ],
+      [
+        "Canalisations",
+        "Canalisations en fonte ductile",
+        "Tuyau fonte ductile ∅ 300"
+      ],
+      [
+        "Travaux Ferroviaires",
+        "Traverses",
+        "Traverse métallique"
+      ],
+      [
+        "Canalisations",
+        "Tuyaux",
+        "Fourreaux TPC"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "GB1 (enrobé chaud)"
+      ],
+      [
+        "Équipements électriques",
+        "Câbles pose souterraine",
+        "Câble haute tension aluminium"
+      ],
+      [
+        "Appareils d'appui",
+        "Appareil d'appui à pot",
+        ""
+      ],
+      [
+        "Granulats",
+        "Déblais",
+        "Déblais réutilisés"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "EME1 (enrobé chaud) 20% AE"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBMa (enrobé tiède) 20% AE"
+      ],
+      [
+        "Équipements métalliques",
+        "Garde-corps",
+        "Garde-corps métalliques normalisés"
+      ],
+      [
+        "Mélanges Bitumineux",
+        "Enrobés bitumineux",
+        "BBDr (enrobé chaud)"
+      ],
+      [
+        "Liants bitumineux",
+        "Bitumes modifiés",
+        "Bitume polymère 5%"
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in m3)",
+        ""
+      ],
+      [
+        "Éléments préfabriqués",
+        "Poutrelles",
+        "Poutrelle en béton précontraint (12cm<hauteur<15cm)"
+      ],
+      [
+        "Produits métalliques",
+        "Aluminium",
+        "Aluminium neuf"
+      ]
+    ],
+    "lib_g": [
+      [
+        "Blast furnace slag",
+        "for use in concrete mixtures",
+        "",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for asphalt mixtures",
+        "Normal Bitumen",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "For chemical process technologies (WMA)",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "For foaming systems technologies (WMA)",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "For organic additives technologies (WMA)",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "Organic fibers",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Retarder",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Set accelerator",
+        1
+      ],
+      [
+        "Admixture",
+        "Admixtures for hydraulically bound mixtures",
+        "Retarder",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Air entrainer",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "harderning accelerator",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Plasticiser",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnels",
+        "C60/75",
+        1
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "C8/10",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mortar for annular gap filling",
+        "Cellular concrete mortar",
+        1
+      ],
+      [
+        "Blast furnace slag",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Filler",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Concrete",
+        "Wet Shotcrete for rock tunnels",
+        "C20/25",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for Surface dressing / Chip Seal",
+        "Bitumen emulsion",
+        1
+      ],
+      [
+        "Wood",
+        "Handrail in wood/timber",
+        "",
+        1
+      ],
+      [
+        "Concrete",
+        "Wet Shotcrete for rock tunnels",
+        "C30/37",
+        1
+      ],
+      [
+        "Composite",
+        "Soil-Mix wall (without metal structure)",
+        "",
+        1
+      ],
+      [
+        "Drainage Elements",
+        "Rain gutter system (PVC-U)",
+        "",
+        1
+      ],
+      [
+        "Concrete",
+        "Porous concrete for the base layer",
+        "",
+        1
+      ],
+      [
+        "Gabion Systems",
+        "Gabion walls, fence systems and mattress",
+        "",
+        1
+      ],
+      [
+        "Geotextile",
+        "For separation, filtration and reinforcement in pavement and earthworks construction",
+        "",
+        1
+      ],
+      [
+        "Prefab",
+        "Concrete cable ducts",
+        "",
+        1
+      ],
+      [
+        "Prefab",
+        "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+        "",
+        4
+      ],
+      [
+        "Silica Fume",
+        "for use in concrete mixtures",
+        "",
+        1
+      ],
+      [
+        "Steel",
+        "For railway track",
+        "",
+        1
+      ],
+      [
+        "Steel",
+        "Guardrail",
+        "",
+        2
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "",
+        0
+      ],
+      [
+        "Bitumen",
+        "bitumen for asphalt mixtures",
+        "",
+        0
+      ],
+      [
+        "Bitumen",
+        "bitumen for coating ",
+        "",
+        0
+      ],
+      [
+        "Bitumen",
+        "bitumen for Surface dressing / Chip Seal",
+        "",
+        0
+      ],
+      [
+        "Steel",
+        "Steel for tunnel lining",
+        "",
+        1
+      ],
+      [
+        "Steel",
+        "Sheet piles",
+        "",
+        1
+      ],
+      [
+        "Filler",
+        "for use in concrete mixtures",
+        "",
+        1
+      ],
+      [
+        "Fly Ash",
+        "for use in concrete mixtures",
+        "",
+        1
+      ],
+      [
+        "Quicklime",
+        "for use in concrete mixtures",
+        "",
+        0
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in m)",
+        "",
+        0
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in kg)",
+        "",
+        0
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in tonne)",
+        "",
+        0
+      ],
+      [
+        "Soil",
+        "Soil for construction",
+        "",
+        1
+      ],
+      [
+        "Water",
+        "for all usage",
+        "",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for abutment",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for abutment",
+        "C40/50",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "Sulphur pellets",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in steel reinforced concrete",
+        "C25/30",
+        1
+      ],
+      [
+        "Additives",
+        "Additives for asphalt",
+        "Metallic fibers",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C35/45",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Water resisting admixtures",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C50/60",
+        1
+      ],
+      [
+        "Building Components",
+        "Brick (clay)",
+        "",
+        1
+      ],
+      [
+        "Admixture",
+        "admixtures for concrete",
+        "Metallic fibers",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for concrete girder",
+        "C25/30",
+        1
+      ],
+      [
+        "Building Components",
+        "Tile (clay)",
+        "",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for subbase",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for excavation beam",
+        "C30/37",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "High quality rock from tunnel blasting",
+        1
+      ],
+      [
+        "Aggregates",
+        "Sand for asphalt mixtures",
+        "Recycled Aggregates",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for footings",
+        "C35/45",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For landfill",
+        "Low quality rock from tunnel blasting",
+        1
+      ],
+      [
+        "Steel",
+        "for concrete reinforcement",
+        "",
+        2
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for base filling",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for railway",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piers",
+        "C45/55",
+        1
+      ],
+      [
+        "Recycled Plastic",
+        "for all usage",
+        "",
+        2
+      ],
+      [
+        "Aggregates",
+        "Gravel for asphalt mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for railway base slab",
+        "C25/30",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For landfill",
+        "Waste",
+        1
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in m3)",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for concrete mixtures",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for retaining wall",
+        "C35/45",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Average quality rock from tunnel blasting",
+        1
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in m2)",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for hydraulically bound mixtures",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel collar structure",
+        "C25/30",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For landfill",
+        "Low quality rock from rock cutting",
+        1
+      ],
+      [
+        "Custom",
+        "Custom material (Carbon impact in pieces)",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for concrete mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 09 - Other construction and demolition wastes",
+        "17 09 03 - Other construction and demolition wastes (including mixed wastes) containing hazardous substances",
+        0
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Reclaimed Asphalt Planings (RAP)",
+        1
+      ],
+      [
+        "Aggregates",
+        "Sand for hydraulically bound mixtures",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 01 - Concrete, bricks, tiles and ceramics",
+        "17 01 01 - Concrete",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 01 - Concrete, bricks, tiles and ceramics",
+        "17 01 02 - Bricks",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 01 - Concrete, bricks, tiles and ceramics",
+        "17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 02 - Wood, glass and plastic",
+        "17 02 02 - Glass",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 02 - Wood, glass and plastic",
+        "17 02 04 - Glass, plastic and wood containing or contaminated with hazardous substances",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 03 - Bituminous mixtures, coal tar and tarred products",
+        "17 03 02 - Bituminous mixtures other than those mentioned in 17 03 01",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 02 - Aluminium",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 04 - Zinc",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 06 - Tin",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 09 - Metal waste contaminated with hazardous substances",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 03 - Soil and stones containing hazardous substances",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 05 - Dredging spoil containing hazardous substances",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 07 - Track ballast containing hazardous substances",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 06 - Insulation materials and asbestos-containing construction materials",
+        "17 06 03 - Other insulation materials consisting of or containing hazardous substances",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 06 - Insulation materials and asbestos-containing construction materials",
+        "17 06 05 - Construction materials containing asbestos",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 08 - Gypsum-based construction material",
+        "17 08 02 - Gypsum-based construction materials other than those mentioned in 17 08 01",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for base layer",
+        "Reclaimed Asphalt",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for base layer",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for capping",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for embankment",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 09 - Other construction and demolition wastes",
+        "17 09 01 - Construction and demolition wastes containing mercury",
+        0
+      ],
+      [
+        "Filler",
+        "for use in asphalt mixtures",
+        "",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for subbase",
+        "Reclaimed Asphalt",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 01 - Concrete, bricks, tiles and ceramics",
+        "17 01 03 - Tiles and ceramics",
+        1
+      ],
+      [
+        "Fly Ash",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Hot Rolled Asphalt (HRA) - HMA",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 01 - Concrete, bricks, tiles and ceramics",
+        "17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Mastic Asphalt (MA) - HMA",
+        1
+      ],
+      [
+        "Hydrated lime",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - WMA 10% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - WMA",
+        0
+      ],
+      [
+        "Hydrated lime",
+        "for use in asphalt mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - HMA 30% RAP",
+        1
+      ],
+      [
+        "Limestone",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - HMA 30% RAP",
+        0
+      ],
+      [
+        "Limestone",
+        "for use in concrete mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - WMA 50% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - HMA 50% RAP",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for abutment",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in prestressed concrete",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in prestressed concrete",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in prestressed concrete",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in steel reinforced concrete",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for beam in steel reinforced concrete",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C25/30",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C40/50",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for bridge deck",
+        "C45/55",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for cladding of MSE walls",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for cladding of MSE walls",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for cladding of MSE walls",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for concrete girder",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for concrete girder",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for excavation beam",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for excavation beam",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for footings",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for footings",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piers",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piers",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piers",
+        "C40/50",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piles",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piles",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for piles",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for railway base slab",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for railway base slab",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for retaining wall",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for retaining wall",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for transition slabs",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for transition slabs",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel base slab",
+        "C25/30",
+        1
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for base filling",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for base filling",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for railway",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Crushed rock for railway",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Filtration layer of sand",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Filtration layer of sand",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Filtration layer of sand",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Gravel for asphalt mixtures",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Gravel for asphalt mixtures",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Gravel for concrete mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for concrete mixtures",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Gravel for hydraulically bound mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel collar structure",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnels",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnels",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnels",
+        "C50/60",
+        1
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "C12/15",
+        1
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "C20/25",
+        1
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "C25/30",
+        0
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C12/15",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C20/25",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C25/30",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C40/50",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete mixture for wearing course",
+        "C8/10",
+        0
+      ],
+      [
+        "Concrete",
+        "Lean concrete",
+        "C16/20",
+        1
+      ],
+      [
+        "Concrete",
+        "Precast Concrete sleeper for railway",
+        "B99",
+        0
+      ],
+      [
+        "Concrete",
+        "concrete mixture for base course",
+        "",
+        0
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel base slab",
+        "C30/37",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel base slab",
+        "C35/45",
+        1
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnel collar structure",
+        "C30/37",
+        1
+      ],
+      [
+        "Aggregates",
+        "Filtration layer of sand",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for asphalt mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for concrete mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for hydraulically bound mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for asphalt mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for concrete mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for hydraulically bound mixtures",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for base layer",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for capping",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for granular surfacing",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for subbase",
+        "",
+        0
+      ],
+      [
+        "Aggregates",
+        "Gravel for hydraulically bound mixtures",
+        "Recycled Aggregates",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for asphalt mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for asphalt mixtures",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Sand for concrete mixtures",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Sand for concrete mixtures",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Sand for hydraulically bound mixtures",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Sand for hydraulically bound mixtures",
+        "Virgin Aggregates",
+        0
+      ],
+      [
+        "Aggregates",
+        "Unbound aggregates for Ballast",
+        "Reclaimed Asphalt",
+        0
+      ],
+      [
+        "Aggregates",
+        "Unbound aggregates for Ballast",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "Unbound aggregates for Ballast",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for base layer",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for capping",
+        "Reclaimed Asphalt",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for capping",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for embankment",
+        "Reclaimed Asphalt",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for embankment",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for granular surfacing",
+        "Reclaimed Asphalt",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for granular surfacing",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for granular surfacing",
+        "Virgin Aggregates",
+        1
+      ],
+      [
+        "Aggregates",
+        "unbound aggregates for subbase",
+        "Recycled Aggregates",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM IV/A",
+        0
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM IV/B",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM I",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM III/B",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM III/C",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM III/A",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM II/A",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - WMA 20% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Hot Rolled Asphalt (HRA) - HMA 10% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Hot Rolled Asphalt (HRA) - HMA 20% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Mastic Asphalt (MA) - HMA 10% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Mastic Asphalt (MA) - WMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Mastic Asphalt (MA) - WMA 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - HMA 20% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Porous Asphalt (PA) - WMA",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - 20% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - WMA 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Stone Mastic Asphalt (SMA) - WMA 20% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - HMA 50% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - WMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - HMA 50% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - WMA",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "High Modulus Asphalt (EME2) - WMA 30% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - WMA",
+        0
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM V/B",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM II/A",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM II/B",
+        1
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM III/A",
+        1
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM III/B",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM IV/A",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM IV/B",
+        0
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM V/A",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - WMA 50% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - HMA 30% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - HMA 30% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - HMA 50% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Hot Rolled Asphalt (HRA) - HMA",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Hot Rolled Asphalt (HRA) - HMA 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Hot Rolled Asphalt (HRA) - HMA 20% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - HMA 30% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - HMA 50% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - WMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - WMA 50% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - HMA",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - HMA 10% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - WMA",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - WMA 10% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - WMA 20% RAP",
+        0
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - WMA 50% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - WMA 30% RAP",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Asphalt Concrete (AC) - WMA 50% RAP",
+        0
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Low quality rock from rock cutting",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For landfill",
+        "Soil Excavation",
+        2
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Average quality rock from rock cutting",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Concrete arisings",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "High quality rock from rock cutting",
+        1
+      ],
+      [
+        "Excavations and Rock Cutting",
+        "For use as aggregates",
+        "Low quality rock from tunnel blasting",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - WMA",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 02 - Wood, glass and plastic",
+        "17 02 01 - Wood",
+        1
+      ],
+      [
+        "Limestone",
+        "for all usage",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - HMA",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 02 - Wood, glass and plastic",
+        "17 02 03 - Plastic",
+        1
+      ],
+      [
+        "Prefab",
+        "Precast Concrete sleeper for railway",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "Stone Mastic Asphalt (SMA) - WMA 30% RAP",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 03 - Bituminous mixtures, coal tar and tarred products",
+        "17 03 01 - Bituminous mixtures containing coal tar",
+        0
+      ],
+      [
+        "Prefab",
+        "Concrete paving blocks",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for surface course",
+        "Asphalt Concrete (AC) - HMA 20% RAP",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 03 - Bituminous mixtures, coal tar and tarred products",
+        "17 03 03 - Coal tar and tarred products",
+        0
+      ],
+      [
+        "Quicklime",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for base course",
+        "Asphalt Concrete (AC) - WMA 30% RAP",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 01 - Copper, bronze, brass",
+        1
+      ],
+      [
+        "Silica Fume",
+        "For use in hydraulically bound mixtures",
+        "",
+        1
+      ],
+      [
+        "Asphalt",
+        "asphalt mixture for binder course",
+        "High Modulus Asphalt (EME2) - WMA 30% RAP",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 03 - Lead",
+        0
+      ],
+      [
+        "Steel",
+        "Micropiles",
+        "",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for coating ",
+        "Bitumen emulsion",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 05 - Iron and steel",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C12/15",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for coating ",
+        "Cut back",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 07 - Mixed metals",
+        0
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C20/25",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for asphalt mixtures",
+        "Polymer Modified Bitumen (PMB)",
+        1
+      ],
+      [
+        "Bitumen",
+        "bitumen for Surface dressing / Chip Seal",
+        "Cut back",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 10 - Cables containing oil, coal tar and other hazardous substances",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C25/30",
+        1
+      ],
+      [
+        "Cabling Components",
+        "High-Density Polyethylene (HDPE)",
+        "",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 04 - Metals (including their alloys)",
+        "17 04 11 - Cables other than those mentioned in 17 04 10",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C30/37",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM V/A",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 04 - Soil and stones other than those mentioned in 17 05 03",
+        1
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM I",
+        1
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM III/C",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 06 - Dredging spoil other than those mentioned in 17 05 05",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C35/45",
+        1
+      ],
+      [
+        "Cement",
+        "cement for hydraulically bound mixtures",
+        "CEM V/B",
+        0
+      ],
+      [
+        "Construction and demolition material",
+        "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+        "17 05 08 - Track ballast other than those mentioned in 17 05 07",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C40/50",
+        1
+      ],
+      [
+        "Cement",
+        "cement for concrete mixtures",
+        "CEM II/B",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 06 - Insulation materials and asbestos-containing construction materials",
+        "17 06 01 - Insulation materials containing asbestos",
+        0
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C45/55",
+        1
+      ],
+      [
+        "Cold Recycled Bound Material",
+        "Foamed bitumen stabilised (Quick Visco-Elastic)",
+        "",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 06 - Insulation materials and asbestos-containing construction materials",
+        "17 06 04 - Insulation materials other than those mentioned in 17 06 01 and 17 06 03",
+        1
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C50/60",
+        1
+      ],
+      [
+        "Cold Recycled Bound Material",
+        "Foamed bitumen stabilised (Slow Visco-Elastic)",
+        "",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 08 - Gypsum-based construction material",
+        "17 08 01 - Gypsum-based construction materials contaminated with hazardous substances",
+        0
+      ],
+      [
+        "Concrete",
+        "General Ready mixed concrete",
+        "C60/75",
+        1
+      ],
+      [
+        "Composite",
+        "Cement bound granular mixture",
+        "",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 09 - Other construction and demolition wastes",
+        "17 09 02 - Construction and demolition wastes containing PCB (for example PCB-containing sealants, PCB-containing resin-based floorings, PCB-containing sealed glazing units, PCB-containing capacitors)",
+        1
+      ],
+      [
+        "Steel",
+        "Structural steel (generic construction steel)",
+        "",
+        2
+      ],
+      [
+        "Concrete",
+        "Concrete for tunnels",
+        "C25/30",
+        1
+      ],
+      [
+        "Construction and demolition material",
+        "17 09 - Other construction and demolition wastes",
+        "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03",
+        1
+      ],
+      [
+        "Steel",
+        "Handrail in steel/metal",
+        "",
+        1
+      ]
+    ]
+  },
+  "lockbox": {
+    "en": {
+      "correct": 88,
+      "coverage": 0.7787610619469026,
+      "cp_lower_95": 0.94780622916145,
+      "decisions_item_rows": {
+        "counts": {
+          "matched": 89,
+          "needs_review": 29,
+          "not_a_material": 2
+        },
+        "denominator": 120,
+        "shares": {
+          "matched": 0.7416666666666667,
+          "needs_review": 0.24166666666666667,
+          "not_a_material": 0.016666666666666666
+        }
+      },
+      "false_not_a_material": 0,
+      "hit_at_1": 0.5833333333333334,
+      "hit_at_2": 0.7083333333333334,
+      "items": 120,
+      "labelled": 113,
+      "matched": 89,
+      "per_level_labelled": {
+        "source": "suggested",
+        "triple": 0.9026548672566371,
+        "type": 0.9734513274336283,
+        "type_usage": 0.9292035398230089
+      },
+      "per_level_matched": {
+        "triple": 0.9887640449438202,
+        "type": 1.0,
+        "type_usage": 0.9887640449438202
+      },
+      "precision": 0.9887640449438202
+    },
+    "fr": {
+      "correct": 79,
+      "coverage": 0.6991150442477876,
+      "cp_lower_95": 0.9420713178822182,
+      "decisions_item_rows": {
+        "counts": {
+          "matched": 80,
+          "needs_review": 38,
+          "not_a_material": 2
+        },
+        "denominator": 120,
+        "shares": {
+          "matched": 0.6666666666666666,
+          "needs_review": 0.31666666666666665,
+          "not_a_material": 0.016666666666666666
+        }
+      },
+      "false_not_a_material": 0,
+      "hit_at_1": 0.6060606060606061,
+      "hit_at_2": 0.7272727272727273,
+      "items": 120,
+      "labelled": 113,
+      "matched": 80,
+      "per_level_labelled": {
+        "source": "suggested",
+        "triple": 0.8761061946902655,
+        "type": 0.9292035398230089,
+        "type_usage": 0.8938053097345132
+      },
+      "per_level_matched": {
+        "triple": 0.9875,
+        "type": 1.0,
+        "type_usage": 0.9875
+      },
+      "precision": 0.9875
+    }
+  },
+  "lockbox_session": {
+    "runs": [
+      {
+        "lang": "en",
+        "profile": "b2",
+        "run_id": "20261008T023626Z-ea37e3a1",
+        "spend_usd": 0.2192406
+      },
+      {
+        "lang": "fr",
+        "profile": "b2",
+        "run_id": "20261008T023750Z-be2dd33e",
+        "spend_usd": 0.21728820000000001
+      },
+      {
+        "lang": "en",
+        "profile": "b3",
+        "run_id": "20261008T023928Z-56f85fb8",
+        "spend_usd": 0.6860911000000001
+      },
+      {
+        "lang": "fr",
+        "profile": "b3",
+        "run_id": "20261008T024244Z-de394c39",
+        "spend_usd": 0.6755982
+      }
+    ],
+    "total_spend_usd": 1.7982181000000002
+  },
+  "operations": {
+    "en": {
+      "calls": 124,
+      "cost_per_100_lines_usd": 0.2150755799373041,
+      "latency_s_per_routed_line": 0.6312163120567376,
+      "lines": 319,
+      "model": "claude-haiku-4-5-20251001",
+      "profile": "b3",
+      "routed_lines": 282,
+      "run_id": "20261008T023928Z-56f85fb8",
+      "spend_usd": 0.6860911000000001,
+      "wall_clock_s": 178.003
+    },
+    "fr": {
+      "calls": 125,
+      "cost_per_100_lines_usd": 0.2117862695924765,
+      "latency_s_per_routed_line": 0.675741134751773,
+      "lines": 319,
+      "model": "claude-haiku-4-5-20251001",
+      "profile": "b3",
+      "routed_lines": 282,
+      "run_id": "20261008T024244Z-de394c39",
+      "spend_usd": 0.6755982,
+      "wall_clock_s": 190.559
+    }
+  },
+  "pipeline_en": {
+    "batches": {
+      "batch_size": 10,
+      "pass_calls": [
+        42,
+        42
+      ],
+      "total_calls": 124,
+      "verifier_calls": 40
+    },
+    "counts": {
+      "header": 37,
+      "matched": 185,
+      "needs_review": 90,
+      "not_a_material": 7
+    },
+    "lang": "en",
+    "rows": [
+      {
+        "batch": null,
+        "class": "header",
+        "item": "0",
+        "position": 0,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "00.01.",
+        "position": 1,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 0,
+        "class": "not_a_material",
+        "item": "00.01.0010.",
+        "position": 2,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 0,
+        "class": "not_a_material",
+        "item": "00.01.0020.",
+        "position": 3,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 0,
+        "class": "needs_review",
+        "item": "00.01.0030.",
+        "position": 4,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "00.02.",
+        "position": 5,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 1,
+        "class": "not_a_material",
+        "item": "00.02.0010.",
+        "position": 6,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 1,
+        "class": "needs_review",
+        "item": "00.02.0020.",
+        "position": 7,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 1,
+        "class": "not_a_material",
+        "item": "00.02.0030.",
+        "position": 8,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "00.03.",
+        "position": 9,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 2,
+        "class": "needs_review",
+        "item": "00.03.0010.",
+        "position": 10,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 2,
+        "class": "needs_review",
+        "item": "00.03.0020.",
+        "position": 11,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 2,
+        "class": "not_a_material",
+        "item": "00.03.0030.",
+        "position": 12,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 2,
+        "class": "needs_review",
+        "item": "00.03.0040.",
+        "position": 13,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 2,
+        "class": "needs_review",
+        "item": "00.03.0050.",
+        "position": 14,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "1",
+        "position": 15,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "01.01.",
+        "position": 16,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 3,
+        "class": "needs_review",
+        "item": "01.01.0010.",
+        "position": 17,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 3,
+        "class": "needs_review",
+        "item": "01.01.0020.",
+        "position": 18,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "01.02.",
+        "position": 19,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0010.",
+        "position": 20,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0020.",
+        "position": 21,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0030.",
+        "position": 22,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0040.",
+        "position": 23,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0080.",
+        "position": 24,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0090.",
+        "position": 25,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0100.",
+        "position": 26,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "needs_review",
+        "item": "01.02.0110.",
+        "position": 27,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0120.",
+        "position": 28,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 4,
+        "class": "matched",
+        "item": "01.02.0130.",
+        "position": 29,
+        "side": "dev",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0140.",
+        "position": 30,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0150.",
+        "position": 31,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0160.",
+        "position": 32,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0170.",
+        "position": 33,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0180.",
+        "position": 34,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0190.",
+        "position": 35,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0200.",
+        "position": 36,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 5,
+        "class": "needs_review",
+        "item": "01.02.0210.",
+        "position": 37,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "01.03.",
+        "position": 38,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 6,
+        "class": "needs_review",
+        "item": "01.03.0010.",
+        "position": 39,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 6,
+        "class": "matched",
+        "item": "01.03.0020.",
+        "position": 40,
+        "side": "lockbox",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 6,
+        "class": "needs_review",
+        "item": "01.03.0030.",
+        "position": 41,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 6,
+        "class": "matched",
+        "item": "01.03.0040.",
+        "position": 42,
+        "side": "lockbox",
+        "verifier_batch": 0
+      },
+      {
+        "batch": 6,
+        "class": "matched",
+        "item": "01.03.0050.",
+        "position": 43,
+        "side": "lockbox",
+        "verifier_batch": 2
+      },
+      {
+        "batch": 6,
+        "class": "matched",
+        "item": "01.03.0060.",
+        "position": 44,
+        "side": "lockbox",
+        "verifier_batch": 2
+      },
+      {
+        "batch": 6,
+        "class": "matched",
+        "item": "01.03.0070.",
+        "position": 45,
+        "side": "lockbox",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 6,
+        "class": "needs_review",
+        "item": "01.03.0080.",
+        "position": 46,
+        "side": "lockbox",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 6,
+        "class": "needs_review",
+        "item": "01.03.0090.",
+        "position": 47,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 6,
+        "class": "needs_review",
+        "item": "01.03.0100.",
+        "position": 48,
+        "side": "lockbox",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 7,
+        "class": "needs_review",
+        "item": "01.03.0110.",
+        "position": 49,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 7,
+        "class": "needs_review",
+        "item": "01.03.0120.",
+        "position": 50,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 7,
+        "class": "needs_review",
+        "item": "01.03.0130.",
+        "position": 51,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "01.04.",
+        "position": 52,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0010.",
+        "position": 53,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0020.",
+        "position": 54,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0030.",
+        "position": 55,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0040.",
+        "position": 56,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0050.",
+        "position": 57,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0060.",
+        "position": 58,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0070.",
+        "position": 59,
+        "side": "dev",
+        "verifier_batch": 4
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0080.",
+        "position": 60,
+        "side": "dev",
+        "verifier_batch": 5
+      },
+      {
+        "batch": 8,
+        "class": "matched",
+        "item": "01.04.0090.",
+        "position": 61,
+        "side": "dev",
+        "verifier_batch": 6
+      },
+      {
+        "batch": 8,
+        "class": "needs_review",
+        "item": "01.04.0100.",
+        "position": 62,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "2",
+        "position": 63,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "02.01.",
+        "position": 64,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 9,
+        "class": "needs_review",
+        "item": "02.01.0010.",
+        "position": 65,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 9,
+        "class": "needs_review",
+        "item": "02.01.0020.",
+        "position": 66,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 9,
+        "class": "matched",
+        "item": "02.01.0030.",
+        "position": 67,
+        "side": "dev",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 9,
+        "class": "needs_review",
+        "item": "02.01.0040.",
+        "position": 68,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "02.02.",
+        "position": 69,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 10,
+        "class": "needs_review",
+        "item": "02.02.0010.",
+        "position": 70,
+        "side": "dev",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 10,
+        "class": "matched",
+        "item": "02.02.0020.",
+        "position": 71,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 10,
+        "class": "matched",
+        "item": "02.02.0030.",
+        "position": 72,
+        "side": "dev",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 10,
+        "class": "matched",
+        "item": "02.02.0040.",
+        "position": 73,
+        "side": "dev",
+        "verifier_batch": 8
+      },
+      {
+        "batch": 10,
+        "class": "matched",
+        "item": "02.02.0050.",
+        "position": 74,
+        "side": "dev",
+        "verifier_batch": 9
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "3",
+        "position": 75,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "03.01.",
+        "position": 76,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 11,
+        "class": "needs_review",
+        "item": "03.01.0010.",
+        "position": 77,
+        "side": "lockbox",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0020.",
+        "position": 78,
+        "side": "lockbox",
+        "verifier_batch": 3
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0030.",
+        "position": 79,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0040.",
+        "position": 80,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0050.",
+        "position": 81,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0060.",
+        "position": 82,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0070.",
+        "position": 83,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0080.",
+        "position": 84,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "matched",
+        "item": "03.01.0090.",
+        "position": 85,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 11,
+        "class": "needs_review",
+        "item": "03.01.0100.",
+        "position": 86,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 12,
+        "class": "matched",
+        "item": "03.01.0110.",
+        "position": 87,
+        "side": "lockbox",
+        "verifier_batch": 10
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "03.02.",
+        "position": 88,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0010.",
+        "position": 89,
+        "side": "dev",
+        "verifier_batch": 11
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0020.",
+        "position": 90,
+        "side": "dev",
+        "verifier_batch": 12
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0030.",
+        "position": 91,
+        "side": "dev",
+        "verifier_batch": 12
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0040.",
+        "position": 92,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 13,
+        "class": "needs_review",
+        "item": "03.02.0050.",
+        "position": 93,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0060.",
+        "position": 94,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0070.",
+        "position": 95,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 13,
+        "class": "needs_review",
+        "item": "03.02.0080.",
+        "position": 96,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0090.",
+        "position": 97,
+        "side": "dev",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 13,
+        "class": "matched",
+        "item": "03.02.0100.",
+        "position": 98,
+        "side": "dev",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0110.",
+        "position": 99,
+        "side": "dev",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 14,
+        "class": "needs_review",
+        "item": "03.02.0120.",
+        "position": 100,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0130.",
+        "position": 101,
+        "side": "dev",
+        "verifier_batch": 15
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0140.",
+        "position": 102,
+        "side": "dev",
+        "verifier_batch": 16
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0150.",
+        "position": 103,
+        "side": "dev",
+        "verifier_batch": 17
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0160.",
+        "position": 104,
+        "side": "dev",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 14,
+        "class": "needs_review",
+        "item": "03.02.0170.",
+        "position": 105,
+        "side": "dev",
+        "verifier_batch": 10
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0180.",
+        "position": 106,
+        "side": "dev",
+        "verifier_batch": 18
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0190.",
+        "position": 107,
+        "side": "dev",
+        "verifier_batch": 19
+      },
+      {
+        "batch": 14,
+        "class": "matched",
+        "item": "03.02.0200.",
+        "position": 108,
+        "side": "dev",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 15,
+        "class": "matched",
+        "item": "03.02.0210.",
+        "position": 109,
+        "side": "dev",
+        "verifier_batch": 21
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "03.03.",
+        "position": 110,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0010.",
+        "position": 111,
+        "side": "dev",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0020.",
+        "position": 112,
+        "side": "lockbox",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0030.",
+        "position": 113,
+        "side": "dev",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0040.",
+        "position": 114,
+        "side": "lockbox",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0050.",
+        "position": 115,
+        "side": "dev",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0060.",
+        "position": 116,
+        "side": "lockbox",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0070.",
+        "position": 117,
+        "side": "dev",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0080.",
+        "position": 118,
+        "side": "lockbox",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0090.",
+        "position": 119,
+        "side": "dev",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 16,
+        "class": "matched",
+        "item": "03.03.0100.",
+        "position": 120,
+        "side": "lockbox",
+        "verifier_batch": 22
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0110.",
+        "position": 121,
+        "side": "dev",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0120.",
+        "position": 122,
+        "side": "lockbox",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "needs_review",
+        "item": "03.03.0130.",
+        "position": 123,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0140.",
+        "position": 124,
+        "side": "lockbox",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0150.",
+        "position": 125,
+        "side": "dev",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "needs_review",
+        "item": "03.03.0160.",
+        "position": 126,
+        "side": "lockbox",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0170.",
+        "position": 127,
+        "side": "dev",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "needs_review",
+        "item": "03.03.0180.",
+        "position": 128,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 17,
+        "class": "matched",
+        "item": "03.03.0190.",
+        "position": 129,
+        "side": "dev",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 17,
+        "class": "needs_review",
+        "item": "03.03.0200.",
+        "position": 130,
+        "side": "lockbox",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 18,
+        "class": "needs_review",
+        "item": "03.03.0210.",
+        "position": 131,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0220.",
+        "position": 132,
+        "side": "lockbox",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0230.",
+        "position": 133,
+        "side": "dev",
+        "verifier_batch": 23
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0240.",
+        "position": 134,
+        "side": "lockbox",
+        "verifier_batch": 24
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0250.",
+        "position": 135,
+        "side": "dev",
+        "verifier_batch": 24
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0260.",
+        "position": 136,
+        "side": "lockbox",
+        "verifier_batch": 24
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0270.",
+        "position": 137,
+        "side": "dev",
+        "verifier_batch": 24
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0280.",
+        "position": 138,
+        "side": "lockbox",
+        "verifier_batch": 24
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0290.",
+        "position": 139,
+        "side": "dev",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 18,
+        "class": "matched",
+        "item": "03.03.0300.",
+        "position": 140,
+        "side": "lockbox",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 19,
+        "class": "matched",
+        "item": "03.03.0310.",
+        "position": 141,
+        "side": "dev",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 19,
+        "class": "matched",
+        "item": "03.03.0320.",
+        "position": 142,
+        "side": "lockbox",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 19,
+        "class": "needs_review",
+        "item": "03.03.0330.",
+        "position": 143,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "03.04.",
+        "position": 144,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0010.",
+        "position": 145,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0020.",
+        "position": 146,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0030.",
+        "position": 147,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0040.",
+        "position": 148,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0050.",
+        "position": 149,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0060.",
+        "position": 150,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 20,
+        "class": "needs_review",
+        "item": "03.04.0070.",
+        "position": 151,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "03.05.",
+        "position": 152,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 21,
+        "class": "matched",
+        "item": "03.05.0010.",
+        "position": 153,
+        "side": "dev",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 21,
+        "class": "matched",
+        "item": "03.05.0020.",
+        "position": 154,
+        "side": "dev",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 21,
+        "class": "matched",
+        "item": "03.05.0030.",
+        "position": 155,
+        "side": "dev",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 21,
+        "class": "needs_review",
+        "item": "03.05.0040.",
+        "position": 156,
+        "side": "dev",
+        "verifier_batch": 26
+      },
+      {
+        "batch": 21,
+        "class": "needs_review",
+        "item": "03.05.0050.",
+        "position": 157,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 21,
+        "class": "needs_review",
+        "item": "03.05.0060.",
+        "position": 158,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "4",
+        "position": 159,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "04.01.",
+        "position": 160,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 22,
+        "class": "needs_review",
+        "item": "04.01.0010.",
+        "position": 161,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 22,
+        "class": "needs_review",
+        "item": "04.01.0020.",
+        "position": 162,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0030.",
+        "position": 163,
+        "side": "dev",
+        "verifier_batch": 13
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0040.",
+        "position": 164,
+        "side": "dev",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0050.",
+        "position": 165,
+        "side": "dev",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0060.",
+        "position": 166,
+        "side": "dev",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0070.",
+        "position": 167,
+        "side": "dev",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0080.",
+        "position": 168,
+        "side": "dev",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 22,
+        "class": "matched",
+        "item": "04.01.0090.",
+        "position": 169,
+        "side": "dev",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 22,
+        "class": "needs_review",
+        "item": "04.01.0100.",
+        "position": 170,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 23,
+        "class": "matched",
+        "item": "04.01.0110.",
+        "position": 171,
+        "side": "dev",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 23,
+        "class": "needs_review",
+        "item": "04.01.0120.",
+        "position": 172,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "04.02.",
+        "position": 173,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 24,
+        "class": "needs_review",
+        "item": "04.02.0010.",
+        "position": 174,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0020.",
+        "position": 175,
+        "side": "lockbox",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0030.",
+        "position": 176,
+        "side": "lockbox",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0040.",
+        "position": 177,
+        "side": "lockbox",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0050.",
+        "position": 178,
+        "side": "lockbox",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0060.",
+        "position": 179,
+        "side": "lockbox",
+        "verifier_batch": 28
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0070.",
+        "position": 180,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0080.",
+        "position": 181,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0090.",
+        "position": 182,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 24,
+        "class": "matched",
+        "item": "04.02.0100.",
+        "position": 183,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 25,
+        "class": "matched",
+        "item": "04.02.0110.",
+        "position": 184,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 25,
+        "class": "matched",
+        "item": "04.02.0120.",
+        "position": 185,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 25,
+        "class": "matched",
+        "item": "04.02.0130.",
+        "position": 186,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 25,
+        "class": "matched",
+        "item": "04.02.0140.",
+        "position": 187,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 25,
+        "class": "matched",
+        "item": "04.02.0150.",
+        "position": 188,
+        "side": "lockbox",
+        "verifier_batch": 29
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "04.03.",
+        "position": 189,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "matched",
+        "item": "04.03.0010.",
+        "position": 190,
+        "side": "dev",
+        "verifier_batch": 29
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0020.",
+        "position": 191,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "matched",
+        "item": "04.03.0030.",
+        "position": 192,
+        "side": "dev",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 26,
+        "class": "matched",
+        "item": "04.03.0040.",
+        "position": 193,
+        "side": "dev",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0050.",
+        "position": 194,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0060.",
+        "position": 195,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0070.",
+        "position": 196,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0080.",
+        "position": 197,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0090.",
+        "position": 198,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 26,
+        "class": "needs_review",
+        "item": "04.03.0100.",
+        "position": 199,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 27,
+        "class": "needs_review",
+        "item": "04.03.0110.",
+        "position": 200,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 27,
+        "class": "needs_review",
+        "item": "04.03.0120.",
+        "position": 201,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 27,
+        "class": "needs_review",
+        "item": "04.03.0130.",
+        "position": 202,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "04.04.",
+        "position": 203,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0010.",
+        "position": 204,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0020.",
+        "position": 205,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0030.",
+        "position": 206,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0040.",
+        "position": 207,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 28,
+        "class": "needs_review",
+        "item": "04.04.0050.",
+        "position": 208,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 28,
+        "class": "needs_review",
+        "item": "04.04.0060.",
+        "position": 209,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 28,
+        "class": "needs_review",
+        "item": "04.04.0070.",
+        "position": 210,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 28,
+        "class": "needs_review",
+        "item": "04.04.0080.",
+        "position": 211,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0090.",
+        "position": 212,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 28,
+        "class": "matched",
+        "item": "04.04.0100.",
+        "position": 213,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "5",
+        "position": 214,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "05.01.",
+        "position": 215,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 29,
+        "class": "needs_review",
+        "item": "05.01.0010.",
+        "position": 216,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 29,
+        "class": "needs_review",
+        "item": "05.01.0020.",
+        "position": 217,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 29,
+        "class": "needs_review",
+        "item": "05.01.0030.",
+        "position": 218,
+        "side": "dev",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 29,
+        "class": "matched",
+        "item": "05.01.0040.",
+        "position": 219,
+        "side": "dev",
+        "verifier_batch": 1
+      },
+      {
+        "batch": 29,
+        "class": "matched",
+        "item": "05.01.0050.",
+        "position": 220,
+        "side": "dev",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 29,
+        "class": "matched",
+        "item": "05.01.0060.",
+        "position": 221,
+        "side": "dev",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 29,
+        "class": "matched",
+        "item": "05.01.0070.",
+        "position": 222,
+        "side": "dev",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 29,
+        "class": "needs_review",
+        "item": "05.01.0080.",
+        "position": 223,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "05.02.",
+        "position": 224,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0010.",
+        "position": 225,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0020.",
+        "position": 226,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0030.",
+        "position": 227,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0040.",
+        "position": 228,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0050.",
+        "position": 229,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0060.",
+        "position": 230,
+        "side": "lockbox",
+        "verifier_batch": 30
+      },
+      {
+        "batch": 30,
+        "class": "needs_review",
+        "item": "05.02.0070.",
+        "position": 231,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 30,
+        "class": "needs_review",
+        "item": "05.02.0080.",
+        "position": 232,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0090.",
+        "position": 233,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 30,
+        "class": "matched",
+        "item": "05.02.0100.",
+        "position": 234,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 31,
+        "class": "needs_review",
+        "item": "05.02.0110.",
+        "position": 235,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 31,
+        "class": "matched",
+        "item": "05.02.0120.",
+        "position": 236,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 31,
+        "class": "needs_review",
+        "item": "05.02.0130.",
+        "position": 237,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 31,
+        "class": "not_a_material",
+        "item": "05.02.0140.",
+        "position": 238,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "6",
+        "position": 239,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "06.01.",
+        "position": 240,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0010.",
+        "position": 241,
+        "side": "lockbox",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 32,
+        "class": "needs_review",
+        "item": "06.01.0020.",
+        "position": 242,
+        "side": "lockbox",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 32,
+        "class": "needs_review",
+        "item": "06.01.0030.",
+        "position": 243,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0040.",
+        "position": 244,
+        "side": "lockbox",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0050.",
+        "position": 245,
+        "side": "lockbox",
+        "verifier_batch": 27
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0060.",
+        "position": 246,
+        "side": "lockbox",
+        "verifier_batch": 7
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0070.",
+        "position": 247,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0080.",
+        "position": 248,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 32,
+        "class": "matched",
+        "item": "06.01.0090.",
+        "position": 249,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 32,
+        "class": "needs_review",
+        "item": "06.01.0100.",
+        "position": 250,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 33,
+        "class": "matched",
+        "item": "06.01.0110.",
+        "position": 251,
+        "side": "lockbox",
+        "verifier_batch": 2
+      },
+      {
+        "batch": 33,
+        "class": "not_a_material",
+        "item": "06.01.0120.",
+        "position": 252,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "7",
+        "position": 253,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "07.01.",
+        "position": 254,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0010.",
+        "position": 255,
+        "side": "dev",
+        "verifier_batch": 33
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0020.",
+        "position": 256,
+        "side": "dev",
+        "verifier_batch": 34
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0030.",
+        "position": 257,
+        "side": "dev",
+        "verifier_batch": 35
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0040.",
+        "position": 258,
+        "side": "dev",
+        "verifier_batch": 11
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0050.",
+        "position": 259,
+        "side": "dev",
+        "verifier_batch": 36
+      },
+      {
+        "batch": 34,
+        "class": "needs_review",
+        "item": "07.01.0060.",
+        "position": 260,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 34,
+        "class": "matched",
+        "item": "07.01.0070.",
+        "position": 261,
+        "side": "dev",
+        "verifier_batch": 9
+      },
+      {
+        "batch": 34,
+        "class": "needs_review",
+        "item": "07.01.0080.",
+        "position": 262,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": 34,
+        "class": "needs_review",
+        "item": "07.01.0090.",
+        "position": 263,
+        "side": "dev",
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "8",
+        "position": 264,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "08.01.",
+        "position": 265,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0010.",
+        "position": 266,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0020.",
+        "position": 267,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "needs_review",
+        "item": "08.01.0030.",
+        "position": 268,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0040.",
+        "position": 269,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0050.",
+        "position": 270,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0060.",
+        "position": 271,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "needs_review",
+        "item": "08.01.0070.",
+        "position": 272,
+        "side": "lockbox",
+        "verifier_batch": null
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0080.",
+        "position": 273,
+        "side": "lockbox",
+        "verifier_batch": 14
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0090.",
+        "position": 274,
+        "side": "lockbox",
+        "verifier_batch": 16
+      },
+      {
+        "batch": 35,
+        "class": "matched",
+        "item": "08.01.0100.",
+        "position": 275,
+        "side": "lockbox",
+        "verifier_batch": 15
+      },
+      {
+        "batch": 36,
+        "class": "matched",
+        "item": "08.01.0110.",
+        "position": 276,
+        "side": "lockbox",
+        "verifier_batch": 21
+      },
+      {
+        "batch": 36,
+        "class": "matched",
+        "item": "08.01.0120.",
+        "position": 277,
+        "side": "lockbox",
+        "verifier_batch": 19
+      },
+      {
+        "batch": 36,
+        "class": "matched",
+        "item": "08.01.0130.",
+        "position": 278,
+        "side": "lockbox",
+        "verifier_batch": 18
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "08.02.",
+        "position": 279,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 37,
+        "class": "matched",
+        "item": "08.02.0010.",
+        "position": 280,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 37,
+        "class": "matched",
+        "item": "08.02.0020.",
+        "position": 281,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 37,
+        "class": "matched",
+        "item": "08.02.0030.",
+        "position": 282,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 37,
+        "class": "matched",
+        "item": "08.02.0040.",
+        "position": 283,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 37,
+        "class": "matched",
+        "item": "08.02.0050.",
+        "position": 284,
+        "side": "dev",
+        "verifier_batch": 37
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "08.03.",
+        "position": 285,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 38,
+        "class": "matched",
+        "item": "08.03.0010.",
+        "position": 286,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "matched",
+        "item": "08.03.0020.",
+        "position": 287,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "matched",
+        "item": "08.03.0030.",
+        "position": 288,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "matched",
+        "item": "08.03.0040.",
+        "position": 289,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "needs_review",
+        "item": "08.03.0050.",
+        "position": 290,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "matched",
+        "item": "08.03.0060.",
+        "position": 291,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": 38,
+        "class": "needs_review",
+        "item": "08.03.0070.",
+        "position": 292,
+        "side": "lockbox",
+        "verifier_batch": 20
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "08.04.",
+        "position": 293,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0010.",
+        "position": 294,
+        "side": "dev",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0020.",
+        "position": 295,
+        "side": "dev",
+        "verifier_batch": 25
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0030.",
+        "position": 296,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "needs_review",
+        "item": "08.04.0040.",
+        "position": 297,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0050.",
+        "position": 298,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0060.",
+        "position": 299,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0070.",
+        "position": 300,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0080.",
+        "position": 301,
+        "side": "dev",
+        "verifier_batch": 38
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0090.",
+        "position": 302,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 39,
+        "class": "matched",
+        "item": "08.04.0100.",
+        "position": 303,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 40,
+        "class": "matched",
+        "item": "08.04.0110.",
+        "position": 304,
+        "side": "dev",
+        "verifier_batch": 32
+      },
+      {
+        "batch": 40,
+        "class": "matched",
+        "item": "08.04.0120.",
+        "position": 305,
+        "side": "dev",
+        "verifier_batch": 18
+      },
+      {
+        "batch": 40,
+        "class": "matched",
+        "item": "08.04.0130.",
+        "position": 306,
+        "side": "dev",
+        "verifier_batch": 18
+      },
+      {
+        "batch": 40,
+        "class": "matched",
+        "item": "08.04.0140.",
+        "position": 307,
+        "side": "dev",
+        "verifier_batch": 17
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "9",
+        "position": 308,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": null,
+        "class": "header",
+        "item": "09.01.",
+        "position": 309,
+        "side": null,
+        "verifier_batch": null
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0010.",
+        "position": 310,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0020.",
+        "position": 311,
+        "side": "lockbox",
+        "verifier_batch": 31
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0030.",
+        "position": 312,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0040.",
+        "position": 313,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0050.",
+        "position": 314,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0060.",
+        "position": 315,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0070.",
+        "position": 316,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0080.",
+        "position": 317,
+        "side": "lockbox",
+        "verifier_batch": 39
+      },
+      {
+        "batch": 41,
+        "class": "matched",
+        "item": "09.01.0090.",
+        "position": 318,
+        "side": "lockbox",
+        "verifier_batch": 39
+      }
+    ],
+    "run_id": "20261008T023928Z-56f85fb8"
+  },
+  "policies": [
+    {
+      "certified_by": "smoke_A10",
+      "enrichment": "data/enrichment/fr.yaml",
+      "library": "fr",
+      "library_sha256": "6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2",
+      "model": "claude-haiku-4-5-20251001",
+      "threshold": "T8",
+      "verifier": true
+    },
+    {
+      "certified_by": "dev_selection",
+      "enrichment": "data/enrichment/global.yaml",
+      "library": "global",
+      "library_sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+      "model": "claude-haiku-4-5-20251001",
+      "threshold": "T8",
+      "verifier": true
+    }
+  ],
+  "releases": [
+    {
+      "date": "2026-10-09",
+      "summary": "Docs and project page only.",
+      "version": "v1.3.0"
+    },
+    {
+      "date": "2026-10-09",
+      "summary": "Docs only.",
+      "version": "v1.2.1"
+    },
+    {
+      "date": "2026-10-09",
+      "summary": "The FR library is certified for the pinned model by the A10 smoke rule (A70).",
+      "version": "v1.2.0"
+    },
+    {
+      "date": "2026-10-08",
+      "summary": "G5 release: `oris explain` and `oris demo`, the four traced cases in `docs/traced-cases.md`, and the final README.",
+      "version": "v1.1.0"
+    },
+    {
+      "date": "2026-10-08",
+      "summary": "G4, the lockbox claim, scored once at `eval-freeze`",
+      "version": "v1.0"
+    },
+    {
+      "date": "2026-10-08",
+      "summary": "The configuration the lockbox scores (DESIGN.md §10.3), after the G3 readiness set.",
+      "version": "eval-freeze"
+    },
+    {
+      "date": "2026-10-08",
+      "summary": "G2 selection: the threshold, the sibling verifier and the enrichment were chosen on dev items only.",
+      "version": "v0.2"
+    },
+    {
+      "date": "2026-10-05",
+      "summary": "G1: the first submittable service, with the CLI, the API, the validators and the audit trail.",
+      "version": "v0.1"
+    },
+    {
+      "date": "2026-10-04",
+      "summary": "Pre-registration: the design, the evaluation protocol and the frozen split, committed before any model call.",
+      "version": "prereg-v1"
+    }
+  ],
+  "schema_version": 1,
+  "smoke_fr": {
+    "base_positives_correct": {
+      "k": 13,
+      "n": 18
+    },
+    "closed_world_violations": 0,
+    "decoy_matches": 0,
+    "false_not_a_material": 0,
+    "gate": "docs/gates/G6.md",
+    "lines": 68,
+    "matched_non_material": 0,
+    "rule": "0 closed-world, 0 false not_a_material, 0 decoy matches, >= 9/18 base positives",
+    "run_id": "20261008T232623Z-7ac379a8",
+    "spend_usd": 0.1229336,
+    "subsets": [
+      {
+        "correct": 2,
+        "false_skip": 0,
+        "matched": 2,
+        "positive": 2,
+        "subset": "a10_extra",
+        "wrong": 0
+      },
+      {
+        "correct": 0,
+        "false_skip": 0,
+        "matched": 0,
+        "positive": 0,
+        "subset": "base_decoy",
+        "wrong": 0
+      },
+      {
+        "correct": 5,
+        "false_skip": 0,
+        "matched": 5,
+        "positive": 10,
+        "subset": "base_exact",
+        "wrong": 0
+      },
+      {
+        "correct": 8,
+        "false_skip": 0,
+        "matched": 8,
+        "positive": 8,
+        "subset": "base_fr_only",
+        "wrong": 0
+      },
+      {
+        "correct": 13,
+        "false_skip": 0,
+        "matched": 13,
+        "positive": 13,
+        "subset": "handwritten",
+        "wrong": 0
+      }
+    ],
+    "verdict": "pass"
+  },
+  "traced_cases": [
+    {
+      "context": "EN lockbox",
+      "decision": "matched",
+      "demonstrates": "A correct match",
+      "input": "No-fines drainage base under carriageway in cutting",
+      "item": "03.02.0040.",
+      "number": 1,
+      "reason": "SIGNAL:T8",
+      "rule": "D9",
+      "run_id": "20261008T023928Z-56f85fb8",
+      "takeaway": "confidence was 68, the lowest bucket. `T8` accepts it because the two renderings agree with evidence, and that is the operating point the dev selection chose.",
+      "takeaway_label": "The trade-off it shows"
+    },
+    {
+      "context": "FR lockbox",
+      "decision": "matched",
+      "demonstrates": "A plausible wrong match",
+      "input": "Couche de fondation en GNT recyclée 0/45, 300 mm, bretelles",
+      "item": "03.01.0020.",
+      "number": 2,
+      "reason": "SIGNAL:T8",
+      "rule": "D9",
+      "run_id": "20261008T024244Z-de394c39",
+      "takeaway": "a usage confusion inside the right material type. It is the error class that remains (`docs/evaluation.md`).",
+      "takeaway_label": "What it shows"
+    },
+    {
+      "context": "EN lockbox",
+      "decision": "needs_review",
+      "demonstrates": "An abstention",
+      "input": "Bulk dig in cutting, soil classes 3–5, surplus off site",
+      "item": "01.03.0010.",
+      "number": 3,
+      "reason": "LOW_SIGNAL:v",
+      "rule": "D10",
+      "run_id": "20261008T023928Z-56f85fb8",
+      "takeaway": "the right row is suggestion 2, so the engineer confirms it instead of searching the library. This is the abstention the design wants: no wrong match is written.",
+      "takeaway_label": "What the reviewer gets"
+    },
+    {
+      "context": "G2 smoke",
+      "decision": "needs_review",
+      "demonstrates": "A failed call that ends in review",
+      "input": "Clear vegetation, grub roots, trees ≤ 300 mm girth",
+      "item": "01.01.0010.",
+      "number": 4,
+      "reason": "BUDGET_CAP",
+      "rule": "D1",
+      "run_id": "20261006T001017Z-354cd333",
+      "takeaway": "with one pass missing, rule D1 fails the line closed. It goes to `needs_review` with reason `BUDGET_CAP`, never to a guessed match.",
+      "takeaway_label": "Outcome"
+    }
+  ]
+}

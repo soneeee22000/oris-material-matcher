@@ -38,3 +38,9 @@ Thumbs.db
 
 #other like plan.md, etc. (not needed for the repo)
 plan.md
+
+# project page tooling
+site/node_modules/
+.vercel/
+site/test-results/
+site/playwright-report/
