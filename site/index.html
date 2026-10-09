@@ -9,7 +9,7 @@
     <title>ORIS material matcher</title>
     <meta
       name="description"
-      content="Project page for the ORIS material matcher: it maps each Bill of Quantities line to an exact library row, or abstains, with lockbox-measured precision in English and French. Shows committed real output from tag v1.3.0."
+      content="Project page for the ORIS material matcher: it maps each Bill of Quantities line to an exact library row, or abstains, with lockbox-measured precision in English and French. Shows committed real output from tag v1.3.1."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="ORIS material matcher" />
@@ -18,7 +18,17 @@
       content="A Bill of Quantities line matcher that abstains instead of guessing: lockbox-measured precision, coverage, cost and latency in English and French, from committed runs."
     />
     <meta name="author" content="Pyae Sone (Seon)" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          window.localStorage.getItem("oris-theme") === "light"
+            ? "light"
+            : "dark";
+      } catch (error) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b2220'/%3E%3Cpath d='M7 22h18v3H7z' fill='%23e8b820'/%3E%3Ccircle cx='10' cy='12' r='3' fill='%23e8b820'/%3E%3Ccircle cx='22' cy='12' r='3' fill='%237fa3cc'/%3E%3Cpath d='M13 12h6' stroke='%23e7ece9' stroke-width='2'/%3E%3C/svg%3E"
@@ -57,7 +67,7 @@
         <code>data.json</code>, and that file could not be fetched, so the
         figures below are blank. The same numbers are in
         <a
-          href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/evaluation.md"
+          href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/evaluation.md"
           >docs/evaluation.md</a
         >.
       </div>
@@ -67,7 +77,7 @@
         style="padding-top: 36px"
         aria-labelledby="h-overview"
       >
-        <span class="tag">01 · Project page · tag v1.3.0</span>
+        <span class="tag">01 · Project page · tag v1.3.1</span>
         <h1 id="h-overview">ORIS material matcher</h1>
         <p class="lead" style="margin-top: 14px">
           Each line of a Bill of Quantities becomes one decision:
@@ -77,7 +87,7 @@
           in English and French on a held-out lockbox scored once.
         </p>
         <p class="honesty" id="honesty">
-          Project page: shows committed real output from tag v1.3.0; it does not
+          Project page: shows committed real output from tag v1.3.1; it does not
           run the matcher.
         </p>
         <div class="kpis" aria-label="The lockbox claim">
@@ -175,17 +185,17 @@
           </a>
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/tree/v1.3.0"
-            >Tag v1.3.0</a
+            href="https://github.com/soneeee22000/oris-material-matcher/tree/v1.3.1"
+            >Tag v1.3.1</a
           >
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/DESIGN.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/DESIGN.md"
             >DESIGN.md</a
           >
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/evaluation.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/evaluation.md"
             >docs/evaluation.md</a
           >
         </div>
@@ -201,11 +211,12 @@
           aria-describedby="pipe-desc"
         >
           <div class="stage-ui">
-            <button type="button" id="p-play" aria-pressed="true">Play</button>
-            <button type="button" id="p-end">Show result</button>
+            <button type="button" id="p-play" aria-pressed="false">Play</button>
             <button type="button" id="p-spin" aria-pressed="true">
               Auto-rotate
             </button>
+            <button type="button" id="p-end">Show result</button>
+            <button type="button" id="p-replay">Replay flow</button>
           </div>
           <div class="hud" aria-live="polite">
             <b id="p-phase">Pipeline</b
@@ -215,16 +226,26 @@
             Drag to rotate · click a station or a bin
           </div>
         </div>
+        <div class="scrub">
+          <label for="p-scrub" class="tiny muted">Timeline</label>
+          <input type="range" id="p-scrub" min="0" max="1000" value="0" />
+          <span class="mono tiny muted" id="p-clock">0.0 s</span>
+        </div>
         <ol
           class="flow"
           id="st-btns"
           aria-label="Pipeline stations, in order"
         ></ol>
+        <div
+          class="tally"
+          id="p-tally"
+          aria-label="Where the rows end up"
+        ></div>
         <div class="legend" id="p-legend" aria-label="Dot colours"></div>
         <div class="panel info" aria-live="polite">
           <div>
             <div class="k">Station</div>
-            <div id="st-name">Pick a station</div>
+            <div id="st-name">Pick a station or a bin</div>
           </div>
           <div>
             <div class="k">What it does</div>
@@ -242,16 +263,20 @@
         <p class="tiny muted" id="pipe-desc" style="margin-top: 8px">
           Every dot is one of the
           <span data-k="pipeline_en.rows" data-f="len">–</span> rows of the
-          English BoQ, in file order, coloured by the decision it actually
-          received in the committed lockbox run
+          English BoQ, in file order, from the committed lockbox run
           <code data-k="pipeline_en.run_id" data-f="raw">–</code>. The stations
-          are the stages of <code>MatchService.match</code>, in call order.
-          Headers peel off at the reader and skip the model. Items sit in their
-          real batches, then sweep through the model twice, pass 1 then pass 2
-          (the faint copies). Only rows whose audit record names a verifier call
-          visit the sibling verifier. The dashed fallback branch was not engaged
-          in this run. Bin heights scale to the counts; positions and timing
-          inside a station are layout, not measurements.
+          are the stages of <code>MatchService.match</code>, in call order. The
+          reader reads the whole file first; headers peel off there and skip the
+          model. Items sit in their real batches, then each batch is read twice,
+          pass 1 then pass 2 (the faint twins), each pass's first batch alone
+          and the rest at most
+          <span data-k="pipeline_en.batches.concurrency" data-f="int">–</span>
+          calls in flight, as the run's settings set. An item takes the colour
+          of its decision when the decision table settles it; only the rows
+          whose audit record names a verifier call visit the sibling verifier,
+          and the ones it rejects turn red. The dashed fallback branch was not
+          engaged in this run. Every count is the run's own; positions and
+          timing inside a station are layout, not measurements.
         </p>
       </section>
 
@@ -310,7 +335,7 @@
               <i style="background: var(--rule)"></i>
               <div>
                 <b>Header or service skipped</b>
-                <div class="small muted">Correct, and costs nothing.</div>
+                <div class="small muted">Correct; nothing is lost.</div>
               </div>
             </div>
           </div>
@@ -481,7 +506,7 @@
               </li>
               <li>
                 <b>No lexical score is a usable confidence signal.</b>
-                Confidence has to come from independent checks: agreement of two
+                Confidence has to come from complementary checks: agreement of two
                 passes, attribute agreement, and the model's own bucket.
               </li>
               <li>
@@ -528,7 +553,7 @@
             <p class="tiny muted" style="margin: 10px 0 0">
               No item-specific rule encodes any of them. Source:
               <a
-                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/data-analysis.md"
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/data-analysis.md"
                 >docs/data-analysis.md</a
               >.
             </p>
@@ -591,7 +616,7 @@
           ground truth. The full transcripts, with every call id and provider
           request id, are in
           <a
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/traced-cases.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/traced-cases.md"
             >docs/traced-cases.md</a
           >.
         </p>
@@ -725,7 +750,7 @@
             <p class="tiny muted" style="margin: 10px 0 0">
               Gate record:
               <a
-                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/gates/G6.md"
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/gates/G6.md"
                 >docs/gates/G6.md</a
               >.
             </p>
@@ -879,7 +904,7 @@ GET  /ready      readiness, with no model call</pre>
             Tests use a fake LLM with fault injection and the replay adapter;
             nothing in CI needs a key. See
             <a
-              href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/.github/workflows/ci.yml"
+              href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/.github/workflows/ci.yml"
               >.github/workflows/ci.yml</a
             >.
           </p>
