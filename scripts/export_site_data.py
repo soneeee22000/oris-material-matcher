@@ -608,6 +608,7 @@ def pipeline_block(sources: Sources) -> dict[str, Any]:
     passes = [len(batch_indices(audit, "call_ids", slot)) for slot in range(run["passes_k"])]
     batches = {
         "batch_size": run["settings_effective"]["batch_size"],
+        "concurrency": run["settings_effective"]["concurrency"],
         "pass_calls": passes,
         "verifier_calls": len(batch_indices(audit, "verifier_call_ids", 0)),
         "total_calls": run["call_count"],
@@ -637,7 +638,11 @@ def stage_counts(pipeline: dict[str, Any], run: dict[str, Any]) -> dict[str, dic
             "certified_by": run["policy_certified_by"],
             "enrichment": run["enrichment_path"],
         },
-        "passes": {"model": run["requested_model"], "pass_calls": batches["pass_calls"]},
+        "passes": {
+            "model": run["requested_model"],
+            "pass_calls": batches["pass_calls"],
+            "concurrency": batches["concurrency"],
+        },
         "fallback": {
             "model": run["fallback_model"],
             "engaged": run["fallback_engaged"],
@@ -646,6 +651,7 @@ def stage_counts(pipeline: dict[str, Any], run: dict[str, Any]) -> dict[str, dic
         "validate": validate_counts(rows, items),
         "verify": {
             "calls": batches["verifier_calls"],
+            "concurrency": batches["concurrency"],
             "lines": len(flagged),
             "sent_to_review": sum(1 for row in flagged if row["class"] != CLASS_MATCHED),
         },
