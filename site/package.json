@@ -1,0 +1,13 @@
+{
+  "name": "oris-project-page",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static project page for the ORIS material matcher and its capture tooling.",
+  "type": "module",
+  "scripts": {
+    "capture": "node scripts/capture.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

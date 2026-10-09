@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>ORIS material matcher</title>
+    <meta
+      name="description"
+      content="Project page for the ORIS material matcher: it maps each Bill of Quantities line to an exact library row, or abstains, with lockbox-measured precision in English and French. Shows committed real output from tag v1.3.0."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ORIS material matcher" />
+    <meta
+      property="og:description"
+      content="A Bill of Quantities line matcher that abstains instead of guessing: lockbox-measured precision, coverage, cost and latency in English and French, from committed runs."
+    />
+    <meta name="author" content="Pyae Sone (Seon)" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b2220'/%3E%3Cpath d='M7 22h18v3H7z' fill='%23e8b820'/%3E%3Ccircle cx='10' cy='12' r='3' fill='%23e8b820'/%3E%3Ccircle cx='22' cy='12' r='3' fill='%237fa3cc'/%3E%3Cpath d='M13 12h6' stroke='%23e7ece9' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <main>
+      <nav class="nav" aria-label="Chapters">
+        <div class="nav-in">
+          <a href="#overview"><b>01</b>Overview</a>
+          <a href="#problem"><b>02</b>Problem</a>
+          <a href="#data"><b>03</b>Data</a>
+          <a href="#how"><b>04</b>How it works</a>
+          <a href="#traced"><b>05</b>One line, traced</a>
+          <a href="#results"><b>06</b>Results</a>
+          <a href="#french"><b>07</b>French library</a>
+          <a href="#engineering"><b>08</b>Engineering</a>
+          <a href="#decisions"><b>09</b>Decisions</a>
+          <a href="#limits"><b>10</b>Limitations</a>
+          <a href="#run"><b>11</b>Run it</a>
+        </div>
+        <button type="button" id="theme-btn" aria-label="Switch colour theme">
+          Theme
+        </button>
+      </nav>
+
+      <div class="banner" id="data-banner" role="alert">
+        <b>The result data did not load.</b> This page reads every figure from
+        <code>data.json</code>, and that file could not be fetched, so the
+        figures below are blank. The same numbers are in
+        <a
+          href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/evaluation.md"
+          >docs/evaluation.md</a
+        >.
+      </div>
+
+      <section
+        id="overview"
+        style="padding-top: 36px"
+        aria-labelledby="h-overview"
+      >
+        <span class="tag">01 · Project page · tag v1.3.0</span>
+        <h1 id="h-overview">ORIS material matcher</h1>
+        <p class="lead" style="margin-top: 14px">
+          Each line of a Bill of Quantities becomes one decision:
+          <b>matched</b> to an exact <code>type / usage / subtype</code> row of
+          the material library, <b>not a material</b>, or <b>needs review</b>.
+          It abstains rather than guess, and it held matched precision above 90%
+          in English and French on a held-out lockbox scored once.
+        </p>
+        <p class="honesty" id="honesty">
+          Project page: shows committed real output from tag v1.3.0; it does not
+          run the matcher.
+        </p>
+        <div class="kpis" aria-label="The lockbox claim">
+          <div class="kpi">
+            <div class="n">
+              <span data-k="lockbox.en.precision" data-f="pct1">–</span>
+            </div>
+            <div class="l">
+              matched precision, English (<span
+                data-k="lockbox.en.correct"
+                data-k2="lockbox.en.matched"
+                data-f="frac"
+                >–</span
+              >); one-sided 95% lower bound
+              <span data-k="lockbox.en.cp_lower_95" data-f="dec3">–</span>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="n">
+              <span data-k="lockbox.fr.precision" data-f="pct1">–</span>
+            </div>
+            <div class="l">
+              matched precision, French (<span
+                data-k="lockbox.fr.correct"
+                data-k2="lockbox.fr.matched"
+                data-f="frac"
+                >–</span
+              >); one-sided 95% lower bound
+              <span data-k="lockbox.fr.cp_lower_95" data-f="dec3">–</span>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="n">
+              <span data-k="lockbox.en.coverage" data-f="dec3">–</span> /
+              <span data-k="lockbox.fr.coverage" data-f="dec3">–</span>
+            </div>
+            <div class="l">
+              coverage EN / FR: correct matches over the
+              <span data-k="lockbox.en.labelled" data-f="int">–</span> labelled
+              lockbox lines
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="n">
+              <span data-k="lockbox.en.false_not_a_material" data-f="int"
+                >–</span
+              >
+              /
+              <span data-k="lockbox.fr.false_not_a_material" data-f="int"
+                >–</span
+              >
+            </div>
+            <div class="l">
+              materials skipped as "not a material" (F_NM), EN / FR
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="n">
+              <span data-k="operations.en.cost_per_100_lines_usd" data-f="usd2"
+                >–</span
+              >
+              /
+              <span data-k="operations.fr.cost_per_100_lines_usd" data-f="usd2"
+                >–</span
+              >
+            </div>
+            <div class="l">
+              API cost per 100 lines, EN / FR, measured on the lockbox runs
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="n">
+              <span data-k="operations.en.latency_s_per_routed_line" data-f="s2"
+                >–</span
+              >
+              /
+              <span data-k="operations.fr.latency_s_per_routed_line" data-f="s2"
+                >–</span
+              >
+            </div>
+            <div class="l">wall clock per routed line, EN / FR</div>
+          </div>
+        </div>
+        <div class="links">
+          <a
+            class="btn primary"
+            href="https://github.com/soneeee22000/oris-material-matcher"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path
+                d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"
+              />
+            </svg>
+            Repository
+          </a>
+          <a
+            class="btn"
+            href="https://github.com/soneeee22000/oris-material-matcher/tree/v1.3.0"
+            >Tag v1.3.0</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/DESIGN.md"
+            >DESIGN.md</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/evaluation.md"
+            >docs/evaluation.md</a
+          >
+        </div>
+
+        <h2 class="vh" id="h-pipe">
+          The pipeline, with every row of the English run
+        </h2>
+        <div
+          class="stage"
+          id="pipe"
+          role="group"
+          aria-labelledby="h-pipe"
+          aria-describedby="pipe-desc"
+        >
+          <div class="stage-ui">
+            <button type="button" id="p-play" aria-pressed="true">Play</button>
+            <button type="button" id="p-end">Show result</button>
+            <button type="button" id="p-spin" aria-pressed="true">
+              Auto-rotate
+            </button>
+          </div>
+          <div class="hud" aria-live="polite">
+            <b id="p-phase">Pipeline</b
+            ><span id="p-msg">Loading the committed run</span>
+          </div>
+          <div class="stage-hint">Drag to rotate · pick a station below</div>
+        </div>
+        <ol
+          class="flow"
+          id="st-btns"
+          aria-label="Pipeline stations, in order"
+        ></ol>
+        <div class="legend" id="p-legend" aria-label="Dot colours"></div>
+        <div class="panel info" aria-live="polite">
+          <div>
+            <div class="k">Station</div>
+            <div id="st-name">Pick a station</div>
+          </div>
+          <div>
+            <div class="k">What it does</div>
+            <div id="st-do" class="small">–</div>
+          </div>
+          <div>
+            <div class="k">What it guarantees</div>
+            <div id="st-inv" class="small">–</div>
+          </div>
+        </div>
+        <p class="tiny muted" id="pipe-desc" style="margin-top: 8px">
+          Every dot is one of the
+          <span data-k="pipeline_en.rows" data-f="len">–</span> rows of the
+          English BoQ, in file order, coloured by the decision it actually
+          received in the committed lockbox run
+          <code data-k="pipeline_en.run_id" data-f="raw">–</code>. Headers leave
+          at the header gate without a model call. Dots pass through the sibling
+          verifier only where the run's audit log records a verifier call for
+          that row; the others take the lower track. Positions inside a station
+          are layout, not timing.
+        </p>
+      </section>
+
+      <section id="problem" aria-labelledby="h-prob">
+        <span class="tag">02 · Problem and objective</span>
+        <h2 id="h-prob">A wrong match is worse than no match</h2>
+        <p class="lead">
+          Each library row carries its own CO₂ factor. A valid-looking but wrong
+          row silently attaches the wrong number to a client's project. So
+          precision is the constraint and coverage is what gets maximised:
+          anything uncertain goes to an engineer, with a reason and two
+          suggestions.
+        </p>
+        <div class="grid2" style="margin-top: 16px">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div class="sev">
+              <i style="background: var(--ok)"></i>
+              <div>
+                <b>Correct match</b>
+                <div class="small muted">
+                  Filled automatically. This is the time saving.
+                </div>
+              </div>
+            </div>
+            <div class="sev">
+              <i style="background: var(--warn)"></i>
+              <div>
+                <b>Needs review on a material line</b>
+                <div class="small muted">
+                  An engineer confirms or corrects it, helped by a pre-filled
+                  top-2 suggestion.
+                </div>
+              </div>
+            </div>
+            <div class="sev">
+              <i style="background: var(--hot)"></i>
+              <div>
+                <b>Wrong match</b>
+                <div class="small muted">
+                  The wrong CO₂ factor reaches the project. The 90% precision
+                  bar guards against it.
+                </div>
+              </div>
+            </div>
+            <div class="sev">
+              <i style="background: var(--hot)"></i>
+              <div>
+                <b>A material skipped as "not a material"</b>
+                <div class="small muted">
+                  The material disappears without trace. Target zero, enforced
+                  by construction.
+                </div>
+              </div>
+            </div>
+            <div class="sev">
+              <i style="background: var(--rule)"></i>
+              <div>
+                <b>Header or service skipped</b>
+                <div class="small muted">Correct, and costs nothing.</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>The objective, written as an optimisation</h3>
+            <div class="objective">
+              <b>maximise</b> match coverage<br /><b>subject to</b><br />&nbsp;
+              precision(matched) ≥ 0.90 per language<br />&nbsp; materials
+              decided not_a_material = 0<br />&nbsp; cost ≤ $2 / 100 lines<br />&nbsp;
+              mean latency ≤ 2 s / line<br />&nbsp; every emitted row ∈ loaded
+              library
+            </div>
+            <p class="small muted" style="margin-top: 12px">
+              These were the brief's constraints and were fixed before any model
+              call. The design, the evaluation protocol and the frozen
+              dev/lockbox split were committed as tag
+              <code>prereg-v1</code>; the lockbox was then scored once, at tag
+              <code>eval-freeze</code>.
+            </p>
+            <p class="small muted" style="margin: 0">
+              <b>Out of scope:</b> PDF BoQs, editing decisions in a UI,
+              multi-tenant authentication, model training.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="data" aria-labelledby="h-data">
+        <span class="tag">03 · Data understanding</span>
+        <h2 id="h-data">
+          One project, two languages, one synthetic sweep of the library
+        </h2>
+        <p class="lead">
+          The English and French BoQs are the same project, line for line. Their
+          labels touch
+          <span data-c="gtLeaves">–</span> of the
+          <span data-k="libraries.global.rows" data-f="int">–</span>
+          global-library rows, and <span data-c="gtSingletons">–</span> of those
+          rows are used by exactly one line, so any example taken from the
+          labels would leak its own answer. The matcher uses none.
+        </p>
+        <div class="panel" style="margin-top: 14px">
+          <h3>From rows to decisions</h3>
+          <div class="funnel" id="funnel"></div>
+        </div>
+        <h3 class="vh" id="h-lib">
+          The material library as a 3D constellation
+        </h3>
+        <div
+          class="stage"
+          id="lib"
+          role="group"
+          aria-labelledby="h-lib"
+          aria-describedby="lib-desc"
+        >
+          <div class="stage-ui">
+            <button type="button" id="l-g" aria-pressed="true">
+              Global library
+            </button>
+            <button type="button" id="l-f" aria-pressed="false">
+              French library
+            </button>
+            <button type="button" id="l-spin" aria-pressed="true">
+              Auto-rotate
+            </button>
+          </div>
+          <div class="stage-hint">Drag to rotate · pick a leaf below</div>
+        </div>
+        <div class="legend" id="lib-legend" aria-label="Constellation colours"></div>
+        <div class="panel info" aria-live="polite">
+          <div>
+            <div class="k">Library</div>
+            <div id="lib-sum">–</div>
+          </div>
+          <div>
+            <div class="k">Selected leaf</div>
+            <div id="lib-path" class="small">Pick a leaf below</div>
+          </div>
+          <div>
+            <div class="k">Labelled lines using it</div>
+            <div id="lib-n">–</div>
+          </div>
+        </div>
+        <div style="margin-top: 10px; max-width: 560px">
+          <label for="leafsel">Pick a leaf used by the labels</label>
+          <select id="leafsel"></select>
+        </div>
+        <p class="tiny muted" id="lib-desc" style="margin-top: 8px">
+          Rings, from the inside out: material types, then type and usage pairs,
+          then leaves (subtypes). Leaves the labels use are marked in yellow, and
+          a picked leaf gets a ring and its path. The tree and its label counts
+          are read from <code>data.json</code>, which the export script builds
+          from <code>data/oris_materials_global.csv</code>,
+          <code>data/oris_materials_fr.csv</code> and
+          <code>data/boq_dataset_matched_GT.csv</code>. The French library is a
+          different taxonomy and shares no labelled row.
+        </p>
+        <div class="grid2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>
+              Usage is the hard level, and lexical matching cannot carry French
+            </h3>
+            <p class="small">
+              On dev, the TF-IDF baseline (B1) at its best threshold matched
+              <span data-k="dev_ladder.rows.0.en.precision" data-f="dec3"
+                >–</span
+              >
+              precision in English and covered
+              <span data-k="dev_ladder.rows.0.en.coverage" data-f="dec3"
+                >–</span
+              >
+              of labelled lines; in French it covered only
+              <span data-k="dev_ladder.rows.0.fr.coverage" data-f="dec3">–</span
+              >. The French BoQ is a localised rewrite of the English one, not a
+              translation, and it shares almost no words with the
+              English-language library its labels use.
+            </p>
+            <div class="chips">
+              <span class="chip">AC → GB / BBSG</span>
+              <span class="chip">RA → AE</span>
+              <span class="chip">WMA → "tiède"</span>
+              <span class="chip">crushed stone → GNT</span>
+              <span class="chip">Ready-mix → BPE</span>
+              <span class="chip">binder 50/70 → 35/50</span>
+              <span class="chip">"couche de fondation" = sub-base</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Confusers seen in the data</h3>
+            <div class="chips">
+              <span class="chip">piers vs piles</span>
+              <span class="chip">base vs binder course</span>
+              <span class="chip">base layer vs sub-base</span>
+              <span class="chip">quick vs slow visco-elastic</span>
+              <span class="chip">pile caps → footings</span>
+              <span class="chip"
+                >segmental rings: tunnel concrete vs precast</span
+              >
+              <span class="chip">"RC" = recycled concrete or rock class</span>
+              <span class="chip">PCE → plasticiser</span>
+            </div>
+            <p class="small muted" style="margin: 12px 0 0">
+              These are usage confusions inside the right material type. They
+              are where a wrong-but-valid match is most likely, and they are
+              what the sibling verifier (E-08) was added for. Both lockbox
+              errors are of this kind.
+            </p>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 16px">
+          <h3>Labelled lines by material type and project section</h3>
+          <div class="scroll-x"><table class="heat" id="heat"></table></div>
+          <p class="tiny muted" id="heat-note" style="margin-top: 8px"></p>
+        </div>
+        <div class="grid2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>Surprises that shaped the design</h3>
+            <ol class="small list">
+              <li>
+                <b>The labels are a synthetic sweep</b>: about one line per
+                library leaf. Examples from the labels would teach answers, not
+                skills, so prompts hold only the library, its enrichment and a
+                sourced glossary.
+              </li>
+              <li>
+                <b>No lexical score is a usable confidence signal.</b>
+                Confidence has to come from independent checks: agreement of two
+                passes, attribute agreement, and the model's own bucket.
+              </li>
+              <li>
+                <b>Some blank-labelled lines carry real materials</b> with no
+                library row (bearings, membranes, drains). They must go to
+                review, never to "not a material".
+              </li>
+              <li>
+                <b>Top-level headers are bare digits</b> (<code>0</code> to
+                <code>9</code>). A header test shaped <code>NN.</code> would
+                miss all ten, so the header gate is structural.
+              </li>
+              <li>
+                <b>Two diameter characters and two decimal conventions</b> (∅
+                and Ø; decimal comma and dot). Normalisation is for matching
+                only; output strings stay verbatim.
+              </li>
+            </ol>
+          </div>
+          <div class="panel">
+            <h3>Label conventions followed, not "fixed"</h3>
+            <ul class="small list">
+              <li>
+                All in-situ building lines in section 09.01 are labelled
+                <i>General Ready mixed</i>.
+              </li>
+              <li>
+                Precast sleepers sit under <i>Prefab</i>, although the same
+                usage string exists under <i>Concrete</i>.
+              </li>
+              <li>
+                Limestone filler maps to <i>Limestone / for all usage</i>, not
+                <i>Filler</i>.
+              </li>
+              <li>
+                Lines starting with an activity verb ("Break out", "Dredge") are
+                materials (waste, spoil), not services.
+              </li>
+              <li>
+                Canonical labels keep their trailing spaces; strings are
+                compared exactly.
+              </li>
+            </ul>
+            <p class="tiny muted" style="margin: 10px 0 0">
+              No item-specific rule encodes any of them. Source:
+              <a
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/data-analysis.md"
+                >docs/data-analysis.md</a
+              >.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="how" aria-labelledby="h-how">
+        <span class="tag">04 · How it works</span>
+        <h2 id="h-how">A pure core, swappable edges</h2>
+        <p class="lead">
+          Parsing, matching, validation and decision logic are separate modules.
+          The domain does no I/O, so every rule is unit-testable and a recorded
+          run can be re-decided without calling the API. The CLI and the API
+          drive the same <code>MatchService</code>.
+        </p>
+        <div class="cards" id="modules" style="margin-top: 14px"></div>
+        <div class="panel" style="margin-top: 16px">
+          <h3>The decision table: the first rule that fires wins</h3>
+          <div class="scroll-x">
+            <table style="min-width: 640px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Condition</th>
+                  <th>Decision</th>
+                  <th>Reason code</th>
+                </tr>
+              </thead>
+              <tbody id="dtable"></tbody>
+            </table>
+          </div>
+          <p class="small" style="margin: 10px 0 0">
+            <b>Safety by construction:</b> only D0 (header), D0a (empty row) and
+            D2 (confirmed service) can emit "not a material", and D2 requires a
+            service unit and no supply marker, so a line with a measured unit
+            can never be skipped. The operating point is
+            <code data-k="policies.0.threshold" data-f="raw">–</code>, resolved
+            per (model, library) from <code>config/policy.yaml</code>; a changed
+            model or library falls back to the strictest threshold.
+          </p>
+        </div>
+      </section>
+
+      <section id="traced" aria-labelledby="h-traced">
+        <span class="tag">05 · One line, traced</span>
+        <h2 id="h-traced">Four real lines, end to end</h2>
+        <p class="lead">
+          Each case is the output of <code>oris explain</code> on a committed
+          run. The command reads only the run folder: no model call and no
+          ground truth. The full transcripts, with every call id and provider
+          request id, are in
+          <a
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/traced-cases.md"
+            >docs/traced-cases.md</a
+          >.
+        </p>
+        <div class="cards" id="traced-cards" style="margin-top: 14px"></div>
+      </section>
+
+      <section id="results" aria-labelledby="h-res">
+        <span class="tag">06 · Results</span>
+        <h2 id="h-res">Certified on the lockbox, in both languages</h2>
+        <p class="lead">
+          The lockbox session ran once at the <code>eval-freeze</code> tag on
+          <span data-k="lockbox.en.items" data-f="int">–</span> held-out items
+          per language (<span data-k="lockbox.en.labelled" data-f="int">–</span>
+          labelled), with nothing tuned afterwards. A claim is "certified" only
+          when its one-sided 95% exact (Clopper–Pearson) lower bound clears .90.
+        </p>
+        <div class="panel scroll-x" style="margin-top: 14px">
+          <h3>The lockbox claim</h3>
+          <table id="t-lockbox" style="min-width: 560px"></table>
+        </div>
+        <div class="grid2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>Accuracy at each level of the hierarchy (lockbox)</h3>
+            <p class="small muted">
+              Over matched lines, and over all labelled lines using the first
+              suggestion where the line went to review.
+            </p>
+            <div class="bars" id="levels"></div>
+          </div>
+          <div class="panel">
+            <h3>Where the lines went</h3>
+            <p class="small muted">
+              Share of each decision, from the committed output files.
+            </p>
+            <div class="funnel" id="shares"></div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>Cost and latency</h3>
+            <div class="scroll-x">
+              <table id="t-ops"></table>
+            </div>
+            <p class="tiny muted" style="margin: 8px 0 0">
+              Measured on the live, uncached lockbox B3 runs over the full
+              files. Cost covers every attempt, retries included. The whole
+              lockbox session (B2 and B3, both languages) spent
+              <span data-k="lockbox_session.total_spend_usd" data-f="usd2"
+                >–</span
+              >. The brief's targets were $2 per 100 lines and 2 s per line.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>Over the whole output files</h3>
+            <div class="scroll-x">
+              <table id="t-all"></table>
+            </div>
+            <p class="tiny muted" style="margin: 8px 0 0">
+              <b>Only the lockbox rows support the claim.</b> The output files
+              cover every item, and their dev items were used to choose the
+              threshold and to build the enrichment, so these columns include
+              in-sample lines.
+            </p>
+          </div>
+        </div>
+        <div class="panel scroll-x" style="margin-top: 16px">
+          <h3>How the dev rungs got there</h3>
+          <p class="small muted">
+            Each rung adds one measured change, scored on dev items only, before
+            the freeze. French is scored against the global library, because the
+            labels use global-library strings. Dev items were used for tuning,
+            so these rows explain the choice; they are not the claim.
+          </p>
+          <table id="t-ladder" style="min-width: 760px"></table>
+          <p class="tiny muted" id="ladder-note" style="margin: 8px 0 0"></p>
+        </div>
+      </section>
+
+      <section id="french" aria-labelledby="h-fr">
+        <span class="tag">07 · French library</span>
+        <h2 id="h-fr">
+          A smoke set certifies the French library; it is not a held-out claim
+        </h2>
+        <p class="lead">
+          The live session runs a French BoQ against the French library, a
+          taxonomy with no labels. A builder-labelled smoke set, frozen before
+          its one live run and scored by a pre-registered rule (A10), decides
+          whether the frozen operating point may run on it.
+        </p>
+        <div class="grid2" style="margin-top: 14px">
+          <div class="panel">
+            <h3>
+              Verdict:
+              <span class="verdict" data-k="smoke_fr.verdict" data-f="upper"
+                >–</span
+              >
+            </h3>
+            <ul class="small list">
+              <li>Rule: <code data-k="smoke_fr.rule" data-f="raw">–</code></li>
+              <li>
+                <span data-k="smoke_fr.lines" data-f="int">–</span> lines, one
+                live run, <code data-k="smoke_fr.run_id" data-f="raw">–</code>,
+                spend <span data-k="smoke_fr.spend_usd" data-f="usd2">–</span>
+              </li>
+              <li>
+                Closed-world violations:
+                <span data-k="smoke_fr.closed_world_violations" data-f="int"
+                  >–</span
+                >
+              </li>
+              <li>
+                False "not a material":
+                <span data-k="smoke_fr.false_not_a_material" data-f="int"
+                  >–</span
+                >
+              </li>
+              <li>
+                Decoy matches:
+                <span data-k="smoke_fr.decoy_matches" data-f="int">–</span>
+              </li>
+              <li>
+                Base positives correct:
+                <span
+                  data-k="smoke_fr.base_positives_correct.k"
+                  data-k2="smoke_fr.base_positives_correct.n"
+                  data-f="frac"
+                  >–</span
+                >
+              </li>
+            </ul>
+            <p class="tiny muted" style="margin: 10px 0 0">
+              Gate record:
+              <a
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/docs/gates/G6.md"
+                >docs/gates/G6.md</a
+              >.
+            </p>
+          </div>
+          <div class="panel scroll-x">
+            <h3>By subset</h3>
+            <table id="t-smoke" style="min-width: 440px"></table>
+          </div>
+        </div>
+        <div class="panel scroll-x" style="margin-top: 16px">
+          <h3>Which policy runs where</h3>
+          <table id="t-policy" style="min-width: 620px"></table>
+          <p class="small" style="margin: 10px 0 0">
+            <b>The caveat stays.</b> The smoke set shows the operating point is
+            safe on the French taxonomy, with no wrong and no decoy match, but
+            it is too small to bound precision. Only
+            <span data-c="baseExact">–</span> of the exact-equivalent base lines
+            matched, so expect lower coverage than on the global library. The
+            certified numbers are the lockbox ones.
+          </p>
+        </div>
+      </section>
+
+      <section id="engineering" aria-labelledby="h-eng">
+        <span class="tag">08 · Engineering</span>
+        <h2 id="h-eng">Every failure ends in review, never in a lost line</h2>
+        <p class="lead">
+          Whatever happens, the output keeps the input's length and order, and
+          every affected line goes to review with its failure code. Every line
+          and every API attempt leaves a record.
+        </p>
+        <div class="grid2" style="margin-top: 14px">
+          <div class="panel">
+            <h3>Failure handling</h3>
+            <ul class="small list">
+              <li>
+                Adapters never raise for API failures; one wrapper owns retries,
+                the budget, cost, recording and the response cache.
+              </li>
+              <li>
+                Timeouts, rate limits, overloads, truncation, refusals,
+                malformed or missing answers end as
+                <code>needs_review</code> with
+                <code>LLM_FAILURE:&lt;kind&gt;</code>,
+                <code>LLM_UNAVAILABLE</code> or <code>BUDGET_CAP</code> (rule
+                D1).
+              </li>
+              <li>
+                A missing pass never becomes a low-signal guess:
+                <code>LLM_FAILURE:partial_signal</code> (D1b).
+              </li>
+              <li>
+                The first batch of a run goes alone so the prompt cache is
+                written once; the rest fan out under a fixed concurrency limit.
+              </li>
+              <li>
+                If the primary model is unreachable, gpt-4o-mini takes over at
+                the strictest threshold, because it was not certified.
+              </li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>The audit trail, per line</h3>
+            <ul class="small list">
+              <li>
+                <code>manifest.json</code>: requested and served model, library
+                SHA-256, prompt version, enrichment and config hashes, policy
+                and its resolution, code SHA with a dirty flag, split SHA,
+                spend.
+              </li>
+              <li>
+                <code>calls.jsonl</code>: one record per attempt with OTel GenAI
+                field names (<code>gen_ai.*</code>), request SHA-256, provider
+                request id, HTTP status, usage, cost, latency.
+              </li>
+              <li>
+                <code>audit.jsonl</code>: one record per line with the rule that
+                fired, the reason, the signals, top-2, the attribute result, the
+                line's raw response and its call ids.
+              </li>
+              <li>
+                The output CSV carries the decision, the three labels, the
+                reason, model, prompt version, attributed cost and latency, and
+                two suggestions in separate columns.
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top: 16px">
+          <div class="panel">
+            <h3>API (FastAPI)</h3>
+            <pre>
+POST /v1/match   a JSON list of lines → one decision per line
+                 more than 500 lines → 413; unknown fields → 422
+GET  /health     liveness
+GET  /ready      readiness, with no model call</pre>
+            <p class="tiny muted" style="margin: 8px 0 0">
+              A model failure never causes a 5xx: the response is a 200 with
+              every line present and a per-line reason. An optional bearer token
+              (<code>ORIS_API_TOKEN</code>) guards
+              <code>/v1/*</code>. Each match writes the same run folder as the
+              CLI. <code>GET /v1/diagnostics/llm</code> and the async
+              <code>/v1/jobs</code> routes are designed in DESIGN.md but not
+              built.
+            </p>
+          </div>
+          <div class="panel">
+            <h3>CLI (Typer)</h3>
+            <ul class="small list">
+              <li>
+                <code>oris match</code> (the default): the brief's command, CSV
+                in, CSV out.
+              </li>
+              <li>
+                <code>oris demo</code>: replays the committed lockbox runs and
+                checks them byte for byte against the outputs, at $0 and without
+                a key.
+              </li>
+              <li>
+                <code>oris explain</code>: why a line got its decision, from the
+                run folder only.
+              </li>
+              <li>
+                <code>oris replay</code>: re-decides a recorded run from
+                <code>calls.jsonl</code>, with no API call.
+              </li>
+              <li>
+                <code>oris score</code>, <code>oris select</code> and
+                <code>oris doctor</code>: the scorer, the threshold selection
+                rule and the environment check.
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 16px">
+          <h3>CI, on Linux and Windows, offline</h3>
+          <div class="chips">
+            <span class="chip">ruff check and format</span>
+            <span class="chip">mypy --strict</span>
+            <span class="chip">pytest, live tests excluded</span>
+            <span class="chip"
+              >coverage ≥ 80% on the domain and the service</span
+            >
+            <span class="chip">clean-clone rules-only run, RQ1–RQ5</span>
+            <span class="chip"
+              >RQ11: lockbox outputs replay byte-identical</span
+            >
+            <span class="chip">this page's data.json is current</span>
+          </div>
+          <p class="small muted" style="margin: 10px 0 0">
+            Tests use a fake LLM with fault injection and the replay adapter;
+            nothing in CI needs a key. See
+            <a
+              href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.0/.github/workflows/ci.yml"
+              >.github/workflows/ci.yml</a
+            >.
+          </p>
+        </div>
+      </section>
+
+      <section id="decisions" aria-labelledby="h-dec">
+        <span class="tag">09 · Decisions</span>
+        <h2 id="h-dec">What was chosen, what was rejected, and why</h2>
+        <p class="lead">
+          Choices the data already settled went into the decision register
+          before any model call. The rest were experiments with a keep rule
+          fixed in advance, scored on dev only.
+        </p>
+        <div class="cards" id="register" style="margin-top: 14px"></div>
+        <p class="tiny muted" style="margin-top: 10px">
+          Sources: DESIGN.md §5.3 (decision register), §16 (amendments) and §17
+          (results);
+          <code>eval/experiments.jsonl</code>; README "Known weaknesses".
+        </p>
+      </section>
+
+      <section id="limits" aria-labelledby="h-lim">
+        <span class="tag">10 · Limitations</span>
+        <h2 id="h-lim">Known weaknesses, and what comes next</h2>
+        <div class="grid2" style="margin-top: 14px">
+          <div class="panel">
+            <h3>Known weaknesses</h3>
+            <ul class="small list">
+              <li>
+                <b>French coverage pays for French precision.</b> Lockbox
+                coverage is
+                <span data-k="lockbox.fr.coverage" data-f="dec3">–</span> in
+                French against
+                <span data-k="lockbox.en.coverage" data-f="dec3">–</span> in
+                English. Declined lines go to review with a reason and two
+                suggestions, never to a wrong match.
+              </li>
+              <li>
+                <b>Usage confusions inside the right type survive.</b> Both
+                lockbox errors are of this kind: railway sub-ballast matched to
+                ballast aggregates, and French
+                <i>couche de fondation</i> (sub-base) matched to the base layer.
+                The verifier reduces this class; it does not remove it.
+              </li>
+              <li>
+                <b
+                  >The verifier costs coverage once the enrichment is in
+                  place.</b
+                >
+                It was kept because dropping it was not registered before that
+                comparison was seen.
+              </li>
+              <li>
+                <b>The French library is certified by a smoke set,</b> not a
+                held-out measurement (chapter 07).
+              </li>
+              <li>
+                <b>The fallback model is not certified.</b> If the primary is
+                unreachable, gpt-4o-mini decides at the strictest threshold and
+                almost every line goes to review.
+              </li>
+              <li>
+                <b>The lockbox is a same-project holdout.</b> It was blind to
+                tuning, not to the data exploration done before the split. The
+                unseen live BoQ is the only fully blind test.
+              </li>
+              <li>
+                <b>Not built:</b> the hybrid retriever for large libraries, a
+                local ≤ 8B model adapter, the operator UI with async jobs, and
+                the LLM diagnostics endpoint. The triggered
+                <code>header_context</code> arm was not run before the freeze.
+              </li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>With more time</h3>
+            <ul class="small list">
+              <li>
+                Run the <code>header_context</code> arm, and label a held-out
+                French-to-French set large enough to bound precision on the
+                French library.
+              </li>
+              <li>
+                Register and measure "verifier off, given the enrichment" blind,
+                on fresh votes.
+              </li>
+              <li>
+                A carbon-weighted error metric once ORIS CO₂ factors are
+                available, so a wrong match is weighted by the size of the
+                carbon mistake.
+              </li>
+              <li>
+                The deferred hardening: the full fault matrix with a 429 storm,
+                CLI/API parity over whole files, and the doctor measuring the
+                enriched prompt for budget reservations.
+              </li>
+              <li>
+                Build the hybrid retriever and measure its recall for libraries
+                above the whole-library size limit; add and benchmark a local ≤
+                8B adapter.
+              </li>
+              <li>
+                The operator UI with asynchronous jobs
+                (<code>docs/ui-spec.md</code>).
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="run" aria-labelledby="h-run">
+        <span class="tag">11 · Run it</span>
+        <h2 id="h-run">Reproduce it from a clean clone</h2>
+        <p class="lead">
+          You need Python 3.12 and uv. None of these commands calls a model or
+          needs a key: the demo and explain read the committed runs, and the
+          scorer reads the committed outputs.
+        </p>
+        <div
+          class="stack"
+          id="cmds"
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+          "
+        ></div>
+        <p class="vh" id="copy-status" aria-live="polite"></p>
+      </section>
+
+      <footer>
+        <p style="margin: 0 0 6px">
+          Built by <b>Pyae Sone (Seon)</b> ·
+          <a href="https://github.com/soneeee22000">github.com/soneeee22000</a>
+          ·
+          <a href="https://github.com/soneeee22000/oris-material-matcher"
+            >oris-material-matcher</a
+          >
+        </p>
+        <p style="margin: 0 0 10px">
+          Every result figure on this page, the library tree and its label
+          counts included, is read from <code>data.json</code>, which
+          <code>scripts/export_site_data.py</code> generates from
+          <span data-k="generated_from" data-f="len">–</span> committed files;
+          CI fails if it is stale.
+        </p>
+        <details>
+          <summary>Version history</summary>
+          <ol id="releases" class="small"></ol>
+        </details>
+        <details>
+          <summary>Source files behind the figures</summary>
+          <ul id="sources" class="small" style="padding-left: 18px"></ul>
+        </details>
+      </footer>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
