@@ -239,7 +239,6 @@
       tokenName: CLASS_TOKENS[name],
     }));
 
-
   /** @param {object} data Renders the rows-to-decisions funnel. */
   function renderFunnel(data) {
     $("funnel").innerHTML = [rowsBar, itemsBar, splitBar, decidedBar]
@@ -328,7 +327,9 @@
   /** @param {number} value @param {number} max @returns {string} Cell style. */
   function heatStyle(value, max) {
     if (!value) return "";
-    const strength = Math.round(HEAT_MIN_MIX + (HEAT_MAX_MIX - HEAT_MIN_MIX) * Math.sqrt(value / max));
+    const strength = Math.round(
+      HEAT_MIN_MIX + (HEAT_MAX_MIX - HEAT_MIN_MIX) * Math.sqrt(value / max),
+    );
     return `background:color-mix(in srgb,var(--steel) ${strength}%,var(--panel))`;
   }
 
@@ -342,9 +343,7 @@
       ),
     );
     const head = sections
-      .map(
-        (s) => `<th scope="col" title="${esc(libraryTree.l0[s])}">${s}</th>`,
-      )
+      .map((s) => `<th scope="col" title="${esc(libraryTree.l0[s])}">${s}</th>`)
       .join("");
     const body = totals
       .map(([type, sum]) => {
@@ -387,7 +386,7 @@
     [
       "MatchService",
       ["service.py"],
-      "Gate, plan batches, call, validate, decide, audit. The CLI and the API await the same service, so they cannot drift apart.",
+      "Plan, two passes, fallback rescue, validate, verify, then decide and write: the stages above. The CLI and the API await the same service, so they cannot drift apart.",
     ],
     [
       "LLM port and wrapper",
@@ -688,11 +687,16 @@
 
   /** @param {object} data Renders the whole-file table. */
   function renderAllLabelled(data) {
-    renderClaimTable("t-all", data.all_labelled, [
-      "All labelled lines",
-      `#EN (${data.all_labelled.en.labelled})`,
-      `#FR (${data.all_labelled.fr.labelled})`,
-    ], false);
+    renderClaimTable(
+      "t-all",
+      data.all_labelled,
+      [
+        "All labelled lines",
+        `#EN (${data.all_labelled.en.labelled})`,
+        `#FR (${data.all_labelled.fr.labelled})`,
+      ],
+      false,
+    );
   }
 
   /** @param {object} side One language of a ladder row. @returns {Array<string>} Cells. */
@@ -733,11 +737,16 @@
 
   /** @param {object} data Renders chapter 06. */
   function renderResults(data) {
-    renderClaimTable("t-lockbox", data.lockbox, [
-      "Lockbox",
-      `#EN (${data.lockbox.en.labelled} labelled)`,
-      `#FR (${data.lockbox.fr.labelled} labelled)`,
-    ], true);
+    renderClaimTable(
+      "t-lockbox",
+      data.lockbox,
+      [
+        "Lockbox",
+        `#EN (${data.lockbox.en.labelled} labelled)`,
+        `#FR (${data.lockbox.fr.labelled} labelled)`,
+      ],
+      true,
+    );
     renderLevels(data);
     renderShares(data);
     renderOps(data);
@@ -866,8 +875,7 @@
       "rejected",
       "One pass that matches every valid answer",
       "shipping the baseline",
-      (data) =>
-        `Kept as the baseline only: ${ladderPrecision(data, 1)}.`,
+      (data) => `Kept as the baseline only: ${ladderPrecision(data, 1)}.`,
     ],
     [
       "T8",
@@ -899,6 +907,20 @@
       "Certifying gpt-4o-mini",
       "a silent fallback at the same threshold",
       "It did not reach the bar, so after a primary outage it decides at the strictest threshold and almost every line goes to review.",
+    ],
+    [
+      "E-02(d)",
+      "rejected",
+      "Cross-model vote with gpt-4o-mini",
+      "spending the unused budget on a second voter",
+      "Pre-registered but not run before the freeze. Measured afterwards for $0 from recorded dev votes: it fails the pre-registered rule (eval/cross_model_dev.md). A dev-only result; no claim changes.",
+    ],
+    [
+      "Alternatives",
+      "open",
+      "Gemini Flash, an embedding baseline, a local model of 8B or fewer",
+      "",
+      "Not measured. TF-IDF therefore understates the simplest approach in French, and the local-model benchmark (A25) was pre-registered but not run (docs/alternatives.md).",
     ],
     [
       "header_context",
@@ -1288,312 +1310,1273 @@
   /* ---------- chapter 01: the 3D pipeline ---------- */
 
   const PIPE = {
-    STATION_GAP: 4.2,
-    CENTRE_SHIFT: 2.6,
-    LABEL_STAGGER: 1.5,
-    BIN_LABEL_X: 2.2,
-    BOX: [1.8, 3.4, 4.2],
-    BOX_Y: 0.3,
-    SLOT: 0.22,
-    SLOTS_Z: 16,
-    SLOTS_Y: 14,
-    BYPASS_Y: -2.0,
-    BYPASS_ROWS: 5,
-    FLOOR_Y: -2.4,
-    BIN_COLS: 6,
-    BIN_GAP_Z: 3.6,
-    BIN_OFFSET_X: 5.6,
-    HEADER_PILE_Z: 4.6,
-    STAGGER: 0.011,
-    SPEED: 0.55,
-    ARC: 0.35,
-    DOT_RADIUS: 0.085,
-    OPACITY_IDLE: 0.1,
-    OPACITY_ON: 0.3,
-    SPAN: 42,
-    DEPTH: 16,
-    HEADER_STATION: 1,
-    VERIFIER_STATION: 6,
+    SPAN: 46,
+    DEPTH: 14,
+    ROT_Y: -0.3,
+    ROT_X: 0.9,
+    LOOK_Y: 0.2,
+    SHIFT_X: 0.6,
+    SPEED: 1,
+    VELOCITY: 8,
+    STEP_IN: 0.01,
+    STEP_OUT: 0.008,
+    LEAVE_AT: 0.3,
+    TO_ENTRY: 0.45,
+    CALL_S: 0.3,
+    TO_MODEL: 0.3,
+    ANIM_LANES: 4,
+    SETTLE: 0.4,
+    RAIL_Y: -0.6,
+    TRAY_Y: -0.66,
+    SHEET_Y: -1.05,
+    LANE: 0.55,
+    SHEET_COLS: 15,
+    SHEET_SP: 0.25,
+    OUT_SP_X: 0.17,
+    OUT_SP_Z: 0.2,
+    QUEUE_COLS: 14,
+    QUEUE_SP: 0.17,
+    TRAY_COLS: 6,
+    TRAY_CELL_X: 1.0,
+    TRAY_CELL_Z: 0.62,
+    PARK_BASE_Z: 0.7,
+    PARK_ROW_Z: 0.48,
+    MINI_COLS: 5,
+    MINI_X: 0.17,
+    MINI_Z: 0.2,
+    FLOOR: -2.4,
+    BIN_COLS: 4,
+    BIN_SP: 0.3,
+    BIN_W: 1.5,
+    BIN_Z: 3.4,
+    BIN_LID: 0.25,
+    DOT: 0.085,
+    HEADER_ARC: 3.8,
+    ENTRY_ARC: 0.9,
+    OUT_ARC: 0.6,
+    BIN_ARC: 1.3,
+    VERIFIER_Z: -3.6,
+    LIBRARY_Z: -4.4,
+    FALLBACK_Z: 4.0,
+    LIBRARY_SLABS: 30,
+    SLAB_STEP: 0.085,
+    GLOW: 0.35,
+    GLOW_MAX: 0.85,
+    HOLD_COLS_X: 3,
+    HOLD_COLS_Z: 10,
+    HOLD_SP_X: 0.3,
+    HOLD_SP_Y: 0.15,
+    HOLD_SP_Z: 0.2,
+    HOLD_BASE: -1.3,
+    LABEL_GAP: 6,
+    LABEL_PAD: 4,
+    LABEL_TRIES: 6,
+    LABEL_COLS: 2,
+    ROW_COST: 1.5,
+    GHOST_OPACITY: 0.4,
+    MAX_FRAME_S: 0.1,
+    CURVE_POINTS: 48,
+    DASH_OPACITY: 0.8,
+    LINE_OPACITY: 0.6,
+    EDGE_OPACITY: 0.3,
+    BIN_OPACITY: 0.1,
+    PLATE: 0.06,
+    PLATE_Y: -0.78,
+    PLATE_PAD: 0.5,
+    PARK_GAP: 0.2,
+    LANE_EDGE: 1.4,
+    RAIL_FLOOR: -1.0,
+    RAIL_W: 0.5,
+    TRAY_W: 6.4,
+    TRAY_BOX_Y: -0.9,
+    SLAB: [3.2, 0.06, 1.8],
+    LIBRARY_BASE: -1.7,
+    ARC_TOP: 6.9,
   };
 
-  const STATIONS = [
-    {
-      name: "Parse",
-      does: "Reads the BoQ by column name (UTF-8 first, cp1252 only as a recorded fallback), keeps every raw string, and derives each row's section path over the whole file.",
-      guarantees:
-        "The output has the input's length and order; nothing is cleaned or dropped.",
+  const PX = {
+    sheet: -24,
+    entry: -21.6,
+    read: -19.6,
+    tray: -13.4,
+    mIn: -8.2,
+    model: -6.2,
+    library: -9.6,
+    mOut: -4.2,
+    park: 0,
+    val: 4.2,
+    queue: 6.6,
+    verifier: 9,
+    out: 11.6,
+    write: 14.6,
+    bins: 18.6,
+  };
+
+  /** Stage id → mesh spec: x, z, size, colour token, base opacity. */
+  const STATION_SPECS = {
+    read: { x: PX.read, z: 0, size: [1.4, 1.6, 2.2], tok: "--steel", op: 0.4 },
+    plan: { x: PX.tray, z: 0, size: [6.4, 0.3, 4.6], tok: "--steel", op: 0.3 },
+    passes: {
+      x: PX.model,
+      z: 0,
+      size: [3.8, 1.8, 2.8],
+      tok: "--cool",
+      op: 0.28,
     },
-    {
-      name: "Header gate",
-      does: "A row with empty Unit and Qty and a structural header code is decided not_a_material (HEADER) by rule, with no model call.",
-      guarantees:
-        "Only headers, empty rows and confirmed services can ever be not_a_material.",
+    fallback: {
+      x: PX.model,
+      z: PIPE.FALLBACK_Z,
+      size: [2.4, 1.4, 1.6],
+      tok: "--ink-2",
+      op: 0.04,
     },
-    {
-      name: "Enriched library",
-      does: "The whole selected library is rendered as a coded tree, with deterministic bilingual terms (E-01), into the cached system prompt. Nothing is shortlisted.",
-      guarantees:
-        "The right row is always among the candidates; codes map back to verbatim library strings.",
+    validate: {
+      x: PX.val,
+      z: 0,
+      size: [1.4, 1.1, 3.0],
+      tok: "--steel",
+      op: 0.5,
     },
-    {
-      name: "Pass A/B (Haiku 4.5)",
-      does: "Two structured-output calls per batch to claude-haiku-4-5-20251001, over two fixed renderings of the library, each answering with row codes, a confidence bucket and quoted evidence.",
-      guarantees:
-        "Every attempt is recorded in calls.jsonl with OTel GenAI field names.",
+    verify: {
+      x: PX.verifier,
+      z: PIPE.VERIFIER_Z,
+      size: [1.4, 1.8, 1.8],
+      tok: "--mark",
+      op: 0.3,
     },
-    {
-      name: "Validate",
-      does: "Checks the stop reason and the schema, that every line is answered once with codes that exist, that the evidence is made of the line's words, and that extracted attributes do not conflict.",
-      guarantees:
-        "Closed world: a code that is not a row of the loaded library can never be emitted.",
+    write: {
+      x: PX.write,
+      z: 0,
+      size: [1.2, 1.6, 2.4],
+      tok: "--steel",
+      op: 0.4,
     },
-    {
-      name: "Threshold T8",
-      does: "Scores each routed line by pass agreement, attribute agreement and confidence, compared lexicographically with the frozen threshold T8 chosen on dev.",
-      guarantees:
-        "Below the threshold the line goes to needs_review with a LOW_SIGNAL reason, never to a guess.",
-    },
-    {
-      name: "Sibling verifier",
-      does: "Lines that would match are asked again among the sibling usages of the chosen type (E-08); a disagreement sends the line to review.",
-      guarantees:
-        "A usage confusion caught here becomes VERIFIER_DISAGREES, not a wrong match.",
-    },
-    {
-      name: "Decide / Audit",
-      does: "The first rule of the decision table that fires wins. One output row, one audit record per line, one call record per attempt, written in input order.",
-      guarantees:
-        "The committed outputs replay byte for byte at $0 (RQ11 in CI).",
-    },
+  };
+
+  /** Stages whose label sits under the station, clear of what happens behind it. */
+  const BELOW = ["plan", "fallback", "validate"];
+
+  const BIN_OF = {
+    matched: 0,
+    needs_review: 1,
+    not_a_material: 2,
+    header: 2,
+  };
+  const BINS = [
+    { key: "matched", name: "Matched", tok: "--ok" },
+    { key: "needs_review", name: "Needs review", tok: "--warn" },
+    { key: "not_a_material", name: "Not a material", tok: "--steel" },
   ];
 
-  /** @param {object} data @returns {Array<string>} HUD text for each station, from the run. */
-  function stationMessages(data) {
-    const run = data.pipeline_en;
-    const verified = run.rows.filter(
-      (row) => row.verifier_batch !== null,
-    ).length;
-    const items = run.rows.length - run.counts.header;
+  /** The architecture stages from data.json; set when the pipeline starts. */
+  let stages = [];
+
+  /** @param {object} data @returns {Record<string, object>} Stage id → its counts. */
+  const stageCounts = (data) =>
+    Object.fromEntries(
+      data.architecture.stages.map((stage) => [stage.id, stage.counts]),
+    );
+
+  /** @param {object} counts The write stage's counts. @returns {string} The final result line. */
+  function resultMessage(counts) {
+    return `${counts.matched} matched · ${counts.needs_review} needs review · ${counts.not_a_material} not a material (${counts.headers} headers + ${counts.items_not_a_material} items)`;
+  }
+
+  /** @param {object} data @returns {Array<string>} HUD text per stage, then the result. */
+  function stageMessages(data) {
+    const c = stageCounts(data);
+    const [pass1, pass2] = c.passes.pass_calls;
+    const fallback = c.fallback.engaged
+      ? `Engaged: ${c.fallback.lines} lines re-run on ${c.fallback.model}`
+      : `Not engaged: ${c.fallback.lines} lines went to ${c.fallback.model}`;
     return [
-      `${run.rows.length} rows read, in file order`,
-      `${run.counts.header} headers leave here; ${items} items go on`,
-      `${data.libraries.global.rows} rows of the global library, enriched`,
-      `${run.batches.pass_calls.join(" + ")} calls, batches of up to ${run.batches.batch_size}`,
-      "Closed world, evidence and attribute checks",
-      `Threshold ${data.policies[0].threshold}, frozen at eval-freeze`,
-      `${verified} rows checked in ${run.batches.verifier_calls} verifier calls`,
-      resultMessage(run.counts),
+      `${c.read.rows} rows read in file order; ${c.read.headers} headers decided here, ${c.read.items} items go on`,
+      `Policy ${c.plan.threshold} (${c.plan.certified_by}), enrichment ${c.plan.enrichment}; ${c.plan.items} items in ${c.plan.batches} batches of up to ${c.plan.batch_size}`,
+      `${pass1} + ${pass2} calls to ${c.passes.model}: pass 1 (canonical) sweeps first, then pass 2 (reversed)`,
+      fallback,
+      `${c.validate.would_be_matched} of ${c.validate.routed} routed lines would be matched; ${c.validate.to_review} go to review, ${c.validate.not_a_material} are confirmed services`,
+      `${c.verify.lines} would-be matches re-checked in ${c.verify.calls} calls; ${c.verify.sent_to_review} sent to review`,
+      `${c.write.rows} rows written in input order; ${c.write.total_calls} model calls in all`,
+      resultMessage(c.write),
     ];
   }
 
-  /** @param {object} counts Pipeline class counts. @returns {string} The result in the output CSV's terms. */
-  function resultMessage(counts) {
-    const skipped = counts.not_a_material + counts.header;
-    return `${counts.matched} matched · ${counts.needs_review} needs review · ${skipped} not a material (${counts.header} headers + ${counts.not_a_material} items)`;
+  /** @param {object} counts @returns {string} A short fact for a stage's button. */
+  function stageFact(id, counts) {
+    const facts = {
+      read: () => `${counts.rows} rows · ${counts.headers} headers`,
+      plan: () => `${counts.batches} batches · ${counts.threshold}`,
+      passes: () => counts.pass_calls.join(" + ") + " calls",
+      fallback: () => (counts.engaged ? "engaged" : "not engaged"),
+      validate: () => `${counts.would_be_matched} would-be matches`,
+      verify: () => `${counts.calls} calls · ${counts.lines} lines`,
+      write: () => `${counts.rows} rows · ${counts.total_calls} calls`,
+    };
+    return facts[id] ? facts[id]() : "";
   }
 
-  /** @param {number} index @returns {number} Station x position. */
-  const stationX = (index) =>
-    (index - (STATIONS.length - 1) / 2) * PIPE.STATION_GAP - PIPE.CENTRE_SHIFT;
+  /** @param {number} t @param {number} x @param {number} y @param {number} z @param {number} [h] */
+  const kf = (t, x, y, z, h = 0) => ({ t, x, y, z, h });
 
-  /** @param {number} slot @returns {THREE.Vector3} Offset of a row inside a station box. */
-  function clusterOffset(slot) {
-    const perLayer = PIPE.SLOTS_Z * PIPE.SLOTS_Y;
-    return new THREE.Vector3(
-      (Math.floor(slot / perLayer) - 0.5) * PIPE.SLOT,
-      PIPE.BOX_Y +
-        ((Math.floor(slot / PIPE.SLOTS_Z) % PIPE.SLOTS_Y) -
-          (PIPE.SLOTS_Y - 1) / 2) *
-          PIPE.SLOT,
-      ((slot % PIPE.SLOTS_Z) - (PIPE.SLOTS_Z - 1) / 2) * PIPE.SLOT,
-    );
+  /** @param {number} b @param {number} m @param {object} layout @returns {Array<number>} Tray slot. */
+  function traySlot(b, m, layout) {
+    const col = (b % PIPE.TRAY_COLS) - (PIPE.TRAY_COLS - 1) / 2;
+    const row = Math.floor(b / PIPE.TRAY_COLS) - (layout.trayRows - 1) / 2;
+    return [
+      PX.tray +
+        col * PIPE.TRAY_CELL_X +
+        ((m % PIPE.MINI_COLS) - 2) * PIPE.MINI_X,
+      PIPE.TRAY_Y,
+      row * PIPE.TRAY_CELL_Z +
+        (Math.floor(m / PIPE.MINI_COLS) - 0.5) * PIPE.MINI_Z,
+    ];
   }
 
-  /** @param {number} slot @param {number} x @param {number} z @returns {THREE.Vector3} A stacked bin slot. */
-  function binSlot(slot, x, z) {
+  /** @param {number} pass @param {number} b @param {number} m @returns {Array<number>} Answer slot. */
+  function parkSlot(pass, b, m) {
+    const col = (b % PIPE.TRAY_COLS) - (PIPE.TRAY_COLS - 1) / 2;
+    const row = Math.floor(b / PIPE.TRAY_COLS);
+    const side = pass === 0 ? -1 : 1;
+    return [
+      PX.park +
+        col * PIPE.TRAY_CELL_X +
+        ((m % PIPE.MINI_COLS) - 2) * PIPE.MINI_X,
+      PIPE.TRAY_Y,
+      side * (PIPE.PARK_BASE_Z + row * PIPE.PARK_ROW_Z) +
+        (Math.floor(m / PIPE.MINI_COLS) - 0.5) * PIPE.MINI_X,
+    ];
+  }
+
+  /** @param {number} i @param {object} layout @returns {Array<number>} Slot on the decisions plane. */
+  function outSlot(i, layout) {
+    return [
+      PX.out +
+        ((i % PIPE.SHEET_COLS) - (PIPE.SHEET_COLS - 1) / 2) * PIPE.OUT_SP_X,
+      PIPE.TRAY_Y,
+      (Math.floor(i / PIPE.SHEET_COLS) - layout.sheetMid) * PIPE.OUT_SP_Z,
+    ];
+  }
+
+  /** @param {number} i @param {object} layout @returns {Array<number>} Slot on the input sheet. */
+  function sheetSlot(i, layout) {
+    return [
+      PX.sheet +
+        ((i % PIPE.SHEET_COLS) - (PIPE.SHEET_COLS - 1) / 2) * PIPE.SHEET_SP,
+      PIPE.SHEET_Y,
+      (Math.floor(i / PIPE.SHEET_COLS) - layout.sheetMid) * PIPE.SHEET_SP,
+    ];
+  }
+
+  /** @param {number} rank @param {object} layout @returns {Array<number>} Slot in the verifier queue. */
+  function queueSlot(rank, layout) {
+    return [
+      PX.queue +
+        ((rank % PIPE.QUEUE_COLS) - (PIPE.QUEUE_COLS - 1) / 2) * PIPE.QUEUE_SP,
+      PIPE.TRAY_Y,
+      PIPE.VERIFIER_Z +
+        (Math.floor(rank / PIPE.QUEUE_COLS) - layout.queueMid) * PIPE.QUEUE_SP,
+    ];
+  }
+
+  /** @param {number} bin @param {number} j @returns {Array<number>} Stacked slot j of a bin. */
+  function binSlot(bin, j) {
     const perLayer = PIPE.BIN_COLS * PIPE.BIN_COLS;
     const half = (PIPE.BIN_COLS - 1) / 2;
-    return new THREE.Vector3(
-      x + ((slot % PIPE.BIN_COLS) - half) * PIPE.SLOT,
-      PIPE.FLOOR_Y + PIPE.SLOT / 2 + Math.floor(slot / perLayer) * PIPE.SLOT,
-      z +
-        ((Math.floor(slot / PIPE.BIN_COLS) % PIPE.BIN_COLS) - half) * PIPE.SLOT,
-    );
+    return [
+      PX.bins + ((j % PIPE.BIN_COLS) - half) * PIPE.BIN_SP,
+      PIPE.FLOOR + PIPE.BIN_SP / 2 + Math.floor(j / perLayer) * PIPE.BIN_SP,
+      binZ(bin) +
+        ((Math.floor(j / PIPE.BIN_COLS) % PIPE.BIN_COLS) - half) * PIPE.BIN_SP,
+    ];
   }
 
-  /** @returns {Record<string, THREE.Vector3>} Where each class ends: three bins and the header pile. */
-  function binCentres() {
-    const x = stationX(STATIONS.length - 1) + PIPE.BIN_OFFSET_X;
+  /** @param {number} bin @returns {number} The bin's z position. */
+  const binZ = (bin) => (bin - 1) * PIPE.BIN_Z;
+
+  /** @param {number} count @returns {number} Height of a bin holding count dots. */
+  const binHeight = (count) =>
+    Math.ceil(count / (PIPE.BIN_COLS * PIPE.BIN_COLS)) * PIPE.BIN_SP +
+    PIPE.BIN_LID;
+
+  /** @param {Array<object>} rows @returns {object} Grid sizes derived from the run. */
+  function pipeLayout(rows) {
+    const batches = new Set(
+      rows.filter((r) => r.batch !== null).map((r) => r.batch),
+    ).size;
+    const flagged = rows.filter((r) => r.verifier_batch !== null).length;
     return {
-      matched: new THREE.Vector3(x, 0, -PIPE.BIN_GAP_Z),
-      needs_review: new THREE.Vector3(x, 0, 0),
-      not_a_material: new THREE.Vector3(x, 0, PIPE.BIN_GAP_Z),
-      header: new THREE.Vector3(
-        stationX(PIPE.HEADER_STATION),
-        0,
-        PIPE.HEADER_PILE_Z,
-      ),
+      batches,
+      trayRows: Math.ceil(batches / PIPE.TRAY_COLS),
+      sheetMid: (Math.ceil(rows.length / PIPE.SHEET_COLS) - 1) / 2,
+      queueMid: (Math.ceil(flagged / PIPE.QUEUE_COLS) - 1) / 2,
     };
   }
 
-  /** @param {number} slot @param {number} x @returns {THREE.Vector3} A slot on the track under a station. */
-  function bypassSlot(slot, x) {
-    return new THREE.Vector3(
-      x +
-        ((Math.floor(slot / PIPE.SLOTS_Z) % PIPE.BYPASS_ROWS) -
-          (PIPE.BYPASS_ROWS - 1) / 2) *
-          PIPE.SLOT,
-      PIPE.BYPASS_Y,
-      ((slot % PIPE.SLOTS_Z) - (PIPE.SLOTS_Z - 1) / 2) * PIPE.SLOT,
+  /** @param {object} row @param {object} layout @returns {object} A dot with its read keyframes. */
+  function readPart(row, layout) {
+    const i = row.position;
+    const sheet = sheetSlot(i, layout);
+    const leave = PIPE.LEAVE_AT + i * PIPE.STEP_IN;
+    const entry = leave + PIPE.TO_ENTRY;
+    const tRead = entry + (PX.read - PX.entry) / PIPE.VELOCITY;
+    return {
+      row,
+      i,
+      bin: BIN_OF[row.class],
+      tRead,
+      k: [
+        kf(0, ...sheet),
+        kf(leave, ...sheet),
+        kf(entry, PX.entry, PIPE.RAIL_Y, 0, PIPE.ENTRY_ARC),
+        kf(tRead, PX.read, PIPE.RAIL_Y, 0),
+      ],
+    };
+  }
+
+  /** @param {number} rank An item's order among the items. @returns {Array<number>} Its slot inside the reader box. */
+  function holdSlot(rank) {
+    const perLayer = PIPE.HOLD_COLS_X * PIPE.HOLD_COLS_Z;
+    const col = rank % PIPE.HOLD_COLS_X;
+    const row = Math.floor(rank / PIPE.HOLD_COLS_X) % PIPE.HOLD_COLS_Z;
+    return [
+      PX.read + (col - (PIPE.HOLD_COLS_X - 1) / 2) * PIPE.HOLD_SP_X,
+      PIPE.HOLD_BASE + Math.floor(rank / perLayer) * PIPE.HOLD_SP_Y,
+      (row - (PIPE.HOLD_COLS_Z - 1) / 2) * PIPE.HOLD_SP_Z,
+    ];
+  }
+
+  /**
+   * Headers arc out as they are read; items wait in the reader until every row is read,
+   * as read_boq returns the whole file before the plan, then go to their batch's tray cell.
+   * @param {Array<object>} parts @param {object} layout @returns {number} When planning starts.
+   */
+  function routeFromReader(parts, layout) {
+    const members = {};
+    const tPlan = maxOf(parts.map((p) => p.tRead)) + PIPE.SETTLE;
+    parts
+      .filter((p) => p.row.class === "header")
+      .forEach((p) => {
+        p.tOut = p.tRead + PIPE.HEADER_ARC / 2;
+        p.k.push(kf(p.tOut, ...outSlot(p.i, layout), PIPE.HEADER_ARC));
+      });
+    parts
+      .filter((p) => p.row.class !== "header")
+      .forEach((p, rank) => {
+        const b = p.row.batch;
+        p.mb = { b, m: (members[b] = (members[b] ?? -1) + 1) };
+        const slot = traySlot(b, p.mb.m, layout);
+        const leave = tPlan + rank * PIPE.STEP_IN;
+        p.tTray = leave + (slot[0] - PX.read) / PIPE.VELOCITY + PIPE.CALL_S / 2;
+        const hold = holdSlot(rank);
+        p.k.push(kf(p.tRead + PIPE.STEP_IN, ...hold), kf(leave, ...hold));
+        p.k.push(kf(p.tTray, ...slot));
+      });
+    return tPlan;
+  }
+
+  /**
+   * Schedules (pass, batch) calls as the service does: each pass's batch 0 alone, then the rest.
+   * @param {number} passes @param {number} batches @param {number} start @returns {object} Call windows.
+   */
+  function scheduleCalls(passes, batches, start) {
+    const call = {};
+    let clock = start;
+    for (let pass = 0; pass < passes; pass += 1) {
+      call[`${pass}:0`] = { pass, start: clock, end: clock + PIPE.CALL_S };
+      clock += PIPE.CALL_S + PIPE.TO_MODEL;
+    }
+    const jobs = [];
+    for (let pass = 0; pass < passes; pass += 1)
+      for (let b = 1; b < batches; b += 1) jobs.push([pass, b]);
+    Object.assign(call, fanOut(jobs, clock));
+    return call;
+  }
+
+  /** @param {Array<Array<number>>} jobs @param {number} clock @returns {object} Windows on the animation lanes. */
+  function fanOut(jobs, clock) {
+    const free = Array(PIPE.ANIM_LANES).fill(clock);
+    const call = {};
+    jobs.forEach(([pass, b]) => {
+      const lane = free.indexOf(Math.min(...free));
+      call[`${pass}:${b}`] = {
+        pass,
+        start: free[lane],
+        end: free[lane] + PIPE.CALL_S,
+      };
+      free[lane] += PIPE.CALL_S;
+    });
+    return call;
+  }
+
+  /** @param {object} job @param {number} pass @param {object} mb @param {Array<number>} from @returns {Array<object>} */
+  function throughModel(job, pass, mb, from) {
+    const side = pass === 0 ? -1 : 1;
+    const z = side * PIPE.LANE;
+    return [
+      kf(job.start - PIPE.TO_MODEL, ...from),
+      kf(job.start, PX.mIn, PIPE.RAIL_Y, z),
+      kf(job.end, PX.mOut, PIPE.RAIL_Y, z),
+      kf(job.end + PIPE.TO_MODEL, ...parkSlot(pass, mb.b, mb.m)),
+    ];
+  }
+
+  /** @param {Array<object>} items @param {object} call @param {number} tDecide @returns {Array<object>} Pass-2 ghosts. */
+  function routePasses(items, call, tDecide, layout) {
+    return items.map((p, k) => {
+      const { b, m } = p.mb;
+      const tray = traySlot(b, m, layout);
+      p.tVal = tDecide + k * PIPE.STEP_OUT + PIPE.TO_ENTRY;
+      const gate = kf(p.tVal, PX.val, PIPE.RAIL_Y, 0);
+      p.k.push(...throughModel(call[`0:${b}`], 0, p.mb, tray));
+      p.k.push(kf(p.tVal - PIPE.TO_ENTRY, ...parkSlot(0, b, m)), gate);
+      const from = call[`0:${b}`].start - PIPE.TO_MODEL;
+      const k2 = [
+        kf(from, ...tray),
+        ...throughModel(call[`1:${b}`], 1, p.mb, tray),
+      ];
+      k2.push(kf(p.tVal - PIPE.TO_ENTRY, ...parkSlot(1, b, m)), gate);
+      return { p, from, to: p.tVal, k: k2 };
+    });
+  }
+
+  /** @param {Array<object>} items @returns {Array<number>} Verifier groups in first-seen order. */
+  function verifierGroups(items) {
+    const order = [];
+    items.forEach((p) => {
+      const group = p.row.verifier_batch;
+      if (group !== null && !order.includes(group)) order.push(group);
+    });
+    return order;
+  }
+
+  /** @param {Array<object>} items @param {Array<number>} groups @returns {Array<object>} Flagged items, grouped by verifier call. */
+  function flaggedByGroup(items, groups) {
+    const rank = (p) => groups.indexOf(p.row.verifier_batch);
+    return items
+      .filter((p) => p.row.verifier_batch !== null)
+      .sort((a, b) => rank(a) - rank(b) || a.i - b.i);
+  }
+
+  /** @param {Array<object>} items @param {number} tVerify @param {object} layout @returns {Array<object>} Verifier call windows. */
+  function routeVerifier(items, tVerify, layout) {
+    const groups = verifierGroups(items);
+    const call = fanOut(
+      groups.map((group) => [0, group]),
+      tVerify,
+    );
+    const centre = [PX.verifier, PIPE.RAIL_Y, PIPE.VERIFIER_Z];
+    flaggedByGroup(items, groups).forEach((p, rank) => {
+      const job = call[`0:${p.row.verifier_batch}`];
+      const queue = queueSlot(rank, layout);
+      p.tVerified = job.end;
+      p.tOut = job.end + PIPE.TO_ENTRY;
+      p.k.push(kf(p.tVal + PIPE.TO_ENTRY, ...queue, PIPE.OUT_ARC));
+      p.k.push(
+        kf(job.start - PIPE.TO_MODEL, ...queue),
+        kf(job.start, ...centre),
+      );
+      p.k.push(
+        kf(job.end, ...centre),
+        kf(p.tOut, ...outSlot(p.i, layout), PIPE.OUT_ARC),
+      );
+    });
+    return Object.values(call);
+  }
+
+  /** @param {Array<object>} items @param {object} layout Sends unflagged items straight to the decisions plane. */
+  function routeUnflagged(items, layout) {
+    items
+      .filter((p) => p.row.verifier_batch === null)
+      .forEach((p) => {
+        p.tOut = p.tVal + PIPE.TO_ENTRY;
+        p.k.push(kf(p.tOut, ...outSlot(p.i, layout), PIPE.OUT_ARC));
+      });
+  }
+
+  /** @param {Array<object>} parts @param {number} tWrite @param {object} layout @returns {Array<Array<object>>} Parts per bin. */
+  function routeWrite(parts, tWrite, layout) {
+    const byBin = BINS.map(() => []);
+    parts.forEach((p) => {
+      const out = outSlot(p.i, layout);
+      const tw = tWrite + p.i * PIPE.STEP_OUT;
+      p.tWritten = tw + PIPE.TO_MODEL;
+      p.tLand = p.tWritten + PIPE.TO_ENTRY * 2;
+      const slot = binSlot(p.bin, byBin[p.bin].length);
+      p.k.push(
+        kf(tw, ...out),
+        kf(p.tWritten, PX.write, PIPE.RAIL_Y, 0, PIPE.OUT_ARC),
+      );
+      p.k.push(kf(p.tLand, ...slot, PIPE.BIN_ARC));
+      byBin[p.bin].push(p);
+    });
+    return byBin;
+  }
+
+  /** @param {Array<number>} list @returns {number} The largest value. */
+  const maxOf = (list) => list.reduce((a, b) => Math.max(a, b), -Infinity);
+
+  /** @param {Array<object>} rows @returns {object} Every dot's keyframes and the timeline marks. */
+  function buildTimeline(rows) {
+    const layout = pipeLayout(rows);
+    const parts = rows.map((row) => readPart(row, layout));
+    const tPlan = routeFromReader(parts, layout);
+    const items = parts.filter((p) => p.mb);
+    const tModel = maxOf(items.map((p) => p.tTray)) + PIPE.SETTLE;
+    const call = scheduleCalls(2, layout.batches, tModel + PIPE.TO_MODEL);
+    const passCalls = Object.values(call);
+    const tPassesEnd = maxOf(passCalls.map((c) => c.end));
+    const tDecide = tPassesEnd + PIPE.TO_MODEL + PIPE.SETTLE;
+    const ghosts = routePasses(items, call, tDecide, layout);
+    const tVerify =
+      maxOf(items.map((p) => p.tVal)) + PIPE.TO_ENTRY + PIPE.SETTLE;
+    const verCalls = routeVerifier(items, tVerify, layout);
+    routeUnflagged(items, layout);
+    const tWrite = maxOf(parts.map((p) => p.tOut)) + PIPE.SETTLE;
+    const byBin = routeWrite(parts, tWrite, layout);
+    const end = maxOf(parts.map((p) => p.tLand)) + PIPE.SETTLE;
+    const marks = {
+      tModel,
+      tPassesEnd,
+      tDecide,
+      tVerify,
+      tWrite,
+      end,
+      tPlan,
+    };
+    return { parts, items, ghosts, passCalls, verCalls, byBin, marks, layout };
+  }
+
+  /** @param {object} tl @returns {Array<number>} The time each step shows: seven stages, then the result. */
+  function stepTimes(tl) {
+    const m = tl.marks;
+    const pass2 = tl.passCalls.filter((c) => c.pass === 1).map((c) => c.end);
+    const verEnds = tl.verCalls.map((c) => c.end).sort((a, b) => a - b);
+    return [
+      m.tPlan - PIPE.SETTLE / 2,
+      m.tModel - PIPE.CALL_S,
+      pass2.sort((a, b) => a - b)[Math.floor(pass2.length / 2)],
+      m.tDecide - PIPE.CALL_S,
+      m.tVerify - PIPE.CALL_S,
+      verEnds[Math.floor(verEnds.length / 2)],
+      m.tWrite + (m.end - m.tWrite) / 2,
+      m.end,
+    ];
+  }
+
+  /** @param {object} tl @returns {Array<number>} When each stage starts during playback. */
+  function stageStarts(tl) {
+    const m = tl.marks;
+    return [0, m.tPlan, m.tModel, m.tPassesEnd, m.tDecide, m.tVerify, m.tWrite];
+  }
+
+  /** @param {number} u @returns {number} Smoothstep easing. */
+  const ease = (u) => u * u * (3 - 2 * u);
+
+  /** @param {Array<object>} k Keyframes @param {number} t @param {THREE.Vector3} out @returns {THREE.Vector3} */
+  function sampleAt(k, t, out) {
+    if (t <= k[0].t) return out.set(k[0].x, k[0].y, k[0].z);
+    let n = 1;
+    while (n < k.length - 1 && k[n].t < t) n += 1;
+    const a = k[n - 1];
+    const b = k[n];
+    const raw =
+      b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 1;
+    const u = b.h ? ease(raw) : raw;
+    return out.set(
+      a.x + (b.x - a.x) * u,
+      a.y + (b.y - a.y) * u + Math.sin(Math.PI * u) * b.h,
+      a.z + (b.z - a.z) * u,
     );
   }
 
+  /** @returns {object} Materials that follow the theme: glass, lines and a repaint hook. */
+  function makePalette() {
+    const paints = [];
+    const track = (material, tok) => {
+      paints.push([material, tok]);
+      return material;
+    };
+    return {
+      glass: (tok, opacity) =>
+        track(
+          new THREE.MeshStandardMaterial({
+            color: color3(tok),
+            roughness: 0.6,
+            metalness: 0.05,
+            transparent: true,
+            opacity,
+            depthWrite: false,
+          }),
+          tok,
+        ),
+      line: (tok, opacity, dashed) =>
+        track(lineMaterial(tok, opacity, dashed), tok),
+      repaint: () =>
+        paints.forEach(([material, tok]) => material.color.set(color3(tok))),
+    };
+  }
+
+  /** @param {string} tok @param {number} opacity @param {boolean} dashed @returns {THREE.Material} */
+  function lineMaterial(tok, opacity, dashed) {
+    const options = { color: color3(tok), transparent: true, opacity };
+    return dashed
+      ? new THREE.LineDashedMaterial({
+          ...options,
+          dashSize: 0.3,
+          gapSize: 0.22,
+        })
+      : new THREE.LineBasicMaterial(options);
+  }
+
   /**
-   * Keyframes for one row: one position per station, then its final bin.
-   * @param {object} row @param {number} binIndex Slot within its class bin. @param {object} bins
-   * @returns {Array<THREE.Vector3>}
+   * @param {object} ctx @param {Array<number>} centre @param {Array<number>} size
+   * @param {string} tok @param {number} op @returns {THREE.Mesh}
    */
-  function rowKeyframes(row, binIndex, bins) {
-    const frames = [];
-    const centre = bins[row.class];
-    const final = binSlot(binIndex, centre.x, centre.z);
-    STATIONS.forEach((station, index) => {
-      if (row.class === "header" && index > PIPE.HEADER_STATION) {
-        frames.push(final.clone());
-      } else if (
-        index === PIPE.VERIFIER_STATION &&
-        row.verifier_batch === null
-      ) {
-        frames.push(bypassSlot(row.position, stationX(index)));
-      } else {
-        frames.push(
-          clusterOffset(row.position).add(
-            new THREE.Vector3(stationX(index), 0, 0),
-          ),
-        );
-      }
+  function addBox(ctx, centre, size, tok, op) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(...size),
+      ctx.pal.glass(tok, op),
+    );
+    mesh.position.set(...centre);
+    ctx.group.add(mesh);
+    return mesh;
+  }
+
+  /**
+   * @param {object} ctx @param {THREE.Mesh} mesh @param {string} tok @param {number} op
+   * @param {boolean} [dashed] @returns {THREE.LineSegments} The box outline.
+   */
+  function addEdges(ctx, mesh, tok, op, dashed = false) {
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      ctx.pal.line(tok, op, dashed),
+    );
+    if (dashed) edges.computeLineDistances();
+    mesh.add(edges);
+    return edges;
+  }
+
+  /**
+   * @param {object} ctx @param {Array<Array<number>>} points Bezier start, control and end.
+   * @param {string} tok @param {boolean} dashed @returns {THREE.Line}
+   */
+  function addCurve(ctx, points, tok, dashed) {
+    const curve = new THREE.QuadraticBezierCurve3(
+      ...points.map((p) => new THREE.Vector3(...p)),
+    );
+    const geometry = new THREE.BufferGeometry().setFromPoints(
+      curve.getPoints(PIPE.CURVE_POINTS),
+    );
+    const opacity = dashed ? PIPE.DASH_OPACITY : PIPE.LINE_OPACITY;
+    const line = new THREE.Line(geometry, ctx.pal.line(tok, opacity, dashed));
+    if (dashed) line.computeLineDistances();
+    ctx.group.add(line);
+    return line;
+  }
+
+  /** @param {object} layout @returns {Array<Array>} [centre, size, token, opacity] of the input sheet, decisions plane and rail. */
+  function sheetPlates(layout) {
+    const pad = PIPE.PLATE_PAD;
+    const sheetD = (layout.sheetMid * 2 + 1) * PIPE.SHEET_SP + pad;
+    const outD = decisionsEdge(layout) * 2;
+    const sheet = [PIPE.SHEET_COLS * PIPE.SHEET_SP + pad, PIPE.PLATE, sheetD];
+    const out = [PIPE.SHEET_COLS * PIPE.OUT_SP_X + pad, PIPE.PLATE, outD];
+    const rail = [PX.write - PX.entry + 1, PIPE.PLATE, PIPE.RAIL_W];
+    return [
+      [[PX.sheet, PIPE.SHEET_Y - 0.1, 0], sheet, "--rule", 0.55],
+      [[PX.out, PIPE.PLATE_Y, 0], out, "--rule", 0.45],
+      [[(PX.write + PX.entry) / 2, PIPE.RAIL_FLOOR, 0], rail, "--rule", 0.6],
+    ];
+  }
+
+  /** @param {object} layout @returns {{depth:number, z:number}} Depth and |z| centre of each pass's answer plate. */
+  function answerPlate(layout) {
+    const depth = PIPE.PARK_BASE_Z + layout.trayRows * PIPE.PARK_ROW_Z;
+    return { depth, z: depth / 2 + PIPE.PARK_GAP };
+  }
+
+  /** @param {object} layout @returns {Array<Array>} [centre, size, token, opacity] of the answer plates and verifier queue. */
+  function holdingPlates(layout) {
+    const y = PIPE.PLATE_Y;
+    const { depth: parkD, z: parkZ } = answerPlate(layout);
+    const park = [PIPE.TRAY_W, PIPE.PLATE, parkD];
+    const queueD = (layout.queueMid * 2 + 1) * PIPE.QUEUE_SP + PIPE.PLATE_PAD;
+    const queueW = PIPE.QUEUE_COLS * PIPE.QUEUE_SP + PIPE.PLATE_PAD;
+    return [
+      [[PX.park, y, -parkZ], park, "--steel", 0.18],
+      [[PX.park, y, parkZ], park, "--ink-2", 0.12],
+      [
+        [PX.queue, y, PIPE.VERIFIER_Z],
+        [queueW, PIPE.PLATE, queueD],
+        "--mark",
+        0.14,
+      ],
+    ];
+  }
+
+  /** @param {object} ctx @param {object} layout Adds the input sheet, answer plates, queue, decisions plane and rail. */
+  function buildPlates(ctx, layout) {
+    [...sheetPlates(layout), ...holdingPlates(layout)].forEach(
+      ([centre, size, tok, opacity]) => addBox(ctx, centre, size, tok, opacity),
+    );
+  }
+
+  /** @param {object} ctx @returns {Record<string, object>} Station boxes by stage id. */
+  function buildStationMeshes(ctx) {
+    const meshes = {};
+    stages.forEach((stage, index) => {
+      const spec = STATION_SPECS[stage.id];
+      const inactive = ctx.inactive.includes(stage.id);
+      const y = stage.id === "plan" ? PIPE.TRAY_BOX_Y : PIPE.RAIL_Y;
+      const mesh = addBox(
+        ctx,
+        [spec.x, y, spec.z],
+        spec.size,
+        spec.tok,
+        spec.op,
+      );
+      mesh.userData.station = index;
+      const opacity = inactive ? PIPE.DASH_OPACITY : PIPE.EDGE_OPACITY;
+      const edges = addEdges(ctx, mesh, "--ink", opacity, inactive);
+      meshes[stage.id] = {
+        mesh,
+        edges,
+        base: spec.op,
+        top: y + spec.size[1] / 2,
+      };
     });
-    frames.push(final);
-    return frames;
+    return meshes;
   }
 
-  /** @param {Array<object>} rows @returns {Array<Array<THREE.Vector3>>} Keyframes for every row. */
-  function allKeyframes(rows) {
-    const bins = binCentres();
-    const seen = { header: 0, matched: 0, needs_review: 0, not_a_material: 0 };
-    return rows.map((row) => rowKeyframes(row, seen[row.class]++, bins));
+  /** @param {object} ctx Adds the two pass lanes through the model. */
+  function buildLanes(ctx) {
+    [-1, 1].forEach((side) => {
+      const tube = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.2, 0.2, PX.mOut - PX.mIn, 16, 1, true),
+        ctx.pal.glass("--ink-2", 0.18),
+      );
+      tube.rotation.z = Math.PI / 2;
+      tube.position.set(PX.model, PIPE.RAIL_Y, side * PIPE.LANE);
+      ctx.group.add(tube);
+    });
   }
 
-  /** @param {number} value @returns {number} Smoothstep easing. */
-  const ease = (value) => value * value * (3 - 2 * value);
-
-  /**
-   * Position of a row at a progress value, with a small arc between stations.
-   * @param {Array<THREE.Vector3>} frames @param {number} progress @param {THREE.Vector3} out
-   */
-  function positionAt(frames, progress, out) {
-    const last = frames.length - 1;
-    const segment = Math.min(Math.floor(progress), last - 1);
-    const local = Math.min(Math.max(progress - segment, 0), 1);
-    out.lerpVectors(frames[segment], frames[segment + 1], ease(local));
-    out.y += Math.sin(Math.PI * local) * PIPE.ARC;
-    return out;
+  /** @param {object} ctx @param {number} index Plan stage index. @returns {{mesh:THREE.Group, top:number}} The library block. */
+  function buildLibraryBlock(ctx, index) {
+    const tower = new THREE.Group();
+    for (let n = 0; n < PIPE.LIBRARY_SLABS; n += 1) {
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(...PIPE.SLAB),
+        ctx.pal.glass("--hiviz", n % 2 ? 0.5 : 0.85),
+      );
+      slab.position.y = n * PIPE.SLAB_STEP;
+      slab.userData.station = index;
+      tower.add(slab);
+    }
+    tower.position.set(PX.library, PIPE.LIBRARY_BASE, PIPE.LIBRARY_Z);
+    ctx.group.add(tower);
+    const top = PIPE.LIBRARY_BASE + PIPE.LIBRARY_SLABS * PIPE.SLAB_STEP;
+    const from = [PX.library + 0.8, top, PIPE.LIBRARY_Z + 0.4];
+    const via = [
+      (PX.library + PX.model) / 2 + 0.8,
+      top + 1.6,
+      PIPE.LIBRARY_Z / 2,
+    ];
+    addCurve(ctx, [from, via, [PX.model - 0.6, 0.3, -0.8]], "--mark", true);
+    return { mesh: tower, top };
   }
 
-  /** @param {object} stage @returns {Array<{mesh:THREE.Mesh, edges:THREE.LineSegments}>} The station boxes. */
-  function buildStations(stage) {
-    const [width, height, depth] = PIPE.BOX;
-    const geometry = new THREE.BoxGeometry(width, height, depth);
-    return STATIONS.map((station, index) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: color3("--steel"),
+  /** @returns {Array<Array>} [start, control, end, token, dashed] of the fallback branch and the header arc. */
+  function dashedLinks() {
+    const y = PIPE.RAIL_Y;
+    const fz = PIPE.FALLBACK_Z;
+    const fallback = [
+      [PX.model, y, PIPE.LANE_EDGE],
+      [PX.model + 0.8, 0.4, fz / 2 + 0.7],
+      [PX.model, y + 0.2, fz - 0.8],
+    ];
+    const headers = [
+      [PX.read, y, 0],
+      [(PX.read + PX.out) / 2, PIPE.ARC_TOP, 0],
+      [PX.out, -0.4, 0],
+    ];
+    return [
+      [...fallback, "--ink-2", true],
+      [...headers, "--ink-2", true],
+    ];
+  }
+
+  /** @returns {Array<Array>} [start, control, end, token, dashed] of the branch through the verifier. */
+  function verifierLinks() {
+    const y = PIPE.RAIL_Y;
+    const vz = PIPE.VERIFIER_Z;
+    const into = [
+      [PX.val + 0.3, y, -0.6],
+      [PX.val + 1.2, y, vz],
+      [PX.queue - 1.3, PIPE.TRAY_Y, vz],
+    ];
+    const out = [
+      [PX.verifier + 0.7, y, vz],
+      [PX.out - 0.6, y, vz],
+      [PX.out - 0.6, PIPE.TRAY_Y, -1.8],
+    ];
+    return [
+      [...into, "--mark", false],
+      [...out, "--mark", false],
+    ];
+  }
+
+  /** @param {object} ctx Adds the dashed fallback branch, the header arc and the verifier branch. */
+  function buildLinks(ctx) {
+    [...dashedLinks(), ...verifierLinks()].forEach(
+      ([from, via, to, tok, dashed]) =>
+        addCurve(ctx, [from, via, to], tok, dashed),
+    );
+  }
+
+  /** @param {object} ctx @param {Array<number>} heights Adds the feeds from the writer into each bin. */
+  function buildBinFeeds(ctx, heights) {
+    BINS.forEach((bin, k) => {
+      const from = [PX.write + 0.6, PIPE.RAIL_Y, 0];
+      const via = [(PX.write + PX.bins) / 2, PIPE.RAIL_Y + 1.1, binZ(k) / 2];
+      const to = [PX.bins - PIPE.BIN_W / 2, PIPE.FLOOR + heights[k], binZ(k)];
+      addCurve(ctx, [from, via, to], bin.tok, false);
+    });
+  }
+
+  /** @param {object} ctx @param {Array<number>} heights @returns {Array<THREE.Mesh>} Bins whose heights scale to their counts. */
+  function buildBins(ctx, heights) {
+    return BINS.map((bin, k) => {
+      const centre = [PX.bins, PIPE.FLOOR + heights[k] / 2, binZ(k)];
+      const size = [PIPE.BIN_W, heights[k], PIPE.BIN_W];
+      const mesh = addBox(ctx, centre, size, bin.tok, PIPE.BIN_OPACITY);
+      addEdges(ctx, mesh, bin.tok, 0.9);
+      const floor = [PX.bins, PIPE.FLOOR - 0.03, binZ(k)];
+      addBox(ctx, floor, [PIPE.BIN_W, PIPE.PLATE, PIPE.BIN_W], bin.tok, 0.85);
+      mesh.userData.bin = k;
+      return mesh;
+    });
+  }
+
+  /** @param {object} ctx @param {number} count @param {number} opacity @returns {THREE.InstancedMesh} */
+  function buildDotMesh(ctx, count, opacity) {
+    const material = new THREE.MeshStandardMaterial({ roughness: 0.45 });
+    if (opacity < 1)
+      Object.assign(material, {
         transparent: true,
-        opacity: PIPE.OPACITY_IDLE,
+        opacity,
         depthWrite: false,
       });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(stationX(index), PIPE.BOX_Y, 0);
-      mesh.userData.station = index;
-      const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(geometry),
-        new THREE.LineBasicMaterial({
-          color: color3("--ink-2"),
-          transparent: true,
-          opacity: 0.5,
-        }),
-      );
-      edges.position.copy(mesh.position);
-      stage.root.add(mesh, edges);
-      return { mesh, edges };
-    });
-  }
-
-  /** @param {object} stage @param {object} bins Adds floor plates under the bins and the header pile. */
-  function buildBins(stage, bins) {
-    const size = PIPE.BIN_COLS * PIPE.SLOT + PIPE.SLOT;
-    const geometry = new THREE.BoxGeometry(size, 0.05, size);
-    Object.entries(bins).forEach(([name, centre]) => {
-      const plate = new THREE.Mesh(
-        geometry,
-        new THREE.MeshStandardMaterial({
-          color: color3(CLASS_TOKENS[name]),
-          transparent: true,
-          opacity: 0.35,
-        }),
-      );
-      plate.position.set(centre.x, PIPE.FLOOR_Y - 0.03, centre.z);
-      stage.root.add(plate);
-    });
-    const railLength =
-      stationX(STATIONS.length - 1) - stationX(0) + PIPE.STATION_GAP;
-    const rail = new THREE.Mesh(
-      new THREE.BoxGeometry(railLength, 0.05, 0.4),
-      new THREE.MeshStandardMaterial({ color: color3("--rule") }),
-    );
-    rail.position.set(0, PIPE.BYPASS_Y - PIPE.SLOT, 0);
-    stage.root.add(rail);
-  }
-
-  /** @param {object} stage @param {number} count @returns {THREE.InstancedMesh} The row dots. */
-  function buildDots(stage, count) {
     const dots = new THREE.InstancedMesh(
-      new THREE.SphereGeometry(PIPE.DOT_RADIUS, 10, 8),
-      new THREE.MeshStandardMaterial({ roughness: 0.45 }),
-      count,
+      new THREE.SphereGeometry(PIPE.DOT, 10, 8),
+      material,
+      Math.max(count, 1),
     );
     dots.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    stage.root.add(dots);
+    ctx.group.add(dots);
     return dots;
   }
 
-  /** @param {THREE.InstancedMesh} dots @param {Array<object>} rows Colours each dot by its real class. */
-  function colourDots(dots, rows) {
+  /** @param {THREE.InstancedMesh} dots @param {Array<object>} parts Colours each dot by its row's decision. */
+  function colourDots(dots, parts) {
     const palette = {};
     Object.keys(CLASS_TOKENS).forEach((name) => {
       palette[name] = color3(CLASS_TOKENS[name]);
     });
-    rows.forEach((row, index) => dots.setColorAt(index, palette[row.class]));
+    parts.forEach((p, index) => dots.setColorAt(index, palette[p.row.class]));
     if (dots.instanceColor) dots.instanceColor.needsUpdate = true;
   }
 
-  /** @param {object} data @param {object} labels @param {object} bins Adds station and bin labels. */
-  function addPipelineLabels(data, labels, bins) {
-    const top = PIPE.BOX_Y + PIPE.BOX[1] / 2 + 0.2;
-    const stationLabels = STATIONS.map((station, index) =>
-      labels.add(
-        `${index + 1}<span class="nm"> ${esc(station.name)}</span>`,
-        new THREE.Vector3(stationX(index), top + (index % 2) * PIPE.LABEL_STAGGER, 0),
-      ),
+  /* ---------- pipeline labels: projected, then nudged apart and kept inside the stage ---------- */
+
+  /** @param {HTMLElement} el @returns {Array<object>} Rects of the overlays labels must avoid. */
+  function overlayRects(el) {
+    const box = el.getBoundingClientRect();
+    return [...el.querySelectorAll(".hud, .stage-ui, .stage-hint")].map(
+      (node) => {
+        const r = node.getBoundingClientRect();
+        return {
+          x: r.left - box.left,
+          y: r.top - box.top,
+          w: r.width,
+          h: r.height,
+        };
+      },
     );
-    const counts = { ...data.pipeline_en.counts };
-    Object.entries(bins).forEach(([name, centre]) => {
-      const node = labels.add(
-        `${esc(PIPE_LABELS[name])} ${counts[name]}`,
-        new THREE.Vector3(centre.x + PIPE.BIN_LABEL_X, PIPE.FLOOR_Y, centre.z),
-      );
-      node.classList.add("bin");
+  }
+
+  /** @param {object} a @param {object} b @returns {boolean} Whether two rects overlap, with a gap. */
+  const overlaps = (a, b) =>
+    a.x < b.x + b.w + PIPE.LABEL_PAD &&
+    b.x < a.x + a.w + PIPE.LABEL_PAD &&
+    a.y < b.y + b.h + PIPE.LABEL_PAD &&
+    b.y < a.y + a.h + PIPE.LABEL_PAD;
+
+  /** @param {object} entry @param {number} px @param {number} py @returns {{x:number, y:number}} Top-left before nudging. */
+  function labelOrigin(entry, px, py) {
+    const { w, h } = entry;
+    if (entry.mode === "side") return { x: px + PIPE.LABEL_GAP, y: py - h / 2 };
+    if (entry.mode === "below")
+      return { x: px - w / 2, y: py + PIPE.LABEL_GAP };
+    return { x: px - w / 2, y: py - h - PIPE.LABEL_GAP };
+  }
+
+  /** @returns {Array<Array<number>>} Nudges as [half label widths, label rows], nearest first. */
+  function nudgeGrid() {
+    const nudges = [];
+    for (let row = -PIPE.LABEL_TRIES; row <= PIPE.LABEL_TRIES; row += 1)
+      for (let col = -PIPE.LABEL_COLS; col <= PIPE.LABEL_COLS; col += 1)
+        nudges.push([col, row]);
+    return nudges.sort(
+      (a, b) =>
+        Math.hypot(a[0], a[1] * PIPE.ROW_COST) -
+        Math.hypot(b[0], b[1] * PIPE.ROW_COST),
+    );
+  }
+
+  const NUDGES = nudgeGrid();
+
+  /**
+   * Finds the first nudge of a label that stays inside the stage and clear of placed rects.
+   * The previous nudge is tried first so labels do not flicker while the view turns.
+   * @param {object} entry @param {{x:number, y:number}} origin @param {Array<object>} placed
+   * @param {{w:number, h:number}} box @returns {{rect:object, nudge:Array<number>}|null}
+   */
+  function freeSlot(entry, origin, placed, box) {
+    const pad = PIPE.LABEL_PAD;
+    for (const nudge of [entry.nudge, ...NUDGES]) {
+      const rawX = origin.x + (nudge[0] * entry.w) / 2;
+      const rawY = origin.y + nudge[1] * (entry.h + pad);
+      const x = Math.min(Math.max(rawX, pad), box.w - entry.w - pad);
+      const y = Math.min(Math.max(rawY, pad), box.h - entry.h - pad);
+      const rect = { x, y, w: entry.w, h: entry.h };
+      if (!placed.some((other) => overlaps(rect, other)))
+        return { rect, nudge };
+    }
+    return null;
+  }
+
+  /**
+   * A pinned label stays beside its own object: it is only kept inside the stage, never nudged.
+   * @param {object} entry @param {{x:number, y:number}} origin @param {{w:number, h:number}} box
+   * @returns {{rect:object, nudge:Array<number>}}
+   */
+  function pinnedSlot(entry, origin, box) {
+    const pad = PIPE.LABEL_PAD;
+    const x = Math.min(Math.max(origin.x, pad), box.w - entry.w - pad);
+    const y = Math.min(Math.max(origin.y, pad), box.h - entry.h - pad);
+    return { rect: { x, y, w: entry.w, h: entry.h }, nudge: [0, 0] };
+  }
+
+  /**
+   * Places one label at its first free nudge, or hides it when the stage has no room left.
+   * @param {object} entry @param {{x:number, y:number}} origin @param {Array<object>} placed
+   * @param {{w:number, h:number}} box
+   */
+  function placeLabel(entry, origin, placed, box) {
+    const slot = entry.pinned
+      ? pinnedSlot(entry, origin, box)
+      : freeSlot(entry, origin, placed, box);
+    entry.node.hidden = !slot;
+    if (!slot) return;
+    entry.nudge = slot.nudge;
+    placed.push(slot.rect);
+    entry.node.style.transform = `translate(${Math.round(slot.rect.x)}px,${Math.round(slot.rect.y)}px)`;
+  }
+
+  /** @param {object} stage @param {THREE.Group} group @returns {object} The pipeline's label set. */
+  function makePipeLabels(stage, group) {
+    const list = [];
+    const state = { width: 0 };
+    return {
+      add: (spec) => addPipeLabel(stage, list, spec),
+      setSub: (entry, text) => {
+        if (entry.text === text) return;
+        entry.text = text;
+        entry.sub.textContent = text;
+        entry.dirty = true;
+      },
+      update: () => layoutPipeLabels(stage, group, list, state),
+      all: list,
+    };
+  }
+
+  /** @param {object} stage @param {Array<object>} list @param {object} spec @returns {object} A new label entry. */
+  function addPipeLabel(stage, list, spec) {
+    const node = document.createElement("div");
+    node.className = `lbl3d ${spec.className || ""}`.trim();
+    const number = spec.number ? `<span class="n">${spec.number}</span>` : "";
+    node.innerHTML = `${number}<span class="nm">${esc(spec.title)}</span><span class="c${spec.keepSub ? " cnt" : ""}"></span>`;
+    stage.el.appendChild(node);
+    const entry = {
+      ...spec,
+      node,
+      sub: node.querySelector(".c"),
+      text: "",
+      dirty: true,
+      nudge: [0, 0],
+      w: 0,
+      h: 0,
+    };
+    list.push(entry);
+    return entry;
+  }
+
+  /** @param {object} stage @param {THREE.Group} group @param {Array<object>} list @param {object} state Projects, measures and places every label. */
+  function layoutPipeLabels(stage, group, list, state) {
+    const box = { w: stage.el.clientWidth, h: stage.el.clientHeight };
+    const resized = box.w !== state.width;
+    state.width = box.w;
+    const scratch = new THREE.Vector3();
+    const visible = list.filter((entry) => {
+      if (entry.dirty || resized) measureLabel(entry);
+      scratch
+        .copy(entry.anchor)
+        .applyMatrix4(group.matrixWorld)
+        .project(stage.camera);
+      entry.px = ((scratch.x + 1) / 2) * box.w;
+      entry.py = ((1 - scratch.y) / 2) * box.h;
+      entry.node.hidden = scratch.z > 1 || entry.w === 0;
+      return !entry.node.hidden;
     });
-    return stationLabels;
+    const placed = overlayRects(stage.el);
+    const pinnedFirst = [
+      ...visible.filter((entry) => entry.pinned),
+      ...visible.filter((entry) => !entry.pinned),
+    ];
+    pinnedFirst.forEach((entry) =>
+      placeLabel(entry, labelOrigin(entry, entry.px, entry.py), placed, box),
+    );
+  }
+
+  /** @param {object} entry Caches a label's rendered size. */
+  function measureLabel(entry) {
+    entry.node.hidden = false;
+    entry.w = entry.node.offsetWidth;
+    entry.h = entry.node.offsetHeight;
+    entry.dirty = false;
+  }
+
+  /* ---------- pipeline scene, controller and panels ---------- */
+
+  /** @param {object} tl @returns {Array<number>} Dots per bin, in BINS order. */
+  const binCounts = (tl) => tl.byBin.map((list) => list.length);
+
+  /** @param {object} ctx @param {object} tl The timeline. @returns {object} Every mesh of the scene. */
+  function buildPipelineMeshes(ctx, tl) {
+    const heights = binCounts(tl).map(binHeight);
+    buildPlates(ctx, tl.layout);
+    const stations = buildStationMeshes(ctx);
+    buildLanes(ctx);
+    const library = buildLibraryBlock(ctx, stageIndex("plan"));
+    buildLinks(ctx);
+    buildBinFeeds(ctx, heights);
+    const bins = buildBins(ctx, heights);
+    const dots = buildDotMesh(ctx, tl.parts.length, 1);
+    const ghosts = buildDotMesh(ctx, tl.ghosts.length, PIPE.GHOST_OPACITY);
+    colourDots(dots, tl.parts);
+    colourDots(
+      ghosts,
+      tl.ghosts.map((g) => g.p),
+    );
+    return { stations, library, bins, dots, ghosts, heights };
+  }
+
+  /** @param {string} id @returns {number} The stage's index in the architecture. */
+  const stageIndex = (id) => stages.findIndex((stage) => stage.id === id);
+
+  /** @param {object} meshes @param {string} id @returns {THREE.Vector3} Anchor above a station box. */
+  function stationAnchor(meshes, id) {
+    const spec = STATION_SPECS[id];
+    const station = meshes.stations[id];
+    if (id === "plan")
+      return new THREE.Vector3(spec.x, PIPE.TRAY_Y, spec.size[2] / 2);
+    if (id === "fallback")
+      return new THREE.Vector3(spec.x, station.top, spec.z + spec.size[2] / 2);
+    if (id === "validate")
+      return new THREE.Vector3(
+        spec.x,
+        station.top - spec.size[1],
+        spec.size[2] / 2,
+      );
+    return new THREE.Vector3(spec.x, station.top, spec.z);
+  }
+
+  /** @param {object} labels @param {object} meshes @param {object} data @returns {object} Label entries by role. */
+  function addPipelineLabels(labels, meshes, data, layout) {
+    const inactive = data.architecture.inactive;
+    const stationLabels = stages.map((stage, index) =>
+      labels.add({
+        title: stage.title,
+        number: index + 1,
+        anchor: stationAnchor(meshes, stage.id),
+        mode: BELOW.includes(stage.id) ? "below" : "above",
+        className: inactive.includes(stage.id) ? "off" : "",
+        pinned: stage.id === "validate",
+      }),
+    );
+    const binLabels = BINS.map((bin, k) =>
+      labels.add({
+        title: bin.name,
+        anchor: new THREE.Vector3(
+          PX.bins + PIPE.BIN_W / 2,
+          PIPE.FLOOR + meshes.heights[k] / 2,
+          binZ(k),
+        ),
+        mode: "side",
+        className: "bin",
+        keepSub: true,
+        pinned: true,
+      }),
+    );
+    const aux = addAuxLabels(labels, meshes, layout);
+    return { stationLabels, binLabels, aux };
+  }
+
+  /** @param {object} labels @param {object} meshes @param {object} layout @returns {object} The library, answer-plate and decisions labels. */
+  function addAuxLabels(labels, meshes, layout) {
+    const library = labels.add({
+      title: "Enriched library",
+      anchor: new THREE.Vector3(PX.library, meshes.library.top, PIPE.LIBRARY_Z),
+      mode: "above",
+      className: "aux lib",
+    });
+    const decisions = labels.add({
+      title: "Decisions",
+      anchor: new THREE.Vector3(PX.out, PIPE.PLATE_Y, -decisionsEdge(layout)),
+      mode: "above",
+      className: "aux",
+      pinned: true,
+    });
+    return { library, decisions, ...addAnswerLabels(labels, layout) };
+  }
+
+  /** @param {object} layout @returns {number} |z| of the decisions plate's long edge. */
+  const decisionsEdge = (layout) =>
+    ((layout.sheetMid * 2 + 1) * PIPE.OUT_SP_Z + PIPE.PLATE_PAD) / 2;
+
+  /** @param {object} labels @param {object} layout @returns {object} Labels of the pass 1 and pass 2 answer plates. */
+  function addAnswerLabels(labels, layout) {
+    const { depth, z } = answerPlate(layout);
+    const edge = z + depth / 2;
+    const plateLabel = (pass, side, mode) =>
+      labels.add({
+        title: `pass ${pass} answers`,
+        anchor: new THREE.Vector3(
+          PX.park - (side * PIPE.TRAY_W) / 4,
+          PIPE.PLATE_Y,
+          side * edge,
+        ),
+        mode,
+        className: "aux",
+        pinned: true,
+      });
+    return {
+      pass1: plateLabel(1, -1, "above"),
+      pass2: plateLabel(2, 1, "below"),
+    };
+  }
+
+  /** @param {object} data @param {object} labels @param {object} roles Writes the labels that never change. */
+  function staticSubs(data, labels, roles) {
+    const c = stageCounts(data);
+    const global = data.libraries.global.rows;
+    labels.setSub(
+      roles.aux.library,
+      `${global} rows · ${c.plan.threshold} · ${c.plan.certified_by}`,
+    );
+    labels.setSub(roles.aux.decisions, "input order");
+    const fallback = roles.stationLabels[stageIndex("fallback")];
+    labels.setSub(
+      fallback,
+      c.fallback.engaged
+        ? c.fallback.model
+        : `not engaged · ${c.fallback.model}`,
+    );
+  }
+
+  /** @param {Array<object>} list @param {string} key @param {number} t @returns {number} Entries whose time key has passed. */
+  const passed = (list, key, t) =>
+    list.reduce((n, p) => n + (p[key] !== undefined && t >= p[key] ? 1 : 0), 0);
+
+  /** @param {object} scene @param {number} t @returns {Record<string, string>} Live label text per stage id. */
+  function liveSubs(scene, t) {
+    const { tl, counts } = scene;
+    const done = (calls, pass) =>
+      calls.filter((c) => c.pass === pass && t >= c.end).length;
+    const headersOut = tl.parts.filter(
+      (p) => p.row.class === "header" && t >= p.tRead,
+    ).length;
+    const [pass1, pass2] = counts.passes.pass_calls;
+    return {
+      read: `${passed(tl.parts, "tRead", t)} / ${counts.read.rows} rows · ${headersOut} headers`,
+      plan: `${passed(tl.items, "tTray", t)} / ${counts.plan.items} in ${counts.plan.batches} batches`,
+      passes: `pass 1 ${done(tl.passCalls, 0)}/${pass1} · pass 2 ${done(tl.passCalls, 1)}/${pass2}`,
+      validate: `${passed(tl.items, "tVal", t)} / ${counts.validate.routed} checked`,
+      verify: `${tl.verCalls.filter((c) => t >= c.end).length} / ${counts.verify.calls} calls · ${passed(tl.items, "tVerified", t)} lines`,
+      write: `${passed(tl.parts, "tWritten", t)} / ${counts.write.rows} rows`,
+    };
+  }
+
+  /** @param {object} scene @param {number} t Updates every live label and the bin counts. */
+  function updateSubs(scene, t) {
+    const subs = liveSubs(scene, t);
+    stages.forEach((stage, index) => {
+      if (subs[stage.id] !== undefined)
+        scene.labels.setSub(scene.roles.stationLabels[index], subs[stage.id]);
+    });
+    scene.roles.binLabels.forEach((entry, k) => {
+      const landed = passed(scene.tl.byBin[k], "tLand", t);
+      const total = scene.tl.byBin[k].length;
+      scene.labels.setSub(
+        entry,
+        landed === total ? String(total) : `${landed} / ${total}`,
+      );
+    });
+  }
+
+  /** @returns {{stage:object, group:THREE.Group}} The pipeline stage and its shifted scene group. */
+  function pipelineStage() {
+    const stage = makeStage($("pipe"), {
+      span: PIPE.SPAN,
+      depth: PIPE.DEPTH,
+      rotY: PIPE.ROT_Y,
+      rotX: PIPE.ROT_X,
+      lookY: PIPE.LOOK_Y,
+    });
+    const group = new THREE.Group();
+    group.position.x = PIPE.SHIFT_X;
+    stage.root.add(group);
+    return { stage, group };
+  }
+
+  /** @param {object} data @returns {object} The 3D scene. */
+  function createPipelineScene(data) {
+    const { stage, group } = pipelineStage();
+    const ctx = {
+      group,
+      pal: makePalette(),
+      inactive: data.architecture.inactive,
+    };
+    const tl = buildTimeline(data.pipeline_en.rows);
+    const meshes = buildPipelineMeshes(ctx, tl);
+    const labels = makePipeLabels(stage, group);
+    const roles = addPipelineLabels(labels, meshes, data, tl.layout);
+    staticSubs(data, labels, roles);
+    const counts = stageCounts(data);
+    const scene = { stage, group, tl, meshes, labels, roles, counts };
+    window.addEventListener(THEME_EVENT, () => repaintPipeline(scene, ctx));
+    return scene;
+  }
+
+  /** @param {object} scene @param {object} ctx Re-reads the theme's colours. */
+  function repaintPipeline(scene, ctx) {
+    ctx.pal.repaint();
+    colourDots(scene.meshes.dots, scene.tl.parts);
+    colourDots(
+      scene.meshes.ghosts,
+      scene.tl.ghosts.map((g) => g.p),
+    );
   }
 
   /** @param {object} data Renders the pipeline legend from the run's counts. */
@@ -1612,32 +2595,44 @@
       .join("");
   }
 
-  /** @param {(index:number)=>void} onPick Renders the station buttons. */
-  function renderStationButtons(onPick) {
+  /** @param {(index:number)=>void} onPick @param {Array<string>} inactive Renders the station buttons. */
+  function renderStationButtons(onPick, inactive) {
     const list = $("st-btns");
-    list.innerHTML = STATIONS.map(
-      (station, index) =>
-        `<li><button type="button" aria-pressed="false" data-station="${index}"><span class="n">${index + 1}</span><b>${esc(station.name)}</b></button></li>`,
-    ).join("");
+    list.innerHTML = stages
+      .map((stage, index) => {
+        const off = inactive.includes(stage.id) ? ' class="inactive"' : "";
+        return `<li><button type="button"${off} aria-pressed="false" data-station="${index}"><span class="n">${index + 1}</span><b>${esc(stage.title)}</b><span class="f">${esc(stageFact(stage.id, stage.counts))}</span></button></li>`;
+      })
+      .join("");
     list.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-station]");
       if (button) onPick(Number(button.dataset.station));
     });
   }
 
-  /** @param {number} index Station, or -1 for none. Updates the station panel and buttons. */
+  /** @param {Array<{path:string, symbol:string}>} code @returns {string} Links to each symbol's file at the tag. */
+  const codeLinks = (code) =>
+    code
+      .map(
+        (ref) =>
+          `<a href="${blob(ref.path)}"><code>${esc(ref.symbol)}</code></a> <span class="tiny muted">${esc(ref.path)}</span>`,
+      )
+      .join("<br />");
+
+  /** @param {number} index Stage, or -1 for none. Updates the station panel and buttons. */
   function showStationInfo(index) {
     document
       .querySelectorAll("#st-btns button")
       .forEach((button, i) =>
         button.setAttribute("aria-pressed", String(i === index)),
       );
-    const station = STATIONS[index];
-    $("st-name").textContent = station
-      ? `${index + 1}. ${station.name}`
+    const stage = stages[index];
+    $("st-name").textContent = stage
+      ? `${index + 1}. ${stage.title}`
       : "Pick a station";
-    $("st-do").textContent = station ? station.does : "–";
-    $("st-inv").textContent = station ? station.guarantees : "–";
+    $("st-do").textContent = stage ? stage.summary : "–";
+    $("st-inv").textContent = stage ? stage.guarantees : "–";
+    $("st-code").innerHTML = stage ? codeLinks(stage.code) : "–";
   }
 
   /** @param {string} phase @param {string} message Updates the heads-up display. */
@@ -1646,45 +2641,30 @@
     $("p-msg").textContent = message;
   }
 
-  /**
-   * Builds the animated pipeline scene and returns its controller.
-   * @param {object} data
-   */
-  function createPipelineScene(data) {
-    const rows = data.pipeline_en.rows;
-    const stage = makeStage($("pipe"), {
-      span: PIPE.SPAN,
-      depth: PIPE.DEPTH,
-      rotY: -0.12,
-      rotX: 0.45,
-      lookY: -0.6,
-    });
-    const bins = binCentres();
-    const stations = buildStations(stage);
-    buildBins(stage, bins);
-    const dots = buildDots(stage, rows.length);
-    colourDots(dots, rows);
-    const labels = makeLabels(stage);
-    const stationLabels = addPipelineLabels(data, labels, bins);
-    window.addEventListener(THEME_EVENT, () => colourDots(dots, rows));
-    return {
-      stage,
-      rows,
-      frames: allKeyframes(rows),
-      dots,
-      stations,
-      stationLabels,
-      labels,
-    };
-  }
+  /** @param {number} index @returns {string} The HUD heading for a stage. */
+  const stagePhase = (index) => `Station ${index + 1} · ${stages[index].title}`;
 
   /**
-   * The pipeline timeline: progress per row, playback and station focus.
-   * @param {object} scene From createPipelineScene, or null when 3D is unavailable.
-   * @param {object} data
+   * The pipeline timeline: playback, steps and station focus.
+   * @param {object|null} scene @param {object} data
    */
   function createPipelineController(scene, data) {
-    const ctl = pipelineState(scene, data);
+    const tl = scene ? scene.tl : null;
+    const end = tl ? tl.marks.end : 0;
+    const ctl = {
+      scene,
+      messages: stageMessages(data),
+      steps: tl ? stepTimes(tl) : [],
+      starts: tl ? stageStarts(tl) : [],
+      timeline: {
+        t: reduceMotion ? end : 0,
+        playing: !reduceMotion,
+        focus: -1,
+        end,
+      },
+      matrix: new THREE.Matrix4(),
+      point: new THREE.Vector3(),
+    };
     pipeSyncPlay(ctl, ctl.timeline.playing);
     pipeSyncSpin(ctl, !reduceMotion && Boolean(scene));
     pipeHud(ctl);
@@ -1695,46 +2675,38 @@
       tick: (seconds) => pipeTick(ctl, seconds),
       place: () => pipePlace(ctl),
       syncSpin: (spin) => pipeSyncSpin(ctl, spin),
-      timeline: ctl.timeline,
     };
   }
 
-  /** @param {object} scene @param {object} data @returns {object} The controller's state. */
-  function pipelineState(scene, data) {
-    const maxOffset = (data.pipeline_en.rows.length - 1) * PIPE.STAGGER;
-    const end = STATIONS.length + maxOffset;
-    return {
-      scene,
-      messages: stationMessages(data),
-      maxOffset,
-      timeline: {
-        t: reduceMotion ? end : 0,
-        cap: Infinity,
-        playing: !reduceMotion,
-        focus: -1,
-        end,
-      },
-      matrix: new THREE.Matrix4(),
-      point: new THREE.Vector3(),
-    };
-  }
-
-  /** @param {unknown} step @returns {number} A valid station index. */
-  const clampStation = (step) =>
-    Math.max(0, Math.min(STATIONS.length - 1, Math.round(Number(step) || 0)));
+  /** @param {unknown} step @returns {number} A step index: a stage, or stages.length for the result. */
+  const clampStep = (step) =>
+    Math.max(0, Math.min(stages.length, Math.round(Number(step) || 0)));
 
   /** @param {object} ctl Writes every dot's position for the current time. */
   function pipePlace(ctl) {
     const { scene, timeline, matrix, point } = ctl;
     if (!scene) return;
-    scene.rows.forEach((row, index) => {
-      const raw = Math.min(timeline.t - index * PIPE.STAGGER, timeline.cap);
-      const progress = Math.max(0, Math.min(raw, STATIONS.length));
-      positionAt(scene.frames[index], progress, point);
-      matrix.makeTranslation(point.x, point.y, point.z);
-      scene.dots.setMatrixAt(index, matrix);
+    const t = timeline.t;
+    const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
+    scene.tl.parts.forEach((p, index) => {
+      sampleAt(p.k, t, point);
+      scene.meshes.dots.setMatrixAt(
+        index,
+        matrix.makeTranslation(point.x, point.y, point.z),
+      );
     });
-    scene.dots.instanceMatrix.needsUpdate = true;
+    scene.tl.ghosts.forEach((g, index) => {
+      if (t <= g.from || t >= g.to)
+        return scene.meshes.ghosts.setMatrixAt(index, hidden);
+      sampleAt(g.k, t, point);
+      return scene.meshes.ghosts.setMatrixAt(
+        index,
+        matrix.makeTranslation(point.x, point.y, point.z),
+      );
+    });
+    scene.meshes.dots.instanceMatrix.needsUpdate = true;
+    scene.meshes.ghosts.instanceMatrix.needsUpdate = true;
+    updateSubs(scene, t);
   }
 
   /** @param {object} ctl @param {number} index Highlights one station box and label. */
@@ -1742,29 +2714,38 @@
     const { scene } = ctl;
     if (!scene) return;
     const on = color3("--mark");
-    const off = color3("--ink-2");
-    scene.stations.forEach(({ mesh, edges }, i) => {
-      mesh.material.opacity = i === index ? PIPE.OPACITY_ON : PIPE.OPACITY_IDLE;
-      edges.material.color = i === index ? on : off;
+    const off = color3("--ink");
+    stages.forEach((stage, i) => {
+      const station = scene.meshes.stations[stage.id];
+      const lit = i === index;
+      station.mesh.material.opacity = lit
+        ? Math.min(PIPE.GLOW_MAX, station.base + PIPE.GLOW)
+        : station.base;
+      station.edges.material.color.set(lit ? on : off);
+      scene.roles.stationLabels[i].node.classList.toggle("on", lit);
     });
-    scene.stationLabels.forEach((node, i) =>
-      node.classList.toggle("on", i === index),
+    scene.roles.aux.library.node.classList.toggle(
+      "on",
+      Boolean(stages[index]) && stages[index].id === "plan",
     );
   }
 
   /** @param {object} ctl Updates the HUD from the time or the focused station. */
   function pipeHud(ctl) {
-    const { timeline, messages } = ctl;
-    const last = STATIONS.length - 1;
-    if (timeline.focus < 0 && timeline.t >= timeline.end) {
-      setHud("Result", messages[last]);
+    const { timeline, messages, starts } = ctl;
+    if (timeline.focus >= 0) {
+      setHud(stagePhase(timeline.focus), messages[timeline.focus]);
       return;
     }
-    const lead =
-      timeline.focus >= 0
-        ? timeline.focus
-        : Math.max(0, Math.min(Math.floor(timeline.t), last));
-    setHud(`Station ${lead + 1} · ${STATIONS[lead].name}`, messages[lead]);
+    if (timeline.t >= timeline.end) {
+      setHud("Result", messages[stages.length]);
+      return;
+    }
+    let lead = 0;
+    starts.forEach((start, index) => {
+      if (timeline.t >= start) lead = index;
+    });
+    setHud(stagePhase(lead), messages[lead]);
   }
 
   /** @param {object} ctl @param {boolean} playing Syncs the Play button. */
@@ -1795,11 +2776,14 @@
     showStationInfo(focus);
   }
 
-  /** @param {object} ctl @param {number} step Positions the flow at a station and stops rotation. */
+  /** @param {object} ctl @param {number} step Shows a stage's moment, or the result for the last step. */
   function pipeSetStep(ctl, step) {
-    const index = clampStation(step);
-    ctl.timeline.cap = index;
-    ctl.timeline.t = index + ctl.maxOffset;
+    const index = clampStep(step);
+    if (index === stages.length) {
+      pipeShowResult(ctl);
+      return;
+    }
+    ctl.timeline.t = ctl.steps.length ? ctl.steps[index] : 0;
     pipeSyncPlay(ctl, false);
     pipeSyncSpin(ctl, false);
     pipeFocus(ctl, index);
@@ -1809,7 +2793,6 @@
 
   /** @param {object} ctl Shows the final state: every row in its bin. */
   function pipeShowResult(ctl) {
-    ctl.timeline.cap = Infinity;
     ctl.timeline.t = ctl.timeline.end;
     pipeSyncPlay(ctl, false);
     pipeFocus(ctl, -1);
@@ -1825,8 +2808,7 @@
       return;
     }
     if (timeline.t >= timeline.end || timeline.focus >= 0) {
-      timeline.t = 0;
-      timeline.cap = Infinity;
+      timeline.t = timeline.t >= timeline.end ? 0 : timeline.t;
       pipeFocus(ctl, -1);
     }
     pipeSyncPlay(ctl, true);
@@ -1841,18 +2823,23 @@
     pipeHud(ctl);
   }
 
-  /** @param {object} scene @param {object} control Picks a station by clicking its box. */
+  /** @param {object} scene @param {object} control Picks a station by clicking its box, the library or a bin. */
   function wirePipelineClicks(scene, control) {
+    const targets = [
+      ...Object.values(scene.meshes.stations).map((s) => s.mesh),
+      ...scene.meshes.library.mesh.children,
+      ...scene.meshes.bins,
+    ];
     scene.stage.el.addEventListener("click", (event) => {
       if (
         scene.stage.state.moved > STAGE.CLICK_SLOP ||
         event.target.closest("button")
       )
         return;
-      const hit = rayAt(scene.stage, event).intersectObjects(
-        scene.stations.map((s) => s.mesh),
-      )[0];
-      if (hit) control.setStep(hit.object.userData.station);
+      const hit = rayAt(scene.stage, event).intersectObjects(targets)[0];
+      if (!hit) return;
+      const data = hit.object.userData;
+      control.setStep(data.bin !== undefined ? stages.length : data.station);
     });
   }
 
@@ -1860,9 +2847,9 @@
   function runPipelineLoop(scene, control) {
     let previous = performance.now();
     const frame = (now) => {
-      control.tick((now - previous) / 1000);
+      control.tick(Math.min(PIPE.MAX_FRAME_S, (now - previous) / 1000));
       previous = now;
-      control.place();
+      if (scene.stage.state.visible) control.place();
       if (renderStage(scene.stage, false)) scene.labels.update();
       window.requestAnimationFrame(frame);
     };
@@ -1871,13 +2858,14 @@
 
   /** @param {object} data Starts the pipeline chapter, with or without 3D. */
   function startPipeline(data) {
+    stages = data.architecture.stages;
     renderPipelineLegend(data);
     const scene = tryPipelineScene(data);
     const control =
       typeof THREE === "undefined"
         ? fallbackController(data)
         : createPipelineController(scene, data);
-    wirePipelineButtons(control);
+    wirePipelineButtons(control, data.architecture.inactive);
     if (!scene) return;
     wirePipelineClicks(scene, control);
     control.place();
@@ -1902,35 +2890,46 @@
     return scene;
   }
 
-  /** @param {object} control Wires the station list and the stage buttons. */
-  function wirePipelineButtons(control) {
-    renderStationButtons((index) => control.setStep(index));
+  /** @param {object} control @param {Array<string>} inactive Wires the station list and the stage buttons. */
+  function wirePipelineButtons(control, inactive) {
+    renderStationButtons((index) => control.setStep(index), inactive);
     $("p-play").addEventListener("click", () => control.togglePlay());
     $("p-end").addEventListener("click", () => control.showResult());
     $("p-spin").addEventListener("click", () =>
       control.syncSpin($("p-spin").getAttribute("aria-pressed") !== "true"),
     );
     window.__setPipelineStep = (step) => control.setStep(step);
+    window.__pipelineStepCount = stages.length + 1;
   }
 
   /** @param {object} data @returns {object} A controller that only drives the text panels. */
   function fallbackController(data) {
-    const messages = stationMessages(data);
+    const messages = stageMessages(data);
+    const result = () => setHud("Result", messages[stages.length]);
     return {
       setStep(step) {
-        const index = clampStation(step);
+        const index = clampStep(step);
+        if (index === stages.length) return result();
         showStationInfo(index);
-        setHud(
-          `Station ${index + 1} · ${STATIONS[index].name}`,
-          messages[index],
-        );
+        return setHud(stagePhase(index), messages[index]);
       },
-      showResult() {
-        setHud("Result", messages[STATIONS.length - 1]);
-      },
+      showResult: result,
       togglePlay() {},
       syncSpin() {},
     };
+  }
+
+  /* ---------- chapter 04: the stages, as MatchService.match calls them ---------- */
+
+  /** @param {object} data Renders the architecture stages with their figures and code links. */
+  function renderArchitecture(data) {
+    const { inactive } = data.architecture;
+    $("arch-stages").innerHTML = data.architecture.stages
+      .map((stage, index) => {
+        const off = inactive.includes(stage.id) ? " inactive" : "";
+        return `<li class="card${off}"><h3><span class="n">${index + 1}</span> ${esc(stage.title)}</h3><div class="tiny mono">${esc(stageFact(stage.id, stage.counts))}</div><p class="small">${esc(stage.summary)}</p><p class="small"><b>Guarantees:</b> ${esc(stage.guarantees)}</p><div class="tiny">${codeLinks(stage.code)}</div></li>`;
+      })
+      .join("");
   }
 
   /* ---------- chapter 03: the library constellation ---------- */
@@ -2286,13 +3285,17 @@
     });
     const count = layout.typeNames.length;
     const gap = Math.max(1, Math.floor(count / LIB.TYPE_LABEL_SECTORS));
-    const apart = (a, b) => Math.min(Math.abs(a - b), count - Math.abs(a - b)) >= gap;
+    const apart = (a, b) =>
+      Math.min(Math.abs(a - b), count - Math.abs(a - b)) >= gap;
     const chosen = [];
     layout.typeNames
       .map((name, index) => [name, index])
       .sort((a, b) => size[b[0]] - size[a[0]] || a[0].localeCompare(b[0]))
       .forEach((entry) => {
-        if (chosen.length < LIB.TYPE_LABELS && chosen.every(([, i]) => apart(i, entry[1])))
+        if (
+          chosen.length < LIB.TYPE_LABELS &&
+          chosen.every(([, i]) => apart(i, entry[1]))
+        )
           chosen.push(entry);
       });
     chosen.forEach(([name, index]) => {
@@ -2378,6 +3381,7 @@
     renderFunnel(data);
     renderHeat();
     renderModules();
+    renderArchitecture(data);
     renderDecisionTable();
     renderTraced(data);
     renderResults(data);

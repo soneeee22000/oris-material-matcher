@@ -13,7 +13,6 @@ const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 const SCROLL_WIDTHS = [390, 1280, 1440];
 const SCROLL_CHECK_HEIGHT = 900;
-const STATION_COUNT = 8;
 const GIF_FPS = 12;
 const GIF_WIDTH = 960;
 const FRAMES_PER_STEP = 18;
@@ -173,14 +172,16 @@ function frameName(index) {
 }
 
 /**
- * Steps the pipeline through every station, then the final result, saving PNG frames.
+ * Steps the pipeline through every architecture stage, then the final result, saving PNG frames.
+ * The page reports its step count (the stages plus the result), so the GIF follows data.json.
  */
 async function capturePipelineFrames(browser, origin, errors, framesDir) {
   const page = await openPage(browser, origin, DESKTOP, errors);
   const stage = page.locator("#pipe");
   await stage.scrollIntoViewIfNeeded();
+  const stageCount = (await page.evaluate(() => window.__pipelineStepCount)) - 1;
   let next = 0;
-  for (let step = 0; step < STATION_COUNT; step += 1) {
+  for (let step = 0; step < stageCount; step += 1) {
     await page.evaluate((value) => window.__setPipelineStep(value), step);
     await settle(page);
     next = await holdFrame(stage, framesDir, next, FRAMES_PER_STEP);

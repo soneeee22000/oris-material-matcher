@@ -84,6 +84,109 @@ LADDER_NOTE = (
     "that id and language. B0 (rules only) has no ledger row and makes no matches."
 )
 
+PKG = "src/oris_matcher"
+SERVICE = f"{PKG}/service.py"
+CLASS_MATCHED = "matched"
+CLASS_NOT_A_MATERIAL = "not_a_material"
+CLASS_NEEDS_REVIEW = "needs_review"
+ARCHITECTURE_SOURCE = f"{SERVICE}: MatchService.match"
+ARCHITECTURE_NOTE = (
+    "The stages follow the calls in MatchService.match; counts come from the EN lockbox run."
+)
+ARCHITECTURE: tuple[dict[str, Any], ...] = (
+    {
+        "id": "read",
+        "title": "Read",
+        "code": [
+            {"path": f"{PKG}/io/boq_reader.py", "symbol": "read_boq"},
+            {"path": f"{PKG}/io/boq_reader.py", "symbol": "classify_rows"},
+            {"path": f"{PKG}/io/boq_reader.py", "symbol": "derive_section_paths"},
+        ],
+        "summary": "Reads the BoQ by column name (UTF-8 first, cp1252 as a recorded fallback), "
+        "decides which rows are headers and derives every row's section path over the whole "
+        "file.",
+        "guarantees": "Headers are decided here, by rule, and never routed to the model. The "
+        "output keeps the input's length and order; raw strings are kept.",
+    },
+    {
+        "id": "plan",
+        "title": "Plan",
+        "code": [
+            {"path": SERVICE, "symbol": "MatchService._plan"},
+            {"path": SERVICE, "symbol": "MatchService._policy"},
+            {"path": f"{PKG}/enrichment.py", "symbol": "read_enrichment"},
+            {"path": f"{PKG}/domain/batching.py", "symbol": "plan_batches"},
+        ],
+        "summary": "Resolves the policy per (model, library SHA-256) from config/policy.yaml, "
+        "loads that entry's bilingual enrichment from data/enrichment/, and plans batches of "
+        "contiguous items under one header, before any call.",
+        "guarantees": "An unknown model or library falls back to the strictest threshold; the "
+        "enrichment file must match the SHA-256 the policy certifies.",
+    },
+    {
+        "id": "passes",
+        "title": "Two passes",
+        "code": [
+            {"path": SERVICE, "symbol": "MatchService._call_passes"},
+            {"path": f"{PKG}/prompts/v1/enriched.py", "symbol": "build_enriched_request"},
+        ],
+        "summary": "Every batch is read twice by the primary model against the whole enriched "
+        "library: pass 1 over the canonical rendering, pass 2 over the reversed one. Each "
+        "pass's first batch goes alone to write its cached prefix; the rest fan out.",
+        "guarantees": "No shortlist: the right row is always in the prompt. Every attempt is "
+        "recorded; a failure becomes needs review with a reason, never a lost line.",
+    },
+    {
+        "id": "fallback",
+        "title": "Fallback rescue",
+        "code": [{"path": SERVICE, "symbol": "MatchService._rescue"}],
+        "summary": "Only if the circuit breaker trips: the fallback model re-runs the pending "
+        "lines at its own policy, the strictest threshold unless certified.",
+        "guarantees": "A rescued line is never decided at the primary model's threshold, and "
+        "the run records which lines the fallback served.",
+    },
+    {
+        "id": "validate",
+        "title": "Validate + decision table",
+        "code": [
+            {"path": f"{PKG}/domain/validator.py", "symbol": "is_valid_code"},
+            {"path": f"{PKG}/domain/decision.py", "symbol": "decide"},
+            {"path": f"{PKG}/domain/decision.py", "symbol": "flagged_top1"},
+            {"path": SERVICE, "symbol": "MatchService._flagged"},
+        ],
+        "summary": "Closed-world check of every answer, evidence quoted from the line, hard "
+        "attribute vetoes, then the D-rules and the score against the threshold: the lines the "
+        "table would match.",
+        "guarantees": "A code that is not a row of the loaded library can never be emitted; "
+        "below the threshold a line goes to review, never to a guess.",
+    },
+    {
+        "id": "verify",
+        "title": "Sibling verifier (E-08)",
+        "code": [
+            {"path": SERVICE, "symbol": "MatchService._verify"},
+            {"path": f"{PKG}/verification.py", "symbol": "verifier_groups"},
+        ],
+        "summary": "Each would-be match is asked again among the sibling rows of its material "
+        "type, in requests grouped by type; a disagreement sends the line to review.",
+        "guarantees": "Only would-be matches are verified. A usage confusion caught here "
+        "becomes VERIFIER_DISAGREES, not a wrong match.",
+    },
+    {
+        "id": "write",
+        "title": "Decide + write",
+        "code": [
+            {"path": SERVICE, "symbol": "_Assembly.result"},
+            {"path": f"{PKG}/io/writer.py", "symbol": "render_csv"},
+            {"path": f"{PKG}/io/audit.py", "symbol": "write_run"},
+        ],
+        "summary": "The final decision per line, then the output CSV, one audit record per "
+        "line and one call record per attempt, written in input order with a manifest.",
+        "guarantees": "One output row per input row. A replay of the committed run gives a "
+        "byte-identical CSV at $0.",
+    },
+)
+
 HEADER_REASON = "HEADER"
 CLASS_HEADER = "header"
 RELEASE_HEADING = re.compile(r"^## (\S+) \((\d{4}-\d{2}-\d{2})\)$")
@@ -519,10 +622,88 @@ def pipeline_block(sources: Sources) -> dict[str, Any]:
     }
 
 
+def stage_counts(pipeline: dict[str, Any], run: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Per-stage figures of the architecture, from the EN run's rows, batches and manifest."""
+    rows, counts, batches = pipeline["rows"], pipeline["counts"], pipeline["batches"]
+    items = len(rows) - counts[CLASS_HEADER]
+    flagged = [row for row in rows if row["verifier_batch"] is not None]
+    return {
+        "read": {"rows": len(rows), "headers": counts[CLASS_HEADER], "items": items},
+        "plan": {
+            "items": items,
+            "batches": batches["pass_calls"][0],
+            "batch_size": batches["batch_size"],
+            "threshold": run["policy_id"],
+            "certified_by": run["policy_certified_by"],
+            "enrichment": run["enrichment_path"],
+        },
+        "passes": {"model": run["requested_model"], "pass_calls": batches["pass_calls"]},
+        "fallback": {
+            "model": run["fallback_model"],
+            "engaged": run["fallback_engaged"],
+            "lines": run["fallback_line_count"],
+        },
+        "validate": validate_counts(rows, items),
+        "verify": {
+            "calls": batches["verifier_calls"],
+            "lines": len(flagged),
+            "sent_to_review": sum(1 for row in flagged if row["class"] != CLASS_MATCHED),
+        },
+        "write": write_counts(pipeline),
+    }
+
+
+def validate_counts(rows: list[dict[str, Any]], routed: int) -> dict[str, int]:
+    """Return the decision table's split of the routed lines, from each row's final class."""
+    unflagged = Counter(
+        row["class"]
+        for row in rows
+        if row["verifier_batch"] is None and row["class"] != CLASS_HEADER
+    )
+    return {
+        "routed": routed,
+        "would_be_matched": sum(1 for row in rows if row["verifier_batch"] is not None),
+        "to_review": unflagged[CLASS_NEEDS_REVIEW],
+        "not_a_material": unflagged[CLASS_NOT_A_MATERIAL],
+    }
+
+
+def write_counts(pipeline: dict[str, Any]) -> dict[str, int]:
+    """Return the three output bins, with not-a-material split into headers and items."""
+    counts, rows = pipeline["counts"], pipeline["rows"]
+    return {
+        "matched": counts[CLASS_MATCHED],
+        "needs_review": counts[CLASS_NEEDS_REVIEW],
+        "not_a_material": counts[CLASS_HEADER] + counts[CLASS_NOT_A_MATERIAL],
+        "headers": counts[CLASS_HEADER],
+        "items_not_a_material": counts[CLASS_NOT_A_MATERIAL],
+        "rows": len(rows),
+        "total_calls": pipeline["batches"]["total_calls"],
+    }
+
+
+def architecture_block(sources: Sources, pipeline: dict[str, Any]) -> dict[str, Any]:
+    """Return the stages of ``MatchService.match`` in call order, with the EN run's figures."""
+    run = manifest(sources, B3_RUNS[PIPELINE_LANG])
+    figures = stage_counts(pipeline, run)
+    for stage in ARCHITECTURE:
+        for ref in stage["code"]:
+            sources.path(ref["path"])
+    stages = [{**stage, "counts": figures[stage["id"]]} for stage in ARCHITECTURE]
+    inactive = [] if run["fallback_engaged"] else ["fallback"]
+    return {
+        "source": ARCHITECTURE_SOURCE,
+        "note": ARCHITECTURE_NOTE,
+        "stages": stages,
+        "inactive": inactive,
+    }
+
+
 def build_payload(root: Path = REPO_ROOT) -> dict[str, Any]:
     """Build the whole data document from the repository at ``root``."""
     sources = Sources(root)
     libraries = {name: library_block(sources, path) for name, path in LIBRARIES.items()}
+    pipeline = pipeline_block(sources)
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         **scored_blocks(sources),
@@ -535,7 +716,8 @@ def build_payload(root: Path = REPO_ROOT) -> dict[str, Any]:
         "dev_ladder": ladder_block(sources),
         "releases": releases_block(sources),
         "traced_cases": cases_block(sources),
-        "pipeline_en": pipeline_block(sources),
+        "pipeline_en": pipeline,
+        "architecture": architecture_block(sources, pipeline),
     }
     payload["generated_from"] = sorted(sources.used)
     return payload

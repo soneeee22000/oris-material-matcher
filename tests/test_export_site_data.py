@@ -236,3 +236,117 @@ def test_check_flags_a_stale_file(tmp_path: Path, capsys: pytest.CaptureFixture[
     assert "stale" in capsys.readouterr().err
     target.unlink()
     assert exporter.main(["--output", str(target), "--check"]) == EXIT_STALE
+
+
+SERVICE = ROOT / "src" / "oris_matcher" / "service.py"
+ARCHITECTURE_IDS = ["read", "plan", "passes", "fallback", "validate", "verify", "write"]
+MATCH_CALLS = {
+    "plan": "self._plan(",
+    "passes": "self._call_passes(",
+    "fallback": "self._rescue(",
+    "verify": "self._verify(",
+    "write": ".result(",
+}
+
+
+def _defines(source: str, name: str, kind: str) -> bool:
+    if kind == "class":
+        pattern = rf"^\s*class {re.escape(name)}\b"
+    else:
+        pattern = rf"^\s*(?:async )?def {re.escape(name)}\b"
+    return re.search(pattern, source, re.MULTILINE) is not None
+
+
+def _match_body() -> str:
+    source = SERVICE.read_text(encoding="utf-8")
+    start = source.index("    async def match(")
+    end = source.index("\n    def ", start)
+    return source[start:end]
+
+
+def test_architecture_code_refs_name_real_symbols(payload: dict[str, Any]) -> None:
+    stages = payload["architecture"]["stages"]
+    assert stages
+    for stage in stages:
+        assert stage["code"], stage["id"]
+        for ref in stage["code"]:
+            path = ROOT / ref["path"]
+            assert path.is_file(), ref
+            source = path.read_text(encoding="utf-8")
+            owner, _, method = ref["symbol"].rpartition(".")
+            if owner:
+                assert _defines(source, owner, "class"), ref
+                assert _defines(source, method, "def"), ref
+            else:
+                name = ref["symbol"]
+                assert _defines(source, name, "def") or _defines(source, name, "class"), ref
+
+
+def _is_called(name: str) -> bool:
+    call = re.compile(rf"(?<!def ){re.escape(name)}\(")
+    package = ROOT / "src" / "oris_matcher"
+    return any(call.search(path.read_text(encoding="utf-8")) for path in package.rglob("*.py"))
+
+
+def test_architecture_code_refs_are_called_by_the_package(payload: dict[str, Any]) -> None:
+    for stage in payload["architecture"]["stages"]:
+        for ref in stage["code"]:
+            name = ref["symbol"].rpartition(".")[2]
+            assert _is_called(name), ref
+
+
+def test_architecture_stage_order_follows_match_service(payload: dict[str, Any]) -> None:
+    stages = payload["architecture"]["stages"]
+    ids = [stage["id"] for stage in stages]
+    assert ids == ARCHITECTURE_IDS
+    body = _match_body()
+    positions = {stage: body.index(marker) for stage, marker in MATCH_CALLS.items()}
+    in_stage_order = [positions[stage] for stage in ids if stage in positions]
+    assert in_stage_order == sorted(in_stage_order)
+    assert len(set(in_stage_order)) == len(MATCH_CALLS)
+    for stage in stages:
+        assert stage["title"] and stage["summary"] and stage["guarantees"], stage["id"]
+
+
+def test_architecture_counts_come_from_the_run(payload: dict[str, Any]) -> None:
+    pipeline = payload["pipeline_en"]
+    stages = {stage["id"]: stage["counts"] for stage in payload["architecture"]["stages"]}
+    rows, counts, batches = pipeline["rows"], pipeline["counts"], pipeline["batches"]
+    assert stages["read"] == {
+        "rows": len(rows),
+        "headers": counts["header"],
+        "items": len(rows) - counts["header"],
+    }
+    assert stages["read"]["headers"] == 37
+    assert stages["plan"]["batches"] == batches["pass_calls"][0] == 42
+    assert stages["plan"]["batch_size"] == batches["batch_size"] == 10
+    assert (stages["plan"]["threshold"], stages["plan"]["certified_by"]) == ("T8", "dev_selection")
+    assert stages["passes"]["pass_calls"] == batches["pass_calls"] == [42, 42]
+    assert stages["passes"]["model"].startswith("claude-haiku-4-5")
+    assert stages["fallback"]["engaged"] is False
+    assert stages["fallback"]["lines"] == 0
+    assert stages["fallback"]["model"].startswith("gpt-4o-mini")
+    flagged = [row for row in rows if row["verifier_batch"] is not None]
+    validate = stages["validate"]
+    assert validate["would_be_matched"] == len(flagged)
+    assert validate["routed"] == (
+        validate["would_be_matched"] + validate["to_review"] + validate["not_a_material"]
+    )
+    assert validate["not_a_material"] == counts["not_a_material"] == 7
+    assert stages["verify"]["calls"] == batches["verifier_calls"] == 40
+    assert stages["verify"]["lines"] == len(flagged)
+    assert stages["verify"]["sent_to_review"] == sum(
+        1 for row in flagged if row["class"] != "matched"
+    )
+    assert stages["write"] == {
+        "matched": counts["matched"],
+        "needs_review": counts["needs_review"],
+        "not_a_material": counts["header"] + counts["not_a_material"],
+        "headers": counts["header"],
+        "items_not_a_material": counts["not_a_material"],
+        "rows": len(rows),
+        "total_calls": batches["total_calls"],
+    }
+    assert stages["write"]["not_a_material"] == 44
+    assert sum(stages["passes"]["pass_calls"]) + stages["verify"]["calls"] == 124
+    assert payload["architecture"]["inactive"] == ["fallback"]

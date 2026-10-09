@@ -99,6 +99,192 @@
       "precision": 0.9835164835164835
     }
   },
+  "architecture": {
+    "inactive": [
+      "fallback"
+    ],
+    "note": "The stages follow the calls in MatchService.match; counts come from the EN lockbox run.",
+    "source": "src/oris_matcher/service.py: MatchService.match",
+    "stages": [
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "read_boq"
+          },
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "classify_rows"
+          },
+          {
+            "path": "src/oris_matcher/io/boq_reader.py",
+            "symbol": "derive_section_paths"
+          }
+        ],
+        "counts": {
+          "headers": 37,
+          "items": 282,
+          "rows": 319
+        },
+        "guarantees": "Headers are decided here, by rule, and never routed to the model. The output keeps the input's length and order; raw strings are kept.",
+        "id": "read",
+        "summary": "Reads the BoQ by column name (UTF-8 first, cp1252 as a recorded fallback), decides which rows are headers and derives every row's section path over the whole file.",
+        "title": "Read"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._plan"
+          },
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._policy"
+          },
+          {
+            "path": "src/oris_matcher/enrichment.py",
+            "symbol": "read_enrichment"
+          },
+          {
+            "path": "src/oris_matcher/domain/batching.py",
+            "symbol": "plan_batches"
+          }
+        ],
+        "counts": {
+          "batch_size": 10,
+          "batches": 42,
+          "certified_by": "dev_selection",
+          "enrichment": "data/enrichment/global.yaml",
+          "items": 282,
+          "threshold": "T8"
+        },
+        "guarantees": "An unknown model or library falls back to the strictest threshold; the enrichment file must match the SHA-256 the policy certifies.",
+        "id": "plan",
+        "summary": "Resolves the policy per (model, library SHA-256) from config/policy.yaml, loads that entry's bilingual enrichment from data/enrichment/, and plans batches of contiguous items under one header, before any call.",
+        "title": "Plan"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._call_passes"
+          },
+          {
+            "path": "src/oris_matcher/prompts/v1/enriched.py",
+            "symbol": "build_enriched_request"
+          }
+        ],
+        "counts": {
+          "model": "claude-haiku-4-5-20251001",
+          "pass_calls": [
+            42,
+            42
+          ]
+        },
+        "guarantees": "No shortlist: the right row is always in the prompt. Every attempt is recorded; a failure becomes needs review with a reason, never a lost line.",
+        "id": "passes",
+        "summary": "Every batch is read twice by the primary model against the whole enriched library: pass 1 over the canonical rendering, pass 2 over the reversed one. Each pass's first batch goes alone to write its cached prefix; the rest fan out.",
+        "title": "Two passes"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._rescue"
+          }
+        ],
+        "counts": {
+          "engaged": false,
+          "lines": 0,
+          "model": "gpt-4o-mini-2024-07-18"
+        },
+        "guarantees": "A rescued line is never decided at the primary model's threshold, and the run records which lines the fallback served.",
+        "id": "fallback",
+        "summary": "Only if the circuit breaker trips: the fallback model re-runs the pending lines at its own policy, the strictest threshold unless certified.",
+        "title": "Fallback rescue"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/domain/validator.py",
+            "symbol": "is_valid_code"
+          },
+          {
+            "path": "src/oris_matcher/domain/decision.py",
+            "symbol": "decide"
+          },
+          {
+            "path": "src/oris_matcher/domain/decision.py",
+            "symbol": "flagged_top1"
+          },
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._flagged"
+          }
+        ],
+        "counts": {
+          "not_a_material": 7,
+          "routed": 282,
+          "to_review": 69,
+          "would_be_matched": 206
+        },
+        "guarantees": "A code that is not a row of the loaded library can never be emitted; below the threshold a line goes to review, never to a guess.",
+        "id": "validate",
+        "summary": "Closed-world check of every answer, evidence quoted from the line, hard attribute vetoes, then the D-rules and the score against the threshold: the lines the table would match.",
+        "title": "Validate + decision table"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "MatchService._verify"
+          },
+          {
+            "path": "src/oris_matcher/verification.py",
+            "symbol": "verifier_groups"
+          }
+        ],
+        "counts": {
+          "calls": 40,
+          "lines": 206,
+          "sent_to_review": 21
+        },
+        "guarantees": "Only would-be matches are verified. A usage confusion caught here becomes VERIFIER_DISAGREES, not a wrong match.",
+        "id": "verify",
+        "summary": "Each would-be match is asked again among the sibling rows of its material type, in requests grouped by type; a disagreement sends the line to review.",
+        "title": "Sibling verifier (E-08)"
+      },
+      {
+        "code": [
+          {
+            "path": "src/oris_matcher/service.py",
+            "symbol": "_Assembly.result"
+          },
+          {
+            "path": "src/oris_matcher/io/writer.py",
+            "symbol": "render_csv"
+          },
+          {
+            "path": "src/oris_matcher/io/audit.py",
+            "symbol": "write_run"
+          }
+        ],
+        "counts": {
+          "headers": 37,
+          "items_not_a_material": 7,
+          "matched": 185,
+          "needs_review": 90,
+          "not_a_material": 44,
+          "rows": 319,
+          "total_calls": 124
+        },
+        "guarantees": "One output row per input row. A replay of the committed run gives a byte-identical CSV at $0.",
+        "id": "write",
+        "summary": "The final decision per line, then the output CSV, one audit record per line and one call record per attempt, written in input order with a manifest.",
+        "title": "Decide + write"
+      }
+    ]
+  },
   "dev_ladder": {
     "note": "Rung labels follow the README dev-results table; each figure is the last ledger row with that id and language. B0 (rules only) has no ledger row and makes no matches.",
     "rows": [
@@ -256,7 +442,17 @@
     "runs/submission/20261008T023750Z-be2dd33e/manifest.json",
     "runs/submission/20261008T023928Z-56f85fb8/audit.jsonl",
     "runs/submission/20261008T023928Z-56f85fb8/manifest.json",
-    "runs/submission/20261008T024244Z-de394c39/manifest.json"
+    "runs/submission/20261008T024244Z-de394c39/manifest.json",
+    "src/oris_matcher/domain/batching.py",
+    "src/oris_matcher/domain/decision.py",
+    "src/oris_matcher/domain/validator.py",
+    "src/oris_matcher/enrichment.py",
+    "src/oris_matcher/io/audit.py",
+    "src/oris_matcher/io/boq_reader.py",
+    "src/oris_matcher/io/writer.py",
+    "src/oris_matcher/prompts/v1/enriched.py",
+    "src/oris_matcher/service.py",
+    "src/oris_matcher/verification.py"
   ],
   "libraries": {
     "fr": {

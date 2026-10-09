@@ -211,7 +211,9 @@
             <b id="p-phase">Pipeline</b
             ><span id="p-msg">Loading the committed run</span>
           </div>
-          <div class="stage-hint">Drag to rotate · pick a station below</div>
+          <div class="stage-hint">
+            Drag to rotate · click a station or a bin
+          </div>
         </div>
         <ol
           class="flow"
@@ -232,17 +234,24 @@
             <div class="k">What it guarantees</div>
             <div id="st-inv" class="small">–</div>
           </div>
+          <div>
+            <div class="k">Code at the tag</div>
+            <div id="st-code" class="small">–</div>
+          </div>
         </div>
         <p class="tiny muted" id="pipe-desc" style="margin-top: 8px">
           Every dot is one of the
           <span data-k="pipeline_en.rows" data-f="len">–</span> rows of the
           English BoQ, in file order, coloured by the decision it actually
           received in the committed lockbox run
-          <code data-k="pipeline_en.run_id" data-f="raw">–</code>. Headers leave
-          at the header gate without a model call. Dots pass through the sibling
-          verifier only where the run's audit log records a verifier call for
-          that row; the others take the lower track. Positions inside a station
-          are layout, not timing.
+          <code data-k="pipeline_en.run_id" data-f="raw">–</code>. The stations
+          are the stages of <code>MatchService.match</code>, in call order.
+          Headers peel off at the reader and skip the model. Items sit in their
+          real batches, then sweep through the model twice, pass 1 then pass 2
+          (the faint copies). Only rows whose audit record names a verifier call
+          visit the sibling verifier. The dashed fallback branch was not engaged
+          in this run. Bin heights scale to the counts; positions and timing
+          inside a station are layout, not measurements.
         </p>
       </section>
 
@@ -370,7 +379,11 @@
           </div>
           <div class="stage-hint">Drag to rotate · pick a leaf below</div>
         </div>
-        <div class="legend" id="lib-legend" aria-label="Constellation colours"></div>
+        <div
+          class="legend"
+          id="lib-legend"
+          aria-label="Constellation colours"
+        ></div>
         <div class="panel info" aria-live="polite">
           <div>
             <div class="k">Library</div>
@@ -391,10 +404,10 @@
         </div>
         <p class="tiny muted" id="lib-desc" style="margin-top: 8px">
           Rings, from the inside out: material types, then type and usage pairs,
-          then leaves (subtypes). Leaves the labels use are marked in yellow, and
-          a picked leaf gets a ring and its path. The tree and its label counts
-          are read from <code>data.json</code>, which the export script builds
-          from <code>data/oris_materials_global.csv</code>,
+          then leaves (subtypes). Leaves the labels use are marked in yellow,
+          and a picked leaf gets a ring and its path. The tree and its label
+          counts are read from <code>data.json</code>, which the export script
+          builds from <code>data/oris_materials_global.csv</code>,
           <code>data/oris_materials_fr.csv</code> and
           <code>data/boq_dataset_matched_GT.csv</code>. The French library is a
           different taxonomy and shares no labelled row.
@@ -532,6 +545,15 @@
           run can be re-decided without calling the API. The CLI and the API
           drive the same <code>MatchService</code>.
         </p>
+        <h3 style="margin-top: 18px">
+          The seven stages of <code>MatchService.match</code>, in call order
+        </h3>
+        <ol
+          class="cards arch"
+          id="arch-stages"
+          aria-label="Pipeline stages, in call order"
+        ></ol>
+        <h3 style="margin-top: 18px">The modules behind them</h3>
         <div class="cards" id="modules" style="margin-top: 14px"></div>
         <div class="panel" style="margin-top: 16px">
           <h3>The decision table: the first rule that fires wins</h3>
