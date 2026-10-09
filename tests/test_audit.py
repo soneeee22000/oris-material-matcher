@@ -161,12 +161,13 @@ async def test_manifest_fields_sorted_keys_and_explicit_nulls(tmp_path: Path) ->
     assert text == json.dumps(manifest, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
     assert manifest["rate_limit_tier"] is None
     assert manifest["rate_limit_headers"] is None
-    assert manifest["enrichment_sha256"] is None
+    fr_enrichment = (ROOT / "data" / "enrichment" / "fr.yaml").read_bytes()
+    assert manifest["enrichment_sha256"] == hashlib.sha256(fr_enrichment).hexdigest()
     assert manifest["code_sha"] == CODE.sha
     assert manifest["code_dirty"] is False
     assert manifest["split_sha256"] == SPLIT_SHA
     assert manifest["mode"] == "fake"
-    assert manifest["policy_resolution"] == "fallback_strictest"
+    assert manifest["policy_resolution"] == "exact"
     assert manifest["library_sha256"] == SERVICE.library("fr").sha256
     assert manifest["price_date"] == "2026-10-05"
     assert manifest["otel_semconv_version"]
@@ -209,7 +210,7 @@ async def test_system_blocks_are_stored_once_by_hash(tmp_path: Path) -> None:
     result = await _live()
     folder = write_run(result, tmp_path, build_manifest(result, _context()))
     stored = {path.stem: path.read_bytes() for path in (folder / "prompts").iterdir()}
-    assert len(stored) == 2
+    assert len(stored) == 3
     for sha, content in stored.items():
         assert hashlib.sha256(content).hexdigest() == sha
     assert {record.system_blocks_sha256 for record in result.calls} == set(stored)

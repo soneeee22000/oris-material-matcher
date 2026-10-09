@@ -132,7 +132,7 @@ def test_brief_literal_form_runs_match_by_default(workdir: Path) -> None:
     scaled = Settings().budget_usd_per_100_lines * manifest["line_count"] / 100
     assert manifest["budget_cap_usd"] == pytest.approx(max(scaled, 0.10))
     assert {"manifest.json", "calls.jsonl", "audit.jsonl"} <= {p.name for p in folder.iterdir()}
-    for needle in ("policy_resolution: fallback_strictest", "decisions:", "reasons:", "p50"):
+    for needle in ("policy_resolution: exact (policy T8)", "decisions:", "reasons:", "p50"):
         assert needle in result.stdout
     assert "per 100 lines" in result.stdout
     assert "cache hits" in result.stdout
@@ -630,7 +630,7 @@ def test_run_summary_fields(workdir: Path) -> None:
     assert summary["lines"] == len(boq.lines)
     assert sum(summary["decision_counts"].values()) == len(boq.lines)
     assert summary["retries"] == 0
-    assert summary["policy_resolution"] == "fallback_strictest"
+    assert summary["policy_resolution"] == "exact"
     assert summary["latency_p50_ms"] is not None
     expected = outcome.result.attributed_cost_usd * 100 / len(boq.lines)
     assert summary["usd_per_100_lines"] == pytest.approx(expected)
@@ -979,6 +979,7 @@ def test_a_live_run_records_the_measured_library_size(
     workdir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _rendered_tokens_evidence(workdir)
+    monkeypatch.setenv("ORIS_ENRICHMENT", "none")
     requests: list[httpx2.Request] = []
     _live_runtime(workdir, monkeypatch, requests)
 
@@ -1018,6 +1019,7 @@ def test_a_live_run_reserves_its_prefix_from_the_doctor_measurement(
     workdir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A63: a live run's reservation counts the measured prefix, so a huge one refuses calls."""
+    monkeypatch.setenv("ORIS_ENRICHMENT", "none")
     requests: list[httpx2.Request] = []
     _live_runtime(workdir, monkeypatch, requests)
     assert run_and_note("estimated", match_args(workdir / "a.csv", "--no-cache")).exit_code == 0
@@ -1101,3 +1103,13 @@ def test_a_replay_under_the_policy_it_was_decided_with_passes() -> None:
     cli.require_recorded_policy(_recorded("no_path_strictest", "T1"), settings)
     cli.require_recorded_policy(_recorded("override", "T3"), settings)
     cli.require_recorded_policy({**_recorded("b2_match_all", "B2"), "profile": "b2"}, settings)
+
+
+def test_a_rescued_run_is_checked_against_the_fallback_models_policy() -> None:
+    """A run the fallback rescued decided at the fallback's policy, not the primary's entry."""
+    settings = Settings(_env_file=None, config_dir=CONFIG)  # type: ignore[call-arg]
+    rescued = {**_recorded("fallback_strictest", "T1"), "fallback_engaged": True}
+    rescued["fallback_model"] = GPT
+    cli.require_recorded_policy(rescued, settings)
+    with pytest.raises(cli.WiringError, match="T8"):
+        cli.require_recorded_policy({**rescued, "fallback_engaged": False}, settings)

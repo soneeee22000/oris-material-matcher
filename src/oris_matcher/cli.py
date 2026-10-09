@@ -1470,7 +1470,8 @@ def require_recorded_policy(manifest: Mapping[str, Any], settings: Settings) -> 
     A run resolved through ``config/policy.yaml`` (``exact`` or ``fallback_strictest``)
     records no policy file, so a replay resolves the current one. When that entry now names
     another threshold, the replay would silently re-decide the run instead of reproducing
-    it. Overrides, path-less runs and B0/B2 resolve as they did whatever the file says.
+    it. Overrides, path-less runs and B0/B2 resolve as they did whatever the file says. A run the
+    fallback rescued decided at the fallback model's policy, so that model's entry is compared.
 
     Args:
         manifest: The recorded run's manifest.
@@ -1483,8 +1484,9 @@ def require_recorded_policy(manifest: Mapping[str, Any], settings: Settings) -> 
     recorded = manifest.get("policy_resolution")
     if recorded not in RE_RESOLVED:
         return
+    deciding = "fallback_model" if manifest.get("fallback_engaged") else "requested_model"
     entry = load_policy(settings.config_file(POLICY_FILE)).lookup(
-        str(manifest["requested_model"]), str(manifest["library_sha256"])
+        str(manifest[deciding]), str(manifest["library_sha256"])
     )
     now = ("exact", entry.policy_id) if entry else ("fallback_strictest", None)
     then = (recorded, manifest.get("policy_id") if recorded == "exact" else None)
