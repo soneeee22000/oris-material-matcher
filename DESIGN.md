@@ -1,5 +1,7 @@
 # Design: ORIS material matching service
 
+> Orientation, added 9 Oct 2026 (not part of the pre-registration): project page https://oris-material-matcher.vercel.app; results [README.md](README.md) and [docs/evaluation.md](docs/evaluation.md).
+
 > **Status: pre-registration v2, merged before any model call (v1 = tag `prereg-v1`, commit `bc5c8a2`); from the first model call on, only §16 and §17 change.** [A30]
 >
 > v1 fixed the items below before any language-model call was made on this data. v2 revises them, still before any call, by merging amendments A4–A52 into the sections they change; each changed paragraph or table row ends with its amendment id, e.g. [A12]. The tag and the git history are the proof. [A30]

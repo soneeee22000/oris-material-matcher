@@ -2,6 +2,15 @@
 
 Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`. Later releases leave it unchanged.
 
+## v1.3.0 (2026-10-09)
+
+Docs and project page only. No code, configuration or number changed.
+
+- `site/`: a static project page built from committed output by `scripts/export_site_data.py`, with a CI drift check (`--check`) that fails when the page data no longer matches the committed files.
+- README rewritten in portfolio shape; the development-results ladder and the other long tables it dropped moved verbatim to `docs/development-results.md`.
+- Adds `docs/WHY.md`: the problem, the layer-by-layer answer, and what this project is not.
+- `DESIGN.md`: a dated post-submission orientation note under the title, outside the pre-registered text.
+
 ## v1.2.1 (2026-10-09)
 
 Docs only. No code, configuration or number changed.
