@@ -1,7 +1,8 @@
 """Command-line entry point: ``match`` (the default) and the other ``oris`` commands.
 
-The commands are ``match``, ``score``, ``select``, ``replay``, ``doctor``, ``explain`` and
-``demo``.
+The commands are ``match``, ``score``, ``select``, ``replay``, ``doctor``, ``explain``,
+``demo`` and ``serve``, which runs the API and the operator UI (docs/ui-spec.md) with any
+``--llm`` the match command takes, ``replay:<run_dir>`` included, so a review costs $0.
 
 ``oris --input X --library Y --output Z`` is the brief's literal form of ``oris match``. A run
 reads the BoQ, maps the library path to its ``Settings.libraries`` id (``custom`` otherwise),
@@ -36,6 +37,7 @@ import asyncio
 import dataclasses
 import hashlib
 import io
+import ipaddress
 import json
 import logging
 import math
@@ -52,9 +54,13 @@ from types import MappingProxyType
 from typing import Annotated, Any, NoReturn
 
 import typer
+import uvicorn
+from fastapi import FastAPI
 from typer import _click
 from typer.core import TyperGroup
 
+from oris_matcher.api.app import DEFAULT_UI_DIR, create_app
+from oris_matcher.api.jobs import FAKE_MODE, Serving
 from oris_matcher.doctor import (
     DEFAULT_EVIDENCE_DIR,
     DEFAULT_RUNS_DIR,
@@ -177,6 +183,21 @@ EXERCISE_INPUTS_SHA256 = frozenset(
         "626003d156ea1de14ae8675eb79111aa6e034c46d1d8811019e6ee251d98383c",
     }
 )
+SERVE_HOST = "127.0.0.1"
+SERVE_PORT = 8000
+SERVE_WORKERS = 1
+LIVE_SERVE = "live"
+LOCALHOST = "localhost"
+UI_INDEX = "index.html"
+UI_MISSING_WARNING = (
+    "warning: the operator UI build is missing at {ui_dir}, so /ui answers 404; "
+    "build it with `npm --prefix ui ci && npm --prefix ui run build`"
+)
+OPEN_API_WARNING = (
+    "warning: serving on {host} with no ORIS_API_TOKEN: anyone on the network can submit jobs"
+    " (and spend the API key in live mode); set ORIS_API_TOKEN or bind 127.0.0.1"
+)
+SERVE_LLM_HELP = "live (default: the pinned primary, per job), fake, or replay:<run_dir>"
 LLM_HELP = (
     "anthropic:<model> (default: the pinned primary), openai:<model> (e.g. gpt-4o-mini), "
     "fake, or replay:<run_dir>"
@@ -1811,3 +1832,174 @@ def doctor_command(
         _fail(error)
     typer.echo(render_table(report))
     raise typer.Exit(EXIT_OK if report.passed else EXIT_FAILED_CHECK)
+
+
+def run_server(app: FastAPI, host: str, port: int, **options: Any) -> None:
+    """Run the app under uvicorn; tests replace this.
+
+    Args:
+        app: The application.
+        host: The interface to bind.
+        port: The TCP port.
+        **options: Further ``uvicorn.run`` options.
+
+    """
+    uvicorn.run(app, host=host, port=port, **options)
+
+
+def serve_settings(spec: LLMSpec, base: Settings, root: Path) -> Settings:
+    """Apply what ``oris match`` applies for an ``--llm``: a replay's profile and enrichment.
+
+    Args:
+        spec: The parsed ``--llm``.
+        base: The settings.
+        root: The repository root recorded paths resolve against.
+
+    Returns:
+        The settings with a replayed run's recorded decision profile and enrichment, and the
+        model the spec requests as the primary.
+
+    Raises:
+        WiringError: The replayed run's manifest or enrichment cannot be read.
+
+    """
+    job = MatchJob(input_path=Path(), library_path=Path(), llm=spec)
+    settings = enrichment_settings(job, decision_settings(job, base), root)
+    models_config = load_models_config(settings.config_file(MODELS_FILE))
+    pricing = load_pricing(settings.config_file(PRICING_FILE))
+    model = resolve_spec_model(spec, settings, pricing, models_config)
+    return settings.model_copy(update={"primary_model": model})
+
+
+def _serve_factory(spec: LLMSpec, settings: Settings, runtime: Runtime) -> Callable[[str], LLMPort]:
+    """Return the per-job adapter factory of a served ``--llm``, built as ``oris match`` does.
+
+    Each call builds a fresh adapter, so every job replays from the first recorded attempt.
+    An offline spec has no fallback, as in the CLI, unless the replayed run engaged one.
+    """
+    allowlist = load_models_config(settings.config_file(MODELS_FILE)).allowlist.patterns
+    primary = str(settings.primary_model)
+    replayed = spec.run_dir if spec.kind == LLMKind.REPLAY else None
+    fallback_ok = spec.kind in LIVE_KINDS or (
+        replayed is not None and bool(read_manifest(replayed).get("fallback_engaged"))
+    )
+
+    def factory(model: str) -> LLMPort:
+        """Build the adapter for one job's model."""
+        if model != primary and not fallback_ok:
+            raise WiringError(f"--llm {spec.kind.value} serves no fallback model")
+        return build_adapter(spec, model, settings, allowlist, runtime)
+
+    return factory
+
+
+def serve_app(
+    llm: str | None, base: Settings, runtime: Runtime, runs_dir: Path = DEFAULT_RUNS_DIR
+) -> FastAPI:
+    """Build the API and operator UI for ``oris serve``.
+
+    Args:
+        llm: ``live`` (or None) for the pinned primary built per job, else an ``--llm`` spec
+            such as ``fake`` or ``replay:<run_dir>``.
+        base: The settings.
+        runtime: The environment.
+        runs_dir: Where each job writes its run folder.
+
+    Returns:
+        The application.
+
+    Raises:
+        WiringError: A bad spec, or a replayed run that cannot be read.
+        ConfigError: A config file is invalid.
+
+    """
+    if llm is None or llm == LIVE_SERVE:
+        return create_app(base, runtime=runtime, runs_dir=runs_dir)
+    spec = parse_llm_spec(llm)
+    root = runtime.root()
+    settings = serve_settings(spec, base, root)
+    job = MatchJob(input_path=Path(), library_path=Path(), llm=spec)
+    service = _service(settings, None, root, fallback_enrichment(job, root))
+    factory = _serve_factory(spec, settings, runtime)
+    return create_app(
+        settings,
+        factory,
+        runtime=runtime,
+        runs_dir=runs_dir,
+        service=service,
+        serving=serving_of(spec),
+    )
+
+
+def serving_of(spec: LLMSpec) -> Serving:
+    """Describe how a served ``--llm`` answers; a replay runs only its recorded library.
+
+    Args:
+        spec: The parsed ``--llm``.
+
+    Returns:
+        ``fake`` or ``live`` for those specs; for a replay, its run id and the one library the
+        run was recorded on, since another library's enrichment does not match the recording.
+
+    Raises:
+        KeyError: The replayed manifest names no library.
+        WiringError: The replayed manifest cannot be read.
+
+    """
+    if spec.kind != LLMKind.REPLAY or spec.run_dir is None:
+        return Serving(mode=FAKE_MODE if spec.kind == LLMKind.FAKE else LIVE_MODE)
+    manifest = read_manifest(spec.run_dir)
+    run_id = str(manifest.get("run_id") or spec.run_dir.name)
+    library_id = str(manifest["library_id"])
+    note = f"replay run {run_id} was recorded on library {library_id}"
+    return Serving(REPLAY_MODE, run_id, (library_id,), note)
+
+
+def serve_warnings(host: str, settings: Settings, ui_dir: Path) -> list[str]:
+    """List what an operator should know before ``oris serve`` starts.
+
+    Args:
+        host: The interface to bind.
+        settings: The settings.
+        ui_dir: The operator UI's build folder.
+
+    Returns:
+        A warning when the UI build is missing, and one when a non-loopback host has no token.
+
+    """
+    warnings_found: list[str] = []
+    if not (ui_dir / UI_INDEX).is_file():
+        warnings_found.append(UI_MISSING_WARNING.format(ui_dir=ui_dir))
+    token = settings.api_token
+    if not _is_loopback(host) and (token is None or not token.get_secret_value().strip()):
+        warnings_found.append(OPEN_API_WARNING.format(host=host))
+    return warnings_found
+
+
+def _is_loopback(host: str) -> bool:
+    """Tell whether a bind address only accepts connections from this machine."""
+    if host == LOCALHOST:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+@app.command("serve")
+def serve_command(
+    host: Annotated[str, typer.Option("--host", help="Interface to bind.")] = SERVE_HOST,
+    port: Annotated[int, typer.Option("--port", help="TCP port.")] = SERVE_PORT,
+    llm: Annotated[str, typer.Option("--llm", help=SERVE_LLM_HELP)] = LIVE_SERVE,
+    run_dir: Annotated[Path, typer.Option("--run-dir")] = DEFAULT_RUNS_DIR,
+) -> None:
+    """Serve the API and the operator UI (/ui) in one worker; jobs live in memory."""
+    settings = Settings()
+    try:
+        server = serve_app(llm, settings, _runtime(), run_dir)
+    except USAGE_ERRORS as error:
+        _fail(error)
+    for warning in serve_warnings(host, settings, DEFAULT_UI_DIR):
+        typer.echo(warning, err=True)
+    typer.echo(f"operator UI: http://{host}:{port}/ui/  (API docs: /docs; --llm {llm})")
+    run_server(server, host=host, port=port, workers=SERVE_WORKERS)

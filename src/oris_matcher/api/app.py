@@ -16,7 +16,8 @@ import hashlib
 import hmac
 import secrets
 from collections import Counter
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -24,9 +25,20 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from oris_matcher import __version__
+from oris_matcher.api.jobs import (
+    ApiError,
+    Job,
+    JobsApi,
+    JobStore,
+    Serving,
+    api_error_handler,
+    register_job_routes,
+)
+from oris_matcher.api.progress import WrapperHook, observed
 from oris_matcher.doctor import (
     DEFAULT_EVIDENCE_DIR,
     DEFAULT_RUNS_DIR,
@@ -104,6 +116,9 @@ INPUT_HEADER: tuple[str, ...] = tuple(COLUMN_ALIASES[column][0] for column in Co
 FAILURE_REASONS = frozenset({ReasonCode.LLM_UNAVAILABLE.value, ReasonCode.BUDGET_CAP.value})
 MODEL_MODES = frozenset({RunMode.LIVE.value, RunMode.CACHED.value})
 ENTRYPOINT = "api"
+UI_PATH = "/ui"
+UI_NAME = "ui"
+DEFAULT_UI_DIR = Path(__file__).resolve().parent / "static" / "ui"
 
 LLMFactory = Callable[[str], LLMPort]
 Clock = Callable[[], datetime]
@@ -348,6 +363,10 @@ class ApiState:
     def authorize(self, authorization: Annotated[str | None, Header()] = None) -> None:
         """Require the Bearer token on ``/v1/*`` when ``ORIS_API_TOKEN`` is set.
 
+        A blank or whitespace-only ``ORIS_API_TOKEN=`` (as ``.env.example`` ships it) counts as
+        unset, so a copied example file never locks every client out behind an empty ``Bearer``
+        value the UI could not even send.
+
         Args:
             authorization: The ``Authorization`` header.
 
@@ -356,7 +375,7 @@ class ApiState:
 
         """
         token = self.settings.api_token
-        if token is None:
+        if token is None or not token.get_secret_value().strip():
             return
         expected = (BEARER_PREFIX + token.get_secret_value()).encode(TOKEN_ENCODING)
         given = (authorization or "").encode(TOKEN_ENCODING)
@@ -397,22 +416,54 @@ class ApiState:
         """
         self._check_limits(body)
         boq = request_boq(body.lines)
+        result = await self.run(boq, body.library, body_sha256(body))
+        return JSONResponse(match_response(result), headers={REQUEST_ID_HEADER: result.run_id})
+
+    async def run(
+        self,
+        boq: BoqFile,
+        library_id: str,
+        input_sha256: str,
+        observe: WrapperHook | None = None,
+    ) -> RunResult:
+        """Run a parsed BoQ through the service as a B3 run and write its run folder.
+
+        ``POST /v1/match`` and the jobs both run through here, so a job is wired exactly as a
+        synchronous match: same adapter, fallback, cap, measured prefix and manifest.
+
+        Args:
+            boq: The parsed input, headers and section paths decided over the whole file.
+            library_id: An id from ``Settings.libraries``.
+            input_sha256: The run's input hash, recorded in the manifest.
+            observe: Rebuilds the run's wrapper to report progress; None runs it as built.
+
+        Returns:
+            The run.
+
+        Raises:
+            HTTPException: 503 when no key is configured for the model.
+
+        """
         run_id = request_id(self.runtime.clock)
         pricing = load_pricing(self.settings.config_file(PRICING_FILE))
         fallback = self._fallback(pricing)
         cap = budget_cap_usd(self.settings, len(boq.lines))
         wiring = RunWiring(
-            pricing, cap, capturing(self._adapter()), fallback is not None, body_sha256(body)
+            pricing, cap, capturing(self._adapter()), fallback is not None, input_sha256
         )
-        measured = self._measured_prefix(wiring, body.library)
+        measured = self._measured_prefix(wiring, library_id)
         setup = WrapperSetup(cap, run_id=run_id, measured_prefix_tokens=measured)
         wrapper = make_wrapper(wiring.adapter, pricing, self.settings, setup, self.runtime)
         options = RunOptions(run_id=run_id, fallback=fallback)
         result = await self.service.match(
-            boq, body.library, profile=RunProfile.B3, llm=wrapper, options=options
+            boq,
+            library_id,
+            profile=RunProfile.B3,
+            llm=wrapper if observe is None else observe(wrapper),
+            options=options,
         )
         self.persist(result, wiring)
-        return JSONResponse(match_response(result), headers={REQUEST_ID_HEADER: run_id})
+        return result
 
     def _measured_prefix(self, wiring: RunWiring, library_id: str) -> dict[PrefixKey, int]:
         """Return the doctor's measured prefix sizes for a live Anthropic run, else {} (A63).
@@ -551,8 +602,8 @@ def _request_id_middleware(
     return middleware
 
 
-def _routes(app: FastAPI, state: ApiState) -> None:
-    """Register the probe routes and the authorised ``/v1`` router."""
+def _routes(app: FastAPI, state: ApiState, jobs: JobsApi) -> None:
+    """Register the probe routes and the authorised ``/v1`` router, jobs included."""
 
     async def health() -> dict[str, str]:
         """Liveness."""
@@ -562,15 +613,61 @@ def _routes(app: FastAPI, state: ApiState) -> None:
     app.add_api_route("/ready", state.ready, methods=["GET"])
     router = APIRouter(prefix=API_PREFIX, dependencies=[Depends(state.authorize)])
     router.add_api_route("/match", state.match, methods=["POST"])
+    register_job_routes(router, jobs)
     app.include_router(router)
+    app.add_exception_handler(ApiError, api_error_handler)
 
 
-def create_app(
+def _jobs_api(state: ApiState, clock: Clock, serving: Serving) -> JobsApi:
+    """Build the jobs store and routes; each job runs through ``ApiState.run``."""
+
+    async def run_job(job: Job) -> RunResult:
+        """Run one job's BoQ as ``POST /v1/match`` runs a request, reporting progress."""
+        if job.boq is None:
+            raise RuntimeError(f"job {job.job_id} has no parsed upload")
+        return await state.run(job.boq, job.library_id, job.input_sha256, observed(job.progress))
+
+    store = JobStore(run_job, clock)
+    library_ids = serving.library_ids or tuple(state.settings.libraries)
+    return JobsApi(
+        store,
+        state.service,
+        library_ids,
+        state.key_configured,
+        serving,
+        state.settings.concurrency,
+    )
+
+
+def _lifespan(store: JobStore) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+    """Return the lifespan that cancels waiting and running jobs on shutdown."""
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Serve, then cancel the jobs."""
+        del app
+        yield
+        await store.shutdown()
+
+    return lifespan
+
+
+def _mount_ui(app: FastAPI, ui_dir: Path | None) -> None:
+    """Serve the operator UI's committed build at ``/ui`` when its folder exists."""
+    if ui_dir is not None and ui_dir.is_dir():
+        app.mount(UI_PATH, StaticFiles(directory=ui_dir, html=True), name=UI_NAME)
+
+
+def create_app(  # noqa: PLR0913
     settings: Settings | None = None,
     llm_factory: LLMFactory | None = None,
     *,
     runtime: Runtime | None = None,
     runs_dir: Path = DEFAULT_RUNS_DIR,
+    job_clock: Clock | None = None,
+    ui_dir: Path | None = DEFAULT_UI_DIR,
+    service: MatchService | None = None,
+    serving: Serving | None = None,
 ) -> FastAPI:
     """Build the API.
 
@@ -581,6 +678,13 @@ def create_app(
         runtime: Clock, retry sleep, git and the repository root; the defaults suit a live
             server.
         runs_dir: Where each match writes its run folder, relative to the runtime's root.
+        job_clock: The jobs' clock, for timestamps and the 1 h expiry; the runtime's when None.
+        ui_dir: The operator UI's build, served at ``/ui`` when the folder exists; None for no
+            UI.
+        service: The match service; built from the settings when None (``oris serve`` passes
+            the one the CLI builds for its ``--llm``).
+        serving: How jobs are answered (mode, replayed run, allowed libraries); a live server
+            over every configured library when None.
 
     Returns:
         The application.
@@ -594,10 +698,15 @@ def create_app(
         factory, key_configured = _default_factory(effective)
     else:
         factory, key_configured = llm_factory, lambda: True
-    service = MatchService.from_settings(effective)
+    service = service or MatchService.from_settings(effective)
     environment = runtime or Runtime()
     state = ApiState(effective, service, factory, key_configured, environment, runs_dir)
-    app = FastAPI(title="ORIS material matcher", version=__version__)
+    jobs = _jobs_api(state, job_clock or environment.clock, serving or Serving())
+    app = FastAPI(
+        title="ORIS material matcher", version=__version__, lifespan=_lifespan(jobs.store)
+    )
+    app.state.job_store = jobs.store
     app.middleware("http")(_request_id_middleware(environment.clock))
-    _routes(app, state)
+    _routes(app, state, jobs)
+    _mount_ui(app, ui_dir)
     return app
