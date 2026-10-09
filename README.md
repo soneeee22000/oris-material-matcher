@@ -63,14 +63,14 @@ Run an unseen BoQ on the FR library with the brief's literal command (`match` is
 uv run oris --input new.csv --library data/oris_materials_fr.csv --output out.csv
 ```
 
-The policy is resolved per (model, library). The FR smoke certification (A10, G3-T24) has not run, so `config/policy.yaml` has no entry for the pinned model on the FR library, and the run decides at the strictest threshold, `T1`. It logs this warning and prints this summary line:
+The policy is resolved per (model, library). The pinned model on the FR library is certified by the A10 smoke rule (A70, `docs/gates/G6.md`):
+- it runs the frozen operating point `T8` with the sibling verifier and `data/enrichment/fr.yaml`;
+- the run prints `policy_resolution: exact (policy T8)`;
+- any other model, or a library with even one byte changed, falls back to the strictest threshold `T1` and logs a warning.
 
-```text
-policy_resolution=fallback_strictest: no certified policy for (claude-haiku-4-5-20251001, 6bfe1857fd36); deciding at the strictest threshold T1
-policy_resolution: fallback_strictest (policy T1)
-```
+The smoke set passed with 0 closed-world violations, 0 false `not_a_material`, 0 decoy matches and 13 of 18 base positives correct; all 28 of its matches were correct (`eval/smoke_fr_v1_result.md`). It is builder-labelled readiness evidence for FR → FR, not a held-out claim: the certified numbers are the lockbox ones above.
 
-Expect most lines to go to `needs_review`. Once a smoke-certified FR entry exists, the line reads `policy_resolution: exact (policy <id>)`. The `eval-freeze` refusal does not apply to this run: it only covers live runs over the two exercise input files, which are refused unless the `eval-freeze` tag is at HEAD. An unseen BoQ is never refused.
+The `eval-freeze` refusal does not apply to this run: it only covers live runs over the two exercise input files, which are refused unless the `eval-freeze` tag is at HEAD. An unseen BoQ is never refused.
 
 The next commands are read-only and cost $0: they never call a model, never read the ground truth and write nothing.
 
@@ -135,7 +135,7 @@ Details: [`docs/gates/G1.md`](docs/gates/G1.md) and [`docs/gates/G2.md`](docs/ga
   The E-08 verifier reduces this error class but does not remove it.
 
 - **The verifier costs coverage once the enrichment is in place.** On dev, the same enriched votes without the verifier give 218 correct matches against 194, at P .972 and .958. The verifier was kept because that comparison was not registered before its result was seen (`docs/gates/G2.md` O24).
-- **The FR library has no certified threshold.** Unseen BoQs on `data/oris_materials_fr.csv` run at the strictest threshold, which is safe but matches little. The FR smoke set that would certify it (A10) was moved after the freeze.
+- **The FR library is certified by a smoke set, not a held-out measurement.** The threshold on `data/oris_materials_fr.csv` is certified by A10. That is a 68-line builder-labelled set, owner-reviewed and frozen before its one live run, scored by a pre-registered rule. It shows the operating point is safe on the FR taxonomy (0 decoy matches, 0 wrong matches), but it gives no precision estimate with a useful bound. Only 5 of the 10 `base_exact` lines matched, so expect lower coverage than on the global library.
 - **The fallback model is not certified.** If the primary model is unreachable, gpt-4o-mini decides at the strictest threshold, so almost every line goes to review (G2 O26).
 - **The lockbox is a same-project holdout.** It is section-held-out and blind to tuning, but it was explored before the split (§10.8). The unseen live BoQ is the only fully blind test.
 - **One triggered arm was not run.** `header_context` (6 English errors) did not run before the freeze (G2 O25).
@@ -160,7 +160,7 @@ The whole library is shown to the model (D-01), because lexical recall@20 is onl
 
 ## With more time
 
-- Run the triggered `header_context` arm and the FR-library smoke set (A10), so French BoQs on the French library get a certified threshold.
+- Run the triggered `header_context` arm, and label a held-out FR → FR set large enough to bound precision on the French library.
 - Register and measure "verifier off, given the enrichment" blind, on fresh votes. It may recover about 24 correct dev matches.
 - A carbon-weighted error metric, once ORIS CO₂ factors are available, so that a wrong match is weighted by the size of the carbon mistake.
 - The deferred G3 hardening: the full fault matrix with a 429 storm, CLI/API parity over whole files, and the doctor measuring the enriched prompt for budget reservations.
