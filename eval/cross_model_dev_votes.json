@@ -1,0 +1,7186 @@
+{
+  "languages": {
+    "en": {
+      "items": {
+        "00.01.0010.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.01.0020.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.01.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+            ],
+            "top1": "T13.U08.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances"
+            ]
+          }
+        },
+        "00.02.0010.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.02.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.02.0030.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0030.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+            ]
+          }
+        },
+        "01.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+            ]
+          }
+        },
+        "01.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ],
+            "top1": "T13.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S04",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances"
+            ]
+          }
+        },
+        "01.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 02 - Bricks"
+            ],
+            "top1": "T13.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S02",
+              "T13.U02.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 02 - Bricks"
+            ]
+          }
+        },
+        "01.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 03 - Tiles and ceramics"
+            ],
+            "top1": "T13.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S03",
+              "T13.U02.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 03 - Tiles and ceramics"
+            ]
+          }
+        },
+        "01.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06"
+            ],
+            "top1": "T13.U01.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S07",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.02.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ],
+            "top1": "T13.U04.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S05",
+              "T13.U04.S07"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ]
+          }
+        },
+        "01.02.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 02 - Aluminium"
+            ],
+            "top1": "T13.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S05",
+              "T13.U04.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ]
+          }
+        },
+        "01.02.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 01 - Copper, bronze, brass"
+            ],
+            "top1": "T13.U04.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S05",
+              "T13.U04.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ]
+          }
+        },
+        "01.02.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": "T13.U04.S11"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S10",
+              "T08.U01.S00"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 11 - Cables other than those mentioned in 17 04 10"
+            ]
+          }
+        },
+        "01.02.0120.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 10 - Cables containing oil, coal tar and other hazardous substances"
+            ],
+            "top1": "T13.U04.S09"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S10",
+              ""
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 11 - Cables other than those mentioned in 17 04 10"
+            ]
+          }
+        },
+        "01.02.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 01 - Wood"
+            ],
+            "top1": "T13.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U02.S01",
+              "T30.U01.S00"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 01 - Wood"
+            ]
+          }
+        },
+        "01.02.0140.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances"
+            ]
+          }
+        },
+        "01.02.0150.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U08.S04",
+              "T13.U02.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+            ]
+          }
+        },
+        "01.02.0160.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S07",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.02.0170.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U06.S01",
+              "T13.U07.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 01 - Insulation materials containing asbestos"
+            ]
+          }
+        },
+        "01.02.0180.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U08.S04",
+              "T13.U06.S03"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+            ]
+          }
+        },
+        "01.02.0190.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U08.S02",
+              "T13.U07.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 02 - Construction and demolition wastes containing PCB (for example PCB-containing sealants, PCB-containing resin-based floorings, PCB-containing sealed glazing units, PCB-containing capacitors)"
+            ]
+          }
+        },
+        "01.02.0200.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U06.S01",
+              "T13.U08.S03"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 01 - Insulation materials containing asbestos"
+            ]
+          }
+        },
+        "01.02.0210.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U08.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+            ]
+          }
+        },
+        "01.04.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U13.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U15.S00",
+              "T03.U11.S00"
+            ],
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for subbase",
+              ""
+            ]
+          }
+        },
+        "01.04.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U13.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S01",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ]
+          }
+        },
+        "01.04.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Reclaimed Asphalt"
+            ],
+            "top1": "T03.U13.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S01",
+              "T03.U07.S01"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Reclaimed Asphalt"
+            ]
+          }
+        },
+        "01.04.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U12.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U05.S00"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "01.04.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U12.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S01",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ]
+          }
+        },
+        "01.04.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Reclaimed Asphalt"
+            ],
+            "top1": "T03.U12.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S01",
+              "T03.U07.S01"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Reclaimed Asphalt"
+            ]
+          }
+        },
+        "01.04.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Quicklime",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T24.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T27.U01.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "01.04.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Geotextile",
+              "For separation, filtration and reinforcement in pavement and earthworks construction",
+              ""
+            ],
+            "top1": "T20.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T20.U01.S00",
+              "T20.U01.S00"
+            ],
+            "suggested": [
+              "Geotextile",
+              "For separation, filtration and reinforcement in pavement and earthworks construction",
+              ""
+            ]
+          }
+        },
+        "01.04.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Soil",
+              "Soil for construction",
+              ""
+            ],
+            "top1": "T27.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S00",
+              "T27.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.04.0100.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "02.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T15.U01.S00",
+              "T20.U01"
+            ],
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ]
+          }
+        },
+        "02.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T15.U01.S00",
+              "T20.U01"
+            ],
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ]
+          }
+        },
+        "02.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T23.U04"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "02.01.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "02.02.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "02.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Filtration layer of sand",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U03.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U09.S00",
+              "T03.U09 Sand for hydraulically bound mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for hydraulically bound mixtures",
+              ""
+            ]
+          }
+        },
+        "02.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Filtration layer of sand",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U03.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S06",
+              "T03.U09 Sand for hydraulically bound mixtures"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "02.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ],
+            "top1": "T15.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T08.U01.S00",
+              "T08.U01 High-Density Polyethylene (HDPE)"
+            ],
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ]
+          }
+        },
+        "02.02.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ],
+            "top1": "T25.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T25.U01.S00",
+              "T25.U01 for all usage"
+            ],
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ]
+          }
+        },
+        "03.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Composite",
+              "Cement bound granular mixture",
+              ""
+            ],
+            "top1": "T11.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T11.U01 Cement bound granular mixture",
+              "T11.U01 Cement bound granular mixture"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cold Recycled Bound Material",
+              "Foamed bitumen stabilised (Quick Visco-Elastic)",
+              ""
+            ],
+            "top1": "T10.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T10.U01 Foamed bitumen stabilised (Quick Visco-Elastic)",
+              "T10.U01 Foamed bitumen stabilised (Quick Visco-Elastic)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cold Recycled Bound Material",
+              "Foamed bitumen stabilised (Slow Visco-Elastic)",
+              ""
+            ],
+            "top1": "T10.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T10.U02 Foamed bitumen stabilised (Slow Visco-Elastic)",
+              "T10.U02 Foamed bitumen stabilised (Slow Visco-Elastic)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Porous concrete for the base layer",
+              ""
+            ],
+            "top1": "T12.U22.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18 Concrete mixture for wearing course",
+              "T12.U22 Porous concrete for the base layer"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Lean concrete",
+              "C16/20"
+            ],
+            "top1": "T12.U21.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U21 Lean concrete",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ],
+            "top1": "T12.U17.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17 concrete mixture for base course",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C20/25"
+            ],
+            "top1": "T12.U17.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17 concrete mixture for base course",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C30/37"
+            ],
+            "top1": "T12.U17.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17 concrete mixture for base course",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM II/B"
+            ],
+            "top1": "T09.U02.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01 cement for concrete mixtures",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM III/A"
+            ],
+            "top1": "T09.U02.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01 cement for concrete mixtures",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM I"
+            ],
+            "top1": "T09.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S01",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              "CEM I"
+            ]
+          }
+        },
+        "03.02.0120.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM V/B"
+            ],
+            "top1": "T09.U02.S10"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S09",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              "CEM V/A"
+            ]
+          }
+        },
+        "03.02.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Fly Ash",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T18.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T18.U01.S00",
+              "T18.U01 for use in concrete mixtures"
+            ],
+            "suggested": [
+              "Fly Ash",
+              "for use in concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0140.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Blast furnace slag",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T06.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T06.U01.S00",
+              "T06.U01 for use in concrete mixtures"
+            ],
+            "suggested": [
+              "Blast furnace slag",
+              "for use in concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0150.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Hydrated lime",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T21.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T21.U01.S00",
+              "T21.U01 for use in asphalt mixtures"
+            ],
+            "suggested": [
+              "Hydrated lime",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0160.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for hydraulically bound mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U01 Crushed rock for base filling"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "03.02.0170.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for hydraulically bound mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U09.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S01",
+              "T13.U08 17 09 - Other construction and demolition wastes"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Reclaimed Asphalt"
+            ]
+          }
+        },
+        "03.02.0180.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T17.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S00",
+              "T03.U01 Crushed rock for base filling"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0190.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Limestone",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T22.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T22.U01.S00",
+              "T22.U01 for all usage"
+            ],
+            "suggested": [
+              "Limestone",
+              "for all usage",
+              ""
+            ]
+          }
+        },
+        "03.02.0200.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Admixture",
+              "Admixtures for hydraulically bound mixtures",
+              "Retarder"
+            ],
+            "top1": "T02.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0210.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Silica Fume",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T26.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T26.U01 for use in concrete mixtures"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "03.03.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01 asphalt mixture for base course",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA 50% RAP"
+            ],
+            "top1": "T04.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01.S02",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA 30% RAP"
+            ]
+          }
+        },
+        "03.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - WMA 50% RAP"
+            ],
+            "top1": "T04.U01.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01.S02",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA 30% RAP"
+            ]
+          }
+        },
+        "03.03.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "High Modulus Asphalt (EME2) - HMA 50% RAP"
+            ],
+            "top1": "T04.U01.S09"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01.S08",
+              "T04.U01.S10"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "High Modulus Asphalt (EME2) - HMA 30% RAP"
+            ]
+          }
+        },
+        "03.03.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U02 asphalt mixture for binder course",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Asphalt Concrete (AC) - WMA 30% RAP"
+            ],
+            "top1": "T04.U02.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U02 asphalt mixture for binder course",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Hot Rolled Asphalt (HRA) - HMA 20% RAP"
+            ],
+            "top1": "T04.U02.S15"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U02.S01",
+              "T04.U02 asphalt mixture for binder course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0150.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Stone Mastic Asphalt (SMA) - WMA"
+            ],
+            "top1": "T04.U02.S19"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S22",
+              "T04.U03.S22"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - HMA"
+            ]
+          }
+        },
+        "03.03.0170.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03 asphalt mixture for surface course",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0190.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - WMA 10% RAP"
+            ],
+            "top1": "T04.U03.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0210.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - WMA 20% RAP"
+            ],
+            "top1": "T04.U03.S25"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S22",
+              "T04.U03.S19"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - HMA"
+            ]
+          }
+        },
+        "03.03.0230.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Porous Asphalt (PA) - WMA 10% RAP"
+            ],
+            "top1": "T04.U03.S18"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S15",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Porous Asphalt (PA) - HMA"
+            ]
+          }
+        },
+        "03.03.0250.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Mastic Asphalt (MA) - WMA"
+            ],
+            "top1": "T04.U03.S12"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S00",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              ""
+            ]
+          }
+        },
+        "03.03.0270.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Hot Rolled Asphalt (HRA) - HMA"
+            ],
+            "top1": "T04.U03.S07"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S07",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Hot Rolled Asphalt (HRA) - HMA"
+            ]
+          }
+        },
+        "03.03.0290.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for coating ",
+              "Bitumen emulsion"
+            ],
+            "top1": "T05.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S01",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ]
+          }
+        },
+        "03.03.0310.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for Surface dressing / Chip Seal",
+              "Bitumen emulsion"
+            ],
+            "top1": "T05.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0330.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Bitumen",
+              "bitumen for coating ",
+              "Cut back"
+            ],
+            "top1": "T05.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S00",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "03.04.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C12/15"
+            ],
+            "top1": "T12.U18.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S01",
+              "T12.U20.S02 C20/25"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C20/25"
+            ],
+            "top1": "T12.U18.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S02",
+              "T12.U20.S02 C20/25"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C20/25"
+            ]
+          }
+        },
+        "03.04.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ],
+            "top1": "T12.U18.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S03",
+              "T12.U20.S03 C25/30"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C25/30"
+            ]
+          }
+        },
+        "03.04.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ],
+            "top1": "T12.U18.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U20.S04 C30/37"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "03.04.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C35/45"
+            ],
+            "top1": "T12.U18.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S05",
+              "T12.U20.S05 C35/45"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C35/45"
+            ]
+          }
+        },
+        "03.04.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C40/50"
+            ],
+            "top1": "T12.U18.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S06",
+              "T12.U20.S06 C40/50"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C40/50"
+            ]
+          }
+        },
+        "03.04.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.05.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "03.05.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "03.05.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Concrete paving blocks",
+              ""
+            ],
+            "top1": "T23.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "03.05.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Building Components",
+              "Brick (clay)",
+              ""
+            ],
+            "top1": "T07.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T30.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Wood",
+              "Handrail in wood/timber",
+              ""
+            ]
+          }
+        },
+        "03.05.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Building Components",
+              "Tile (clay)",
+              ""
+            ],
+            "top1": "T07.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T30.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Wood",
+              "Handrail in wood/timber",
+              ""
+            ]
+          }
+        },
+        "03.05.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              ""
+            ]
+          }
+        },
+        "04.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C35/45"
+            ],
+            "top1": "T12.U10.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U17.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C30/37"
+            ],
+            "top1": "T12.U10.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U17.S03"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C25/30"
+            ],
+            "top1": "T12.U10.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U17.S02"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Micropiles",
+              ""
+            ],
+            "top1": "T28.U05.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U05.S00",
+              "T12.U17.S00"
+            ],
+            "suggested": [
+              "Steel",
+              "Micropiles",
+              ""
+            ]
+          }
+        },
+        "04.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Sheet piles",
+              ""
+            ],
+            "top1": "T28.U06.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U06.S00",
+              "T28.U06.S00"
+            ],
+            "suggested": [
+              "Steel",
+              "Sheet piles",
+              ""
+            ]
+          }
+        },
+        "04.01.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C30/37"
+            ],
+            "top1": "T12.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U17.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C25/30"
+            ],
+            "top1": "T12.U08.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U17.S02"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C35/45"
+            ],
+            "top1": "T12.U08.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U17.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.01.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Lean concrete",
+              "C16/20"
+            ],
+            "top1": "T12.U21.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T12.U17.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "04.01.0100.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C30/37"
+            ],
+            "top1": "T12.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U17.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.01.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for excavation beam",
+              "C25/30"
+            ],
+            "top1": "T12.U07.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T12.U17.S04"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "04.01.0120.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for excavation beam",
+              "C30/37"
+            ],
+            "top1": "T12.U07.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T12.U17.S05"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "04.03.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C35/45"
+            ],
+            "top1": "T12.U04.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S04",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C45/55"
+            ],
+            "top1": "T12.U04.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C50/60"
+            ],
+            "top1": "T12.U04.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S04",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C30/37"
+            ],
+            "top1": "T12.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C25/30"
+            ],
+            "top1": "T12.U06.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in prestressed concrete",
+              "C30/37"
+            ],
+            "top1": "T12.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C35/45"
+            ],
+            "top1": "T12.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S04",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C25/30"
+            ],
+            "top1": "T12.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0090.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C30/37"
+            ],
+            "top1": "T12.U03.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "04.03.0100.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C35/45"
+            ],
+            "top1": "T12.U03.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S04",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C25/30"
+            ],
+            "top1": "T12.U06.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0120.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C30/37"
+            ],
+            "top1": "T12.U06.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0130.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C35/45"
+            ],
+            "top1": "T12.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U18 Concrete mixture for wearing course"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "05.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "High quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U02.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T13.U01.S01"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "05.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "Average quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S08",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "05.01.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For landfill",
+              "Low quality rock from rock cutting"
+            ],
+            "top1": "T16.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S04",
+              "T13.U05.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+            ]
+          }
+        },
+        "05.01.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For landfill",
+              "Waste"
+            ],
+            "top1": "T16.U01.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S02",
+              "T13.U01.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 04 - Soil and stones other than those mentioned in 17 05 03"
+            ]
+          }
+        },
+        "05.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Wet Shotcrete for rock tunnels",
+              "C20/25"
+            ],
+            "top1": "T12.U24.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S02",
+              "T12.U18.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C20/25"
+            ]
+          }
+        },
+        "05.01.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Wet Shotcrete for rock tunnels",
+              "C30/37"
+            ],
+            "top1": "T12.U24.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U18.S06"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "05.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Steel for tunnel lining",
+              ""
+            ],
+            "top1": "T28.U07.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U08.S00",
+              "T28.U08.S00"
+            ],
+            "suggested": [
+              "Steel",
+              "Structural steel (generic construction steel)",
+              ""
+            ]
+          }
+        },
+        "05.01.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T15.U01.S00",
+              ""
+            ],
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ]
+          }
+        },
+        "07.01.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Guardrail",
+              ""
+            ],
+            "top1": "T28.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T28.U04.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "07.01.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Wood",
+              "Handrail in wood/timber",
+              ""
+            ],
+            "top1": "T30.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T30.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "07.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Gabion Systems",
+              "Gabion walls, fence systems and mattress",
+              ""
+            ],
+            "top1": "T19.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T19.U01.S00",
+              "T19.U01.S00"
+            ],
+            "suggested": [
+              "Gabion Systems",
+              "Gabion walls, fence systems and mattress",
+              ""
+            ]
+          }
+        },
+        "07.01.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Composite",
+              "Soil-Mix wall (without metal structure)",
+              ""
+            ],
+            "top1": "T11.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T11.U01.S00",
+              "T11.U01.S00"
+            ],
+            "suggested": [
+              "Composite",
+              "Cement bound granular mixture",
+              ""
+            ]
+          }
+        },
+        "07.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T08.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "07.01.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ],
+            "top1": "T23.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U02.S00",
+              "T12.U23.S01"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete paving blocks",
+              ""
+            ]
+          }
+        },
+        "07.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ],
+            "top1": "T25.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T25.U01.S00",
+              "T25.U01.S00"
+            ],
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ]
+          }
+        },
+        "07.01.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T07.U01.S00",
+              "T13.U02.S01"
+            ],
+            "suggested": [
+              "Building Components",
+              "Brick (clay)",
+              ""
+            ]
+          }
+        },
+        "07.01.0090.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S00",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "08.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U05.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S03",
+              "T03.U05.S03"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U05.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S02",
+              "T03.U05.S02"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U08.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U08.S03",
+              "T03.U08.S03"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U08.S02",
+              "T03.U08.S02"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.02.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Water",
+              "for all usage",
+              ""
+            ],
+            "top1": "T29.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T29.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ],
+            "top1": "T05.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S01",
+              "T05.U01.Normal Bitumen"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ]
+          }
+        },
+        "08.04.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ],
+            "top1": "T05.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S02",
+              "T05.U01.Polymer Modified Bitumen (PMB)"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ]
+          }
+        },
+        "08.04.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Organic fibers"
+            ],
+            "top1": "T01.U01.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T01.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For chemical process technologies (WMA)"
+            ],
+            "top1": "T01.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T02.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For foaming systems technologies (WMA)"
+            ],
+            "top1": "T01.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T02.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For organic additives technologies (WMA)"
+            ],
+            "top1": "T01.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T01.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Sulphur pellets"
+            ],
+            "top1": "T01.U01.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S06",
+              "T01.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Sulphur pellets"
+            ]
+          }
+        },
+        "08.04.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Metallic fibers"
+            ],
+            "top1": "T01.U01.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S04",
+              "T28.U01.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Metallic fibers"
+            ]
+          }
+        },
+        "08.04.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U04.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U05.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.04.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S02",
+              "T03.U05.S02 Recycled Aggregates"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.04.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for asphalt mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U07.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S03",
+              "T03.U07.S00"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.04.0120.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T17.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T17.U01.S00",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "08.04.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T17.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T22.U01.S00",
+              "T22.U01.S00"
+            ],
+            "suggested": [
+              "Limestone",
+              "for all usage",
+              ""
+            ]
+          }
+        },
+        "08.04.0140.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Hydrated lime",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T21.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T02.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        }
+      },
+      "runs": {
+        "primary": {
+          "attributed_cost_usd": 0.4859619,
+          "enrichment_sha256": "057f062221ae4cf52c231f22b65b8f6b057b80cc7eeb8ae45a6940cc84a4b7fe",
+          "input_sha256": "ea19f4791cbb048d07bc3521fb806159a87560569099a5386d6208725a5c1bbc",
+          "library_sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+          "mode": "replay",
+          "requested_model": "claude-haiku-4-5-20251001",
+          "run_id": "20261007T221351Z-fe10b4d3",
+          "threshold_id": "T8"
+        },
+        "second": {
+          "attributed_cost_usd": 0.0652275,
+          "enrichment_sha256": null,
+          "input_sha256": "ea19f4791cbb048d07bc3521fb806159a87560569099a5386d6208725a5c1bbc",
+          "library_sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+          "mode": "live",
+          "requested_model": "gpt-4o-mini-2024-07-18",
+          "run_id": "20261007T225635Z-36f5a2c5",
+          "threshold_id": "T1"
+        }
+      }
+    },
+    "fr": {
+      "items": {
+        "00.01.0010.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.01.0020.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.01.0030.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S04",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 06 - Mixtures of, or separate fractions of concrete, bricks, tiles and ceramics containing hazardous substances"
+            ]
+          }
+        },
+        "00.02.0010.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.02.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.02.0030.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0010.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0030.": {
+          "primary": {
+            "decision": "not_a_material",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "00.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S04",
+              "T13.U08.S00"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+            ]
+          }
+        },
+        "01.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U05.S04",
+              "T13.U08.S00"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil",
+              "17 05 06 - Dredging spoil other than those mentioned in 17 05 05"
+            ]
+          }
+        },
+        "01.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ],
+            "top1": "T13.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S01",
+              "T13.U01.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ]
+          }
+        },
+        "01.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 02 - Bricks"
+            ],
+            "top1": "T13.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S02",
+              "T13.U01.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 02 - Bricks"
+            ]
+          }
+        },
+        "01.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 03 - Tiles and ceramics"
+            ],
+            "top1": "T13.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S03",
+              "T13.U01.S02"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 03 - Tiles and ceramics"
+            ]
+          }
+        },
+        "01.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06"
+            ],
+            "top1": "T13.U01.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S07",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.02.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ],
+            "top1": "T13.U04.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S05",
+              "T13.U04.S07"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ]
+          }
+        },
+        "01.02.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 02 - Aluminium"
+            ],
+            "top1": "T13.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S02",
+              "T13.U02.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 02 - Aluminium"
+            ]
+          }
+        },
+        "01.02.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 01 - Copper, bronze, brass"
+            ],
+            "top1": "T13.U04.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S05",
+              "T13.U04.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 05 - Iron and steel"
+            ]
+          }
+        },
+        "01.02.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": "T13.U04.S11"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U04.S10",
+              "T13.U04.S10"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 11 - Cables other than those mentioned in 17 04 10"
+            ]
+          }
+        },
+        "01.02.0120.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 04 - Metals (including their alloys)",
+              "17 04 10 - Cables containing oil, coal tar and other hazardous substances"
+            ],
+            "top1": "T13.U04.S09"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S07",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.02.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 01 - Wood"
+            ],
+            "top1": "T13.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U02.S01",
+              "T13.U02.S01"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 01 - Wood"
+            ]
+          }
+        },
+        "01.02.0140.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 04 - Glass, plastic and wood containing or contaminated with hazardous substances"
+            ],
+            "top1": "T13.U02.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U03.S02",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 03 - Bituminous mixtures, coal tar and tarred products",
+              "17 03 02 - Bituminous mixtures other than those mentioned in 17 03 01"
+            ]
+          }
+        },
+        "01.02.0150.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 02 - Glass"
+            ],
+            "top1": "T13.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U02.S02",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 02 - Glass"
+            ]
+          }
+        },
+        "01.02.0160.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 03 - Plastic"
+            ],
+            "top1": "T13.U02.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U02.S03",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 02 - Wood, glass and plastic",
+              "17 02 03 - Plastic"
+            ]
+          }
+        },
+        "01.02.0170.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 05 - Construction materials containing asbestos"
+            ],
+            "top1": "T13.U06.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U06.S01",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 01 - Insulation materials containing asbestos"
+            ]
+          }
+        },
+        "01.02.0180.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 04 - Insulation materials other than those mentioned in 17 06 01 and 17 06 03"
+            ],
+            "top1": "T13.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U06.S03",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 04 - Insulation materials other than those mentioned in 17 06 01 and 17 06 03"
+            ]
+          }
+        },
+        "01.02.0190.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 08 - Gypsum-based construction material",
+              "17 08 02 - Gypsum-based construction materials other than those mentioned in 17 08 01"
+            ],
+            "top1": "T13.U07.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S03",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 03 - Tiles and ceramics"
+            ]
+          }
+        },
+        "01.02.0200.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 02 - Construction and demolition wastes containing PCB (for example PCB-containing sealants, PCB-containing resin-based floorings, PCB-containing sealed glazing units, PCB-containing capacitors)"
+            ],
+            "top1": "T13.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U06.S01",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 06 - Insulation materials and asbestos-containing construction materials",
+              "17 06 01 - Insulation materials containing asbestos"
+            ]
+          }
+        },
+        "01.02.0210.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Construction and demolition material",
+              "17 09 - Other construction and demolition wastes",
+              "17 09 04 - Mixed construction and demolition wastes other than those mentioned in 17 09 01, 17 09 02 and 17 09 03"
+            ],
+            "top1": "T13.U08.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S05",
+              "T13.U08.S04"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 07 - Mixtures of concrete, bricks, tiles and ceramics other than those mentioned in 17 01 06"
+            ]
+          }
+        },
+        "01.04.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U13.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U15.S00",
+              "T03.U12 unbound aggregates for capping"
+            ],
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for subbase",
+              ""
+            ]
+          }
+        },
+        "01.04.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U13.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S01",
+              "T13.U08 17 09 - Other construction and demolition wastes"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ]
+          }
+        },
+        "01.04.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for embankment",
+              "Reclaimed Asphalt"
+            ],
+            "top1": "T03.U13.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S00",
+              "T03.U04 Gravel for asphalt mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "01.04.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U12.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S00",
+              "T03.U05 Gravel for concrete mixtures"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "01.04.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U12.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U01.S01",
+              "T13.U07 17 08 - Gypsum-based construction material"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 01 - Concrete, bricks, tiles and ceramics",
+              "17 01 01 - Concrete"
+            ]
+          }
+        },
+        "01.04.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "unbound aggregates for capping",
+              "Reclaimed Asphalt"
+            ],
+            "top1": "T03.U12.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S00",
+              "T03.U04 Gravel for asphalt mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "01.04.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Quicklime",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T24.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T17.U01.S00",
+              "T24.U01 for use in concrete mixtures"
+            ],
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "01.04.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Geotextile",
+              "For separation, filtration and reinforcement in pavement and earthworks construction",
+              ""
+            ],
+            "top1": "T20.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T20.U01.S00",
+              "T20.U01 For separation, filtration and reinforcement in pavement and earthworks construction"
+            ],
+            "suggested": [
+              "Geotextile",
+              "For separation, filtration and reinforcement in pavement and earthworks construction",
+              ""
+            ]
+          }
+        },
+        "01.04.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Soil",
+              "Soil for construction",
+              ""
+            ],
+            "top1": "T27.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T27.U01.S00",
+              "T27.U01 Soil for construction"
+            ],
+            "suggested": [
+              "Soil",
+              "Soil for construction",
+              ""
+            ]
+          }
+        },
+        "01.04.0100.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T20.U01.S00",
+              "T27.U01 Soil for construction"
+            ],
+            "suggested": [
+              "Geotextile",
+              "For separation, filtration and reinforcement in pavement and earthworks construction",
+              ""
+            ]
+          }
+        },
+        "02.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T15.U01.S00",
+              "T03.U01 Crushed rock for base filling"
+            ],
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ]
+          }
+        },
+        "02.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T15.U01.S00",
+              "T03.U01 Crushed rock for base filling"
+            ],
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ]
+          }
+        },
+        "02.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T23.U04 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "02.01.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "02.02.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ],
+            "top1": "T23.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "02.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Filtration layer of sand",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U03.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U07.S00",
+              "T03.U09 Sand for hydraulically bound mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "02.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Filtration layer of sand",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U03.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U02.S02",
+              "T13.U05 17 05 - Soil (including excavated soil from contaminated sites), stones and dredging spoil"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for railway",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "02.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Drainage Elements",
+              "Rain gutter system (PVC-U)",
+              ""
+            ],
+            "top1": "T15.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T08.U01.S00",
+              "T20.U01 For separation, filtration and reinforcement in pavement and earthworks construction"
+            ],
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ]
+          }
+        },
+        "02.02.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ],
+            "top1": "T25.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T25.U01.S00",
+              "T25.U01 for all usage"
+            ],
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ]
+          }
+        },
+        "03.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Composite",
+              "Cement bound granular mixture",
+              ""
+            ],
+            "top1": "T11.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S04",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C30/37"
+            ]
+          }
+        },
+        "03.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cold Recycled Bound Material",
+              "Foamed bitumen stabilised (Quick Visco-Elastic)",
+              ""
+            ],
+            "top1": "T10.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S02",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ]
+          }
+        },
+        "03.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cold Recycled Bound Material",
+              "Foamed bitumen stabilised (Slow Visco-Elastic)",
+              ""
+            ],
+            "top1": "T10.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T13.U05.S02"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "03.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Porous concrete for the base layer",
+              ""
+            ],
+            "top1": "T12.U22.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S00",
+              "T12.U22.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.02.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Lean concrete",
+              "C16/20"
+            ],
+            "top1": "T12.U21.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S01",
+              "T12.U17.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.02.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C12/15"
+            ],
+            "top1": "T12.U20.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S02",
+              "T12.U20.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C20/25"
+            ]
+          }
+        },
+        "03.02.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C20/25"
+            ],
+            "top1": "T12.U20.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U20.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "03.02.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ],
+            "top1": "T12.U20.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S04",
+              "T12.U20.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ]
+          }
+        },
+        "03.02.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM II/B"
+            ],
+            "top1": "T09.U02.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S02",
+              "T09.U01.S00"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              "CEM II/A"
+            ]
+          }
+        },
+        "03.02.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM III/A"
+            ],
+            "top1": "T09.U02.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S04",
+              "T09.U01.S00"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              "CEM III/A"
+            ]
+          }
+        },
+        "03.02.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM I"
+            ],
+            "top1": "T09.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S01",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              "CEM I"
+            ]
+          }
+        },
+        "03.02.0120.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM V/A"
+            ],
+            "top1": "T09.U02.S09"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U02.S01",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for hydraulically bound mixtures",
+              "CEM I"
+            ]
+          }
+        },
+        "03.02.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Fly Ash",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T18.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T18.U01.S00",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Fly Ash",
+              "for use in concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0140.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Blast furnace slag",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T06.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T06.U01.S00",
+              "T09.U01 cement for concrete mixtures"
+            ],
+            "suggested": [
+              "Blast furnace slag",
+              "for use in concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0150.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Hydrated lime",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T21.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T21.U01.S00",
+              "T21.U01 for use in asphalt mixtures"
+            ],
+            "suggested": [
+              "Hydrated lime",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0160.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for hydraulically bound mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U11 unbound aggregates for base layer"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "03.02.0170.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Aggregates",
+              "Sand for hydraulically bound mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U09.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S02",
+              "T03.U08 Sand for concrete mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "03.02.0180.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T17.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U08 Sand for concrete mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "03.02.0190.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Limestone",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T22.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S03",
+              "T03.U08 Sand for concrete mixtures"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "03.02.0200.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Admixture",
+              "Admixtures for hydraulically bound mixtures",
+              "Retarder"
+            ],
+            "top1": "T02.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T09.U01.S00",
+              "T01.U01 Additives for asphalt"
+            ],
+            "suggested": [
+              "Cement",
+              "cement for concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.02.0210.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Silica Fume",
+              "For use in hydraulically bound mixtures",
+              ""
+            ],
+            "top1": "T26.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T26.U01.S00",
+              "T26.U01 for use in concrete mixtures"
+            ],
+            "suggested": [
+              "Silica Fume",
+              "for use in concrete mixtures",
+              ""
+            ]
+          }
+        },
+        "03.03.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U01.S01",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Crushed rock for base filling",
+              "Reclaimed Asphalt"
+            ]
+          }
+        },
+        "03.03.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - HMA 50% RAP"
+            ],
+            "top1": "T04.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S02",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "03.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "Asphalt Concrete (AC) - WMA 50% RAP"
+            ],
+            "top1": "T04.U01.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S00",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "03.03.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "High Modulus Asphalt (EME2) - HMA 50% RAP"
+            ],
+            "top1": "T04.U01.S09"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U01.S07",
+              "T04.U01 High Modulus Asphalt (EME2) - WMA"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for base course",
+              "High Modulus Asphalt (EME2) - HMA"
+            ]
+          }
+        },
+        "03.03.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S02",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ]
+          }
+        },
+        "03.03.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Asphalt Concrete (AC) - WMA 30% RAP"
+            ],
+            "top1": "T04.U02.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Hot Rolled Asphalt (HRA) - HMA 20% RAP"
+            ],
+            "top1": "T04.U02.S15"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U02 Asphalt mixture for binder course",
+              "T04.U01 asphalt mixture for base course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0150.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for binder course",
+              "Stone Mastic Asphalt (SMA) - WMA"
+            ],
+            "top1": "T04.U02.S19"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S22",
+              "T04.U03.S00"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - HMA"
+            ]
+          }
+        },
+        "03.03.0170.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ],
+            "top1": "T04.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0190.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - WMA 10% RAP"
+            ],
+            "top1": "T04.U03.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0210.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - WMA 20% RAP"
+            ],
+            "top1": "T04.U03.S25"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S22",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Stone Mastic Asphalt (SMA) - HMA"
+            ]
+          }
+        },
+        "03.03.0230.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Porous Asphalt (PA) - WMA 10% RAP"
+            ],
+            "top1": "T04.U03.S18"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S15",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Porous Asphalt (PA) - HMA"
+            ]
+          }
+        },
+        "03.03.0250.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Mastic Asphalt (MA) - WMA"
+            ],
+            "top1": "T04.U03.S12"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0270.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Hot Rolled Asphalt (HRA) - HMA"
+            ],
+            "top1": "T04.U03.S07"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03 Asphalt mixture for surface course",
+              "T04.U03 asphalt mixture for surface course"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.03.0290.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for coating ",
+              "Bitumen emulsion"
+            ],
+            "top1": "T05.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S01",
+              "T05.U01.S01"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ]
+          }
+        },
+        "03.03.0310.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for Surface dressing / Chip Seal",
+              "Bitumen emulsion"
+            ],
+            "top1": "T05.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S01",
+              "T13.U03.S02"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Asphalt Concrete (AC) - HMA"
+            ]
+          }
+        },
+        "03.03.0330.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Bitumen",
+              "bitumen for coating ",
+              "Cut back"
+            ],
+            "top1": "T05.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T04.U03.S15",
+              "T13.U03.S01"
+            ],
+            "suggested": [
+              "Asphalt",
+              "asphalt mixture for surface course",
+              "Porous Asphalt (PA) - HMA"
+            ]
+          }
+        },
+        "03.04.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C12/15"
+            ],
+            "top1": "T12.U18.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T12.U20.S02 C20/25"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "03.04.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C20/25"
+            ],
+            "top1": "T12.U18.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S01",
+              "T12.U20.S02 C20/25"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ],
+            "top1": "T12.U18.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S01",
+              "T12.U20.S03 C25/30"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C30/37"
+            ],
+            "top1": "T12.U18.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S01",
+              "T12.U20.S04 C30/37"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C35/45"
+            ],
+            "top1": "T12.U18.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S01",
+              "T12.U20.S05 C35/45"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C40/50"
+            ],
+            "top1": "T12.U18.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S01",
+              "T12.U20.S06 C40/50"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              "C12/15"
+            ]
+          }
+        },
+        "03.04.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              ""
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "03.05.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U03.S00",
+              "T23.U03.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ]
+          }
+        },
+        "03.05.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ],
+            "top1": "T23.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U03.S00",
+              "T23.U03.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ]
+          }
+        },
+        "03.05.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Concrete paving blocks",
+              ""
+            ],
+            "top1": "T23.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U03.S00",
+              "T23.U03.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ]
+          }
+        },
+        "03.05.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Building Components",
+              "Brick (clay)",
+              ""
+            ],
+            "top1": "T07.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U03.S00",
+              "T23.U03.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ]
+          }
+        },
+        "03.05.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Building Components",
+              "Tile (clay)",
+              ""
+            ],
+            "top1": "T07.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U03.S00",
+              "T23.U03.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Other prefabricated concrete elements (i.e., curbs, edges, trenches)",
+              ""
+            ]
+          }
+        },
+        "03.05.0060.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S00",
+              "T12.U20.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "04.01.0010.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C35/45"
+            ],
+            "top1": "T12.U10.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S03",
+              "T12.U10.S03 C35/45"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C40/50"
+            ]
+          }
+        },
+        "04.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C30/37"
+            ],
+            "top1": "T12.U10.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U02.S02",
+              "T12.U10.S02 C30/37"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in prestressed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for piles",
+              "C25/30"
+            ],
+            "top1": "T12.U10.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U03.S02",
+              "T12.U10.S01 C25/30"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Micropiles",
+              ""
+            ],
+            "top1": "T28.U05.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U05.S00",
+              "T28.U05.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Steel",
+              "Micropiles",
+              ""
+            ]
+          }
+        },
+        "04.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Sheet piles",
+              ""
+            ],
+            "top1": "T28.U06.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U06.S00",
+              "T28.U06.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Steel",
+              "Sheet piles",
+              ""
+            ]
+          }
+        },
+        "04.01.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C30/37"
+            ],
+            "top1": "T12.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U08.S02",
+              "T12.U08.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C25/30"
+            ],
+            "top1": "T12.U08.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U08.S01",
+              "T12.U08.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C25/30"
+            ]
+          }
+        },
+        "04.01.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for footings",
+              "C30/37"
+            ],
+            "top1": "T12.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U04.S02",
+              "T12.U08.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Lean concrete",
+              "C16/20"
+            ],
+            "top1": "T12.U21.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U17.S00",
+              "T12.U17.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Concrete",
+              "concrete mixture for base course",
+              ""
+            ]
+          }
+        },
+        "04.01.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for excavation beam",
+              "C30/37"
+            ],
+            "top1": "T12.U07.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U04.S02",
+              "T12.U03.S00 (no subtype)"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for excavation beam",
+              "C25/30"
+            ],
+            "top1": "T12.U07.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.01.0120.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for excavation beam",
+              "C30/37"
+            ],
+            "top1": "T12.U07.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U20.S04",
+              "T12.U17 concrete mixture for base course"
+            ],
+            "suggested": [
+              "Concrete",
+              "General Ready mixed concrete",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C35/45"
+            ],
+            "top1": "T12.U04.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C45/55"
+            ],
+            "top1": "T12.U04.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C40/50"
+            ]
+          }
+        },
+        "04.03.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C50/60"
+            ],
+            "top1": "T12.U04.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S03",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C40/50"
+            ]
+          }
+        },
+        "04.03.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C30/37"
+            ],
+            "top1": "T12.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0050.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in prestressed concrete",
+              "C25/30"
+            ],
+            "top1": "T12.U02.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in prestressed concrete",
+              "C30/37"
+            ],
+            "top1": "T12.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0070.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C35/45"
+            ],
+            "top1": "T12.U04.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C25/30"
+            ],
+            "top1": "T12.U03.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S01",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C30/37"
+            ]
+          }
+        },
+        "04.03.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Concrete for beam in steel reinforced concrete",
+              "C30/37"
+            ],
+            "top1": "T12.U03.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0100.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for bridge deck",
+              "C40/50"
+            ],
+            "top1": "T12.U04.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U20 General Ready mixed concrete"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0110.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C25/30"
+            ],
+            "top1": "T12.U06.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "04.03.0120.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C30/37"
+            ],
+            "top1": "T12.U06.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S02",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C35/45"
+            ]
+          }
+        },
+        "04.03.0130.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Concrete",
+              "Concrete for concrete girder",
+              "C35/45"
+            ],
+            "top1": "T12.U06.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U01.S03",
+              "T12.U23 Precast Concrete sleeper for railway"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete for abutment",
+              "C40/50"
+            ]
+          }
+        },
+        "05.01.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "High quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U02.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T16.U02.S04",
+              "T16.U02.S05"
+            ],
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "High quality rock from rock cutting"
+            ]
+          }
+        },
+        "05.01.0020.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "Average quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T16.U02.S03",
+              "T16.U02.S02"
+            ],
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "Concrete arisings"
+            ]
+          }
+        },
+        "05.01.0030.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "Average quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U02.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T16.U02.S02",
+              "T16.U01.S01"
+            ],
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For use as aggregates",
+              "Average quality rock from tunnel blasting"
+            ]
+          }
+        },
+        "05.01.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For landfill",
+              "Low quality rock from tunnel blasting"
+            ],
+            "top1": "T16.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T16.U01.S04",
+              "T16.U01.S04"
+            ],
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For landfill",
+              "Waste"
+            ]
+          }
+        },
+        "05.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Wet Shotcrete for rock tunnels",
+              "C20/25"
+            ],
+            "top1": "T12.U24.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S02",
+              "T12.U18.S04"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C20/25"
+            ]
+          }
+        },
+        "05.01.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Concrete",
+              "Wet Shotcrete for rock tunnels",
+              "C30/37"
+            ],
+            "top1": "T12.U24.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U18.S03",
+              "T12.U18.S02"
+            ],
+            "suggested": [
+              "Concrete",
+              "Concrete mixture for wearing course",
+              "C25/30"
+            ]
+          }
+        },
+        "05.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Steel for tunnel lining",
+              ""
+            ],
+            "top1": "T28.U07.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U08.S00",
+              "T28.U07.S00"
+            ],
+            "suggested": [
+              "Steel",
+              "Structural steel (generic construction steel)",
+              ""
+            ]
+          }
+        },
+        "05.01.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T16.U01.S03",
+              "T15.U01.S00"
+            ],
+            "suggested": [
+              "Excavations and Rock Cutting",
+              "For landfill",
+              "Soil Excavation"
+            ]
+          }
+        },
+        "07.01.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Steel",
+              "Guardrail",
+              ""
+            ],
+            "top1": "T28.U03.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T28.U03.S00",
+              "T28.U04.S00"
+            ],
+            "suggested": [
+              "Steel",
+              "Guardrail",
+              ""
+            ]
+          }
+        },
+        "07.01.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Wood",
+              "Handrail in wood/timber",
+              ""
+            ],
+            "top1": "T30.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T30.U01.S00",
+              "T30.U01.S00"
+            ],
+            "suggested": [
+              "Wood",
+              "Handrail in wood/timber",
+              ""
+            ]
+          }
+        },
+        "07.01.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Gabion Systems",
+              "Gabion walls, fence systems and mattress",
+              ""
+            ],
+            "top1": "T19.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T19.U01.S00",
+              "T19.U01.S00"
+            ],
+            "suggested": [
+              "Gabion Systems",
+              "Gabion walls, fence systems and mattress",
+              ""
+            ]
+          }
+        },
+        "07.01.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Composite",
+              "Soil-Mix wall (without metal structure)",
+              ""
+            ],
+            "top1": "T11.U02.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T11.U01.S00",
+              "T11.U01.S00"
+            ],
+            "suggested": [
+              "Composite",
+              "Cement bound granular mixture",
+              ""
+            ]
+          }
+        },
+        "07.01.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Cabling Components",
+              "High-Density Polyethylene (HDPE)",
+              ""
+            ],
+            "top1": "T08.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T08.U01.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "07.01.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ],
+            "top1": "T23.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T23.U01.S00",
+              "T23.U01.S00"
+            ],
+            "suggested": [
+              "Prefab",
+              "Concrete cable ducts",
+              ""
+            ]
+          }
+        },
+        "07.01.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Recycled Plastic",
+              "for all usage",
+              ""
+            ],
+            "top1": "T25.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T12.U22.S00",
+              "T25.U01.S00"
+            ],
+            "suggested": [
+              "Concrete",
+              "Porous concrete for the base layer",
+              ""
+            ]
+          }
+        },
+        "07.01.0080.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T07.U01.S00",
+              "T13.U02.S04"
+            ],
+            "suggested": [
+              "Building Components",
+              "Brick (clay)",
+              ""
+            ]
+          }
+        },
+        "07.01.0090.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "",
+              "",
+              ""
+            ],
+            "top1": ""
+          },
+          "second": {
+            "pass_top1": [
+              "T13.U03.S02",
+              "T05.U01.S00"
+            ],
+            "suggested": [
+              "Construction and demolition material",
+              "17 03 - Bituminous mixtures, coal tar and tarred products",
+              "17 03 02 - Bituminous mixtures other than those mentioned in 17 03 01"
+            ]
+          }
+        },
+        "08.02.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U05.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S03",
+              "T03.U08.S03"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.02.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U05.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S02",
+              "T03.U08.S01"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.02.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U08.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U08.S03",
+              "T03.U08.S03"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.02.0040.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for concrete mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U08.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U09.S02",
+              "T03.U08.S01"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for hydraulically bound mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.02.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Water",
+              "for all usage",
+              ""
+            ],
+            "top1": "T29.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "",
+              "T29.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        },
+        "08.04.0010.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ],
+            "top1": "T05.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S01",
+              "T05.U01.S01"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Normal Bitumen"
+            ]
+          }
+        },
+        "08.04.0020.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ],
+            "top1": "T05.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T05.U01.S02",
+              "T05.U01.S02"
+            ],
+            "suggested": [
+              "Bitumen",
+              "bitumen for asphalt mixtures",
+              "Polymer Modified Bitumen (PMB)"
+            ]
+          }
+        },
+        "08.04.0030.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Organic fibers"
+            ],
+            "top1": "T01.U01.S05"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S05",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Organic fibers"
+            ]
+          }
+        },
+        "08.04.0040.": {
+          "primary": {
+            "decision": "needs_review",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For chemical process technologies (WMA)"
+            ],
+            "top1": "T01.U01.S01"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S01",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For chemical process technologies (WMA)"
+            ]
+          }
+        },
+        "08.04.0050.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For foaming systems technologies (WMA)"
+            ],
+            "top1": "T01.U01.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S04",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Metallic fibers"
+            ]
+          }
+        },
+        "08.04.0060.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For organic additives technologies (WMA)"
+            ],
+            "top1": "T01.U01.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S03",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "For organic additives technologies (WMA)"
+            ]
+          }
+        },
+        "08.04.0070.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Sulphur pellets"
+            ],
+            "top1": "T01.U01.S06"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S06",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Sulphur pellets"
+            ]
+          }
+        },
+        "08.04.0080.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Metallic fibers"
+            ],
+            "top1": "T01.U01.S04"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S04",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "Additives",
+              "Additives for asphalt",
+              "Metallic fibers"
+            ]
+          }
+        },
+        "08.04.0090.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U04.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U04.S03",
+              "T03.U05.S03"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Virgin Aggregates"
+            ]
+          }
+        },
+        "08.04.0100.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Gravel for asphalt mixtures",
+              "Recycled Aggregates"
+            ],
+            "top1": "T03.U04.S02"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U05.S02",
+              "T03.U05.S02"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Gravel for concrete mixtures",
+              "Recycled Aggregates"
+            ]
+          }
+        },
+        "08.04.0110.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Aggregates",
+              "Sand for asphalt mixtures",
+              "Virgin Aggregates"
+            ],
+            "top1": "T03.U07.S03"
+          },
+          "second": {
+            "pass_top1": [
+              "T03.U07.S00",
+              "T03.U07.S00"
+            ],
+            "suggested": [
+              "Aggregates",
+              "Sand for asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "08.04.0120.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T17.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T17.U01.S00",
+              "T17.U01.S00"
+            ],
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "08.04.0130.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T17.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T17.U01.S00",
+              "T22.U01.S00"
+            ],
+            "suggested": [
+              "Filler",
+              "for use in asphalt mixtures",
+              ""
+            ]
+          }
+        },
+        "08.04.0140.": {
+          "primary": {
+            "decision": "matched",
+            "suggested": [
+              "Hydrated lime",
+              "for use in asphalt mixtures",
+              ""
+            ],
+            "top1": "T21.U01.S00"
+          },
+          "second": {
+            "pass_top1": [
+              "T01.U01.S00",
+              "T01.U01.S00"
+            ],
+            "suggested": [
+              "",
+              "",
+              ""
+            ]
+          }
+        }
+      },
+      "runs": {
+        "primary": {
+          "attributed_cost_usd": 0.469351,
+          "enrichment_sha256": "057f062221ae4cf52c231f22b65b8f6b057b80cc7eeb8ae45a6940cc84a4b7fe",
+          "input_sha256": "626003d156ea1de14ae8675eb79111aa6e034c46d1d8811019e6ee251d98383c",
+          "library_sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+          "mode": "replay",
+          "requested_model": "claude-haiku-4-5-20251001",
+          "run_id": "20261007T221357Z-7a732f90",
+          "threshold_id": "T8"
+        },
+        "second": {
+          "attributed_cost_usd": 0.066399,
+          "enrichment_sha256": null,
+          "input_sha256": "626003d156ea1de14ae8675eb79111aa6e034c46d1d8811019e6ee251d98383c",
+          "library_sha256": "96bea2506a611cb4125fc2f4dc9a035eac61ebdca9870402f54473f39e164dd1",
+          "mode": "live",
+          "requested_model": "gpt-4o-mini-2024-07-18",
+          "run_id": "20261007T225805Z-b0fedde0",
+          "threshold_id": "T1"
+        }
+      }
+    }
+  },
+  "note": "post-freeze, dev items only; no lockbox item is read",
+  "split": "eval/split_v1.json"
+}
