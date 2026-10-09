@@ -13,11 +13,7 @@ Maps each line of a construction Bill of Quantities (BoQ) to one exact row of an
 
 The [project page](https://oris-material-matcher.vercel.app) shows committed output from the lockbox runs; it does not run the matcher.
 
-Each line gets exactly one decision:
-
-- `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library;
-- `not_a_material`;
-- `needs_review`, with a reason code and two suggested rows.
+Each line gets exactly one decision: `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library; `not_a_material`; or `needs_review`, with a reason code and two suggested rows.
 
 The design, the split and the acceptance rule were pre-registered before any model call (tag `prereg-v1`; [`DESIGN.md`](DESIGN.md) §0 is a one-page summary).
 
@@ -62,12 +58,22 @@ Each BoQ line has to be tied to one library row, because that row carries the en
 
 Every requirement in the brief is mapped to its evidence in [`docs/requirements-traceability.md`](docs/requirements-traceability.md).
 
-## Run it at $0
+## Set up on your machine
 
-You need Python 3.12 and [uv](https://docs.astral.sh/uv/). None of these commands calls a model or needs a key. `oris demo` and `oris explain` read the committed runs and never the ground truth; `oris score` reads the committed output and the ground truth.
+You need git and [uv](https://docs.astral.sh/uv/getting-started/installation/); uv installs Python 3.12 itself (pinned in `.python-version`). For live runs, replace `sk-ant-REPLACE_ME` in `.env` with your Anthropic key, or set `ANTHROPIC_API_KEY` in your shell, and check it with `uv run oris doctor --live` (one small call, about $0.01). Everything in the next section runs without a key.
 
 ```bash
+git clone https://github.com/soneeee22000/oris-material-matcher.git
+cd oris-material-matcher
 uv sync --locked --all-extras --no-extra retrieval
+cp .env.example .env   # Windows PowerShell: Copy-Item .env.example .env
+```
+
+## Run it at $0
+
+None of these commands calls a model or needs a key. `oris demo` and `oris explain` read the committed runs and never the ground truth; `oris score` reads the committed output and the ground truth.
+
+```bash
 uv run pytest
 uv run oris doctor
 uv run oris demo --lang en
@@ -286,14 +292,8 @@ tests/              unit, contract, property and replay tests
 - In production, reuse reviewer corrections keyed by library hash. This is excluded here because label-derived memory would leak into the evaluation (D-02).
 - The operator UI with asynchronous jobs ([`docs/ui-spec.md`](docs/ui-spec.md)).
 
-## Releases
+## Releases, data and licence
 
-Each release is an annotated git tag; the submitted version is `v1.3.0`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
+Each release is an annotated git tag; the submitted version is `v1.3.1`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
 
-## Data and licence
-
-The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license.
-
-## Author
-
-Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)
+The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license. Author: Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)

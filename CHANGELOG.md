@@ -4,8 +4,10 @@ Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evalu
 
 ## v1.3.1 (2026-10-09)
 
-Project page only. No code, configuration or number changed.
+Docs and project page only. No code, configuration or number changed.
 
+- README: a "Set up on your machine" section (git clone, `uv sync`, copying `.env.example` to `.env` and where the Anthropic key goes, with the Windows command), ahead of the $0 commands.
+- `.env.example`: the optional `OPENAI_API_KEY` and `ORIS_API_TOKEN` lines are commented out, so a plain copy works; a blank `ORIS_API_TOKEN` would otherwise make `/v1/*` refuse every request.
 - The pipeline hero is ported from the original blueprint scene and corrected to the seven stages of `MatchService.match`: read (headers decided there), plan, two passes, the fallback (not engaged), validate + decision table, the sibling verifier on would-be matches only, decide + write. Every count comes from `site/data.json`.
 - The exporter adds the run's call concurrency (`settings_effective.concurrency`) to the page data.
 - The page opens in the dark theme; the light theme stays one click away.
