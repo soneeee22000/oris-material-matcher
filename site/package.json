@@ -5,7 +5,8 @@
   "description": "Static project page for the ORIS material matcher and its capture tooling.",
   "type": "module",
   "scripts": {
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "capture:replay": "node scripts/replay-capture.mjs"
   },
   "devDependencies": {
     "playwright": "1.63.0"
