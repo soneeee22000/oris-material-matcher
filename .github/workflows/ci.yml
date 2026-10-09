@@ -41,3 +41,6 @@ jobs:
         run: |
           uv run oris replay runs/submission/20261008T023928Z-56f85fb8 --check output/improved_output_en.csv
           uv run oris replay runs/submission/20261008T024244Z-de394c39 --check output/improved_output_fr.csv
+      - name: Project page data is current
+        shell: bash
+        run: uv run python scripts/export_site_data.py --check
