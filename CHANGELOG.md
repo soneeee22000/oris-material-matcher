@@ -2,6 +2,19 @@
 
 Each release is an annotated git tag. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`. Later releases leave it unchanged.
 
+## v1.4.0 (2026-10-09)
+
+Operator UI, added after submission. No matching, decision, configuration, output or scored number changed; the submitted version stays `v1.3.0`, and the `v1.4.0` tag is not created yet.
+
+- `oris serve` runs the API and the operator UI at `/ui` (`docs/ui-spec.md`) in one worker on `127.0.0.1:8000`. `--llm` picks the model: `live` (the pinned primary, paid), `fake` (offline, not a measurement) or `replay:<run_dir>` (recorded answers at $0; a line not in the recording goes to review as `LLM_FAILURE:replay_miss`, and only the recorded library is accepted). It warns when the UI build is missing, or when it binds beyond loopback without a token.
+- The UI is vanilla TypeScript bundled by esbuild into `src/oris_matcher/api/static/ui/`, so serving it needs no Node. It covers U1–U4: upload, progress, the results table with `needs_review` rows marked, filters, search, sort, the per-line audit drawer, a banner naming each failure reason, "Retry failed lines" (live and fake only), shareable `#job=` links and the CSV download. A banner states replay or fake mode before the run, and replay figures are labelled as recorded, not measured.
+- Async jobs API: `POST /v1/jobs`, `GET /v1/jobs/{id}`, `/result`, `/result.csv` (the CLI writer's bytes), `GET /v1/libraries` and `GET /v1/serving`. Jobs live in memory: at most 4 queued and 20 kept, results for one hour. Uploads are capped at 2 MB and 2,000 rows, a chunked body is counted as it is read, and a workbook that declares too large an uncompressed size is refused.
+- `.xlsx` BoQs are read with the `xlsx` extra (defusedxml required) and give the same line ids and cells as the CSV.
+- Replaying the EN and FR lockbox runs through `oris serve` gives a `result.csv` byte-identical to `output/improved_output_{en,fr}.csv`.
+- CI: a `ui` job type-checks and rebuilds the UI, fails when the committed bundle differs from the build (missing or extra files included), and runs a Chromium smoke test against a mocked API.
+- Fix: a blank or whitespace-only `ORIS_API_TOKEN` now leaves `/v1/*` open instead of refusing every request.
+- Departures from `docs/ui-spec.md`: built after its G6 hard stop; custom library upload and the row count before the run are not built; the theme opens dark with a toggle instead of following the system setting; colours reuse the project page's tokens instead of §10; replay is `oris serve --llm replay:<run_dir>` rather than `ORIS_LLM=replay`; the browser adds the `{yyyymmdd-hhmm}` part of the download name; the axe contrast check was not run; the browser test uses a mocked API and a CSV only; the first upload of a session took 7.5 s to be accepted, against the specified 200 ms.
+
 ## v1.3.1 (2026-10-09)
 
 Docs and project page only. No code, configuration or number changed.

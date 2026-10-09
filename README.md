@@ -30,11 +30,9 @@ The lockbox is the held-out test set: 120 items per language, 113 of them labell
 | False "not a material"                      | 0             | 0             |
 | Cost per 100 lines; seconds per routed line | $0.22; 0.63   | $0.21; 0.68   |
 
-A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English). Seconds per routed line is batch wall clock divided by routed lines; the 2.1–2.4 s that `oris score` prints attributes each call's time to the lines it carried, a different measure ([`docs/evaluation.md`](docs/evaluation.md)). The second coverage row also counts material lines whose material is not in the library.
+A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English). Seconds per routed line is batch wall clock divided by routed lines; the 2.1–2.4 s that `oris score` prints attributes each call's time to the lines it carried, a different measure ([`docs/evaluation.md`](docs/evaluation.md)). The second coverage row also counts material lines whose material is not in the library. Targets from the brief: precision ≥ 90%, $2 per 100 lines, 2 s per line. French precision is paid for in coverage; see [Known weaknesses](#known-weaknesses).
 
 ![Results from the lockbox runs: precision with its lower bound, coverage, decision shares, cost and latency](docs/media/results.png)
-
-Targets from the brief: precision ≥ 90%, $2 per 100 lines, 2 s per line. French precision is paid for in coverage; see [Known weaknesses](#known-weaknesses).
 
 - **Accuracy of matched lockbox lines at each level** (type / type + usage / full triple): EN 1.000 / .989 / .989, FR 1.000 / .988 / .988.
 - **Share of lines per decision, whole output files (319 rows):** EN 185 matched (58.0%), 90 needs_review (28.2%), 44 not_a_material (13.8%); FR 182 (57.1%), 91 (28.5%), 46 (14.4%).
@@ -53,7 +51,7 @@ Each BoQ line has to be tied to one library row, because that row carries the en
 | Labelled data at inference time      | Only the enrichment file draws on labels; every entry carries a provenance tag, and the claim holds without the entries added from dev errors | [Evaluation protocol](#evaluation-protocol), [`data/enrichment/`](data/enrichment)                     |
 | Are trade-offs explicit              | Precision first, then no lost materials, then coverage; review load is the price, cost and latency are well under budget                      | [Trade-offs](#trade-offs)                                                                              |
 | Is it engineered                     | Seven stages, one module each, closed-world validation, fail-closed error paths, an audit record per line, byte-identical replay              | [How it works](#how-it-works), [Engineering](#engineering)                                             |
-| Were other models and methods tried  | GPT-4o-mini measured; a post-freeze cross-model vote fails the pre-registered rule; Gemini Flash, embeddings and a local model were not run | [`docs/alternatives.md`](docs/alternatives.md)                                                         |
+| Were other models and methods tried  | GPT-4o-mini measured; a post-freeze cross-model vote fails the pre-registered rule; Gemini Flash, embeddings and a local model were not run   | [`docs/alternatives.md`](docs/alternatives.md)                                                         |
 | Can the choices be defended          | Any decision can be explained from the stored calls at $0                                                                                     | [A traced wrong match](#a-traced-wrong-match), [`docs/traced-cases.md`](docs/traced-cases.md)          |
 | How to run it; weaknesses; more time | $0 commands, the live-session command, known weaknesses and what I would do with more time                                                    | [Run it at $0](#run-it-at-0), [Known weaknesses](#known-weaknesses), [With more time](#with-more-time) |
 
@@ -98,20 +96,36 @@ uv run oris --input input/boq_dataset_input_fr.csv --library data/oris_materials
 
 Without `--profile b0`, a live run on either exercise file is refused unless the `eval-freeze` tag is at HEAD: those files contain the lockbox items, which were scored once, after the freeze. To rerun one live, check out that tag first (`git checkout eval-freeze`, the code and configuration the lockbox scored); a full file costs about $0.70.
 
+### Operator UI
+
+`oris serve` puts the same service behind a browser UI at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, filter the `needs_review` lines, open any line's audit record and download the CSV. At $0 it replays the recorded English lockbox run, and no model is called:
+
+```bash
+uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8
+```
+
+Open http://127.0.0.1:8000/ui/ and upload `input/boq_dataset_input_en.csv`; the downloaded CSV is byte-identical to `output/improved_output_en.csv`. A line that is not in the recording goes to review as `LLM_FAILURE:replay_miss`. With `ANTHROPIC_API_KEY` set, `uv run oris serve` calls the pinned model and is paid. It is a local tool (one worker, jobs kept in memory for an hour), not part of the submitted `v1.3.1` (it follows in `v1.4.0`); custom library upload is not built.
+
+![Operator UI after a replay of the English lockbox run: decision counts, recorded cost, and the results table with needs_review rows marked](docs/media/ui-done.png)
+
+_Local replay of recorded answers at $0 (2026-10-09). No model was called; the wall clock shown is the replay's, not model latency._
+
 ### Every entry point
 
-The first two rows make paid model calls; the rest are $0.
+The first two rows and live `oris serve` make paid model calls; the rest are $0.
 
-| Scenario                                   | Command or endpoint                                                 | Model calls                    |
-| ------------------------------------------ | ------------------------------------------------------------------- | ------------------------------ |
-| Match any BoQ with the same columns        | `oris --input <boq.csv> --library <library.csv> --output <out.csv>` | yes, needs `ANTHROPIC_API_KEY` |
-| Same service over HTTP                     | `POST /v1/match`, plus `GET /health` and `GET /ready`               | yes                            |
-| Rules-only run, offline                    | `oris ... --profile b0`                                             | none, $0                       |
-| Replay the committed lockbox runs          | `oris demo --lang en` / `--lang fr`                                 | none, $0                       |
-| Explain why one line got its decision      | `oris explain --run <run> --item <Item No.>`                        | none, $0                       |
-| Re-run a recorded run byte for byte        | `oris replay <run> --check <csv>`                                   | none, $0                       |
-| Score any output against any reference CSV | `oris score --output <out.csv> --reference <labels.csv> --strict`   | none, $0                       |
-| Check config, keys, prices and libraries   | `oris doctor` (`--live` adds a few small calls)                     | none, or a few with `--live`   |
+| Scenario                                   | Command or endpoint                                                      | Model calls                    |
+| ------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------ |
+| Match any BoQ with the same columns        | `oris --input <boq.csv> --library <library.csv> --output <out.csv>`      | yes, needs `ANTHROPIC_API_KEY` |
+| Same service over HTTP                     | `POST /v1/match`, plus `GET /health` and `GET /ready`                    | yes                            |
+| Operator UI and async jobs                 | `oris serve` → `/ui/`; `POST /v1/jobs`, `GET /v1/jobs/{id}[/result.csv]` | yes, needs `ANTHROPIC_API_KEY` |
+| Operator UI on recorded answers            | `oris serve --llm replay:<run>`                                          | none, $0                       |
+| Rules-only run, offline                    | `oris ... --profile b0`                                                  | none, $0                       |
+| Replay the committed lockbox runs          | `oris demo --lang en` / `--lang fr`                                      | none, $0                       |
+| Explain why one line got its decision      | `oris explain --run <run> --item <Item No.>`                             | none, $0                       |
+| Re-run a recorded run byte for byte        | `oris replay <run> --check <csv>`                                        | none, $0                       |
+| Score any output against any reference CSV | `oris score --output <out.csv> --reference <labels.csv> --strict`        | none, $0                       |
+| Check config, keys, prices and libraries   | `oris doctor` (`--live` adds a few small calls)                          | none, or a few with `--live`   |
 
 ## Live session
 
@@ -121,17 +135,11 @@ Run an unseen BoQ on the FR library with the brief's literal command (`match` is
 uv run oris --input new.csv --library data/oris_materials_fr.csv --output out.csv
 ```
 
-The policy is resolved per (model, library). The pinned model on the FR library is certified by a pre-registered smoke test on a 68-line builder-labelled French set (amendments A10 and A70, [`docs/gates/G6.md`](docs/gates/G6.md)):
-
-- it runs the frozen operating point `T8` (one of eight pre-registered threshold candidates, T1–T8, where T1 is the strictest) with the sibling verifier and `data/enrichment/fr.yaml`;
-- the run prints `policy_resolution: exact (policy T8)`;
-- any other model, or a library with even one byte changed, falls back to the strictest threshold `T1` and logs a warning.
+The policy is resolved per (model, library). The pinned model on the FR library is certified by a pre-registered smoke test on a 68-line builder-labelled French set (amendments A10 and A70, [`docs/gates/G6.md`](docs/gates/G6.md)): it runs the frozen operating point `T8` (one of eight pre-registered threshold candidates, T1–T8, where T1 is the strictest) with the sibling verifier and `data/enrichment/fr.yaml`, and the run prints `policy_resolution: exact (policy T8)`. Any other model, or a library with even one byte changed, falls back to the strictest threshold `T1` and logs a warning.
 
 The smoke set passed: 0 closed-world violations, 0 false `not_a_material`, 0 matches on decoy lines, and 13 of 18 base positives correct against a pass bar of 9. All 28 of its matches were correct ([`eval/smoke_fr_v1_result.md`](eval/smoke_fr_v1_result.md)). It is readiness evidence for FR → FR, not a held-out claim; the certified numbers are the lockbox ones above.
 
-The `eval-freeze` refusal covers only the two exercise input files, so an unseen BoQ is never refused.
-
-A live run can still differ from a replay, because temperature 0 is not bit-deterministic on hosted APIs. On dev, two independent live runs of the shipped configuration gave 0 decision flips in 199 lines per language ([`docs/gates/G3.md`](docs/gates/G3.md) §5).
+The `eval-freeze` refusal covers only the two exercise input files, so an unseen BoQ is never refused. A live run can still differ from a replay, because temperature 0 is not bit-deterministic on hosted APIs. On dev, two independent live runs of the shipped configuration gave 0 decision flips in 199 lines per language ([`docs/gates/G3.md`](docs/gates/G3.md) §5).
 
 ## How it works
 
@@ -160,15 +168,13 @@ What each stage did in the English lockbox run (`runs/submission/20261008T023928
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | 1 Read                      | [`io/boq_reader.py`](src/oris_matcher/io/boq_reader.py) `read_boq`                                                              | 319 rows: 37 headers, 282 items                                                                              |
 | 2 Plan                      | `service.py` `MatchService._plan`                                                                                               | policy `T8`, `data/enrichment/global.yaml`, 42 batches of up to 10                                           |
-| 3 Two passes                | `service.py` `_call_passes`, [`prompts/v1/enriched.py`](src/oris_matcher/prompts/v1/enriched.py) `build_enriched_request`                      | 42 + 42 calls to `claude-haiku-4-5-20251001`                                                                 |
+| 3 Two passes                | `service.py` `_call_passes`, [`prompts/v1/enriched.py`](src/oris_matcher/prompts/v1/enriched.py) `build_enriched_request`       | 42 + 42 calls to `claude-haiku-4-5-20251001`                                                                 |
 | 4 Fallback rescue           | `service.py` `_rescue`                                                                                                          | not engaged in the lockbox runs                                                                              |
 | 5 Validate + decision table | [`domain/validator.py`](src/oris_matcher/domain/validator.py), [`domain/decision.py`](src/oris_matcher/domain/decision.py)      | 206 would-be matches (lines that pass validation and the threshold, before the verifier) of 282 routed lines |
 | 6 Sibling verifier E-08     | `service.py` `_verify`, [`verification.py`](src/oris_matcher/verification.py)                                                   | 40 calls; 21 lines sent to review, leaving 185 matched                                                       |
 | 7 Decide + write            | `service.py` `_Assembly.result`, [`io/writer.py`](src/oris_matcher/io/writer.py), [`io/audit.py`](src/oris_matcher/io/audit.py) | 185 matched, 90 `needs_review`, 44 `not_a_material`; 124 calls in all                                        |
 
-**Reading the IDs.** D0–D10 are the decision-table rules ([`DESIGN.md`](DESIGN.md) §9.5): the first one that fires decides the line, and they are stage 5's D-rules. D-01, D-02… are design decisions, E-01, E-08… experiments, A1, A2… dated amendments to DESIGN.md, and G1, G2, G3, G5 and G6 the gates in [`docs/gates/`](docs/gates). Two of these do work in the pipeline: E-08 is the sibling verifier and E-01 the bilingual library enrichment.
-
-The shipped configuration is [`config/policy.yaml`](config/policy.yaml): `claude-haiku-4-5-20251001`, k = 2 passes over two renderings of the whole library (no shortlist, D-01), threshold `T8`, the E-08 verifier and the E-01 bilingual enrichment (`data/enrichment/global.yaml`, `data/enrichment/fr.yaml`).
+**Reading the IDs.** D0–D10 are the decision-table rules ([`DESIGN.md`](DESIGN.md) §9.5): the first one that fires decides the line, and they are stage 5's D-rules. D-01, D-02… are design decisions, E-01, E-08… experiments, A1, A2… dated amendments to DESIGN.md, and G1, G2, G3, G5 and G6 the gates in [`docs/gates/`](docs/gates). Two of these do work in the pipeline: E-08 is the sibling verifier and E-01 the bilingual library enrichment. The shipped configuration is [`config/policy.yaml`](config/policy.yaml): `claude-haiku-4-5-20251001`, k = 2 passes over two renderings of the whole library (no shortlist, D-01), threshold `T8`, the E-08 verifier and the E-01 bilingual enrichment (`data/enrichment/global.yaml`, `data/enrichment/fr.yaml`).
 
 ## A traced wrong match
 
@@ -253,9 +259,9 @@ One cost was accepted knowingly. On dev, the same enriched votes without the ver
 - **Failure handling.** No failure loses a line or mislabels one silently. Timeouts, rate limits, 5xx errors, truncation, malformed output, missing, duplicate or swapped items, and replay misses all send the line to `needs_review` with an `LLM_FAILURE:<kind>`, `LLM_UNAVAILABLE` or `BUDGET_CAP` reason. A row that only looks like a header gets `HEADER_UNCONFIRMED`. [Traced case 4](docs/traced-cases.md) shows one end to end.
 - **Closed world.** A triple that is not a row of the loaded library can never be emitted.
 - **Audit trail.** Each run writes `runs/<run_id>/` with `calls.jsonl` (one record per attempt, OTel GenAI field names, provider request id, served model, finish reasons, cost, latency), `audit.jsonl` (one record per line), `manifest.json` and the stored system prompts under `prompts/`.
-- **API.** FastAPI, `POST /v1/match` on the same `MatchService` as the CLI, plus `GET /health` and `GET /ready`; `/v1/*` needs a Bearer token when `ORIS_API_TOKEN` is set. Run it with `uv run uvicorn --factory oris_matcher.api.app:create_app`.
+- **API.** FastAPI, `POST /v1/match` on the same `MatchService` as the CLI, plus `GET /health` and `GET /ready`; `/v1/*` needs a Bearer token when `ORIS_API_TOKEN` is set to a non-blank value. Run it with `uv run uvicorn --factory oris_matcher.api.app:create_app`, or `uv run oris serve` for the same app with the async jobs API and the operator UI.
 - **LLM boundary.** Two thin adapters (Anthropic, OpenAI) behind one port; retry, budget, cost, recording and the response cache live in one wrapper, with no LLM framework or gateway (D-17).
-- **CI** ([`ci.yml`](.github/workflows/ci.yml)). Ubuntu and Windows: ruff check and format, `mypy --strict`, the test suite with an 80% coverage floor on the domain and the service, a clean-clone B0 run checked against the requirements, a byte-identical replay of both lockbox outputs, and a drift check on the project page data.
+- **CI** ([`ci.yml`](.github/workflows/ci.yml)). Ubuntu and Windows: ruff check and format, `mypy --strict`, the test suite with an 80% coverage floor on the domain and the service, a clean-clone B0 run checked against the requirements, a byte-identical replay of both lockbox outputs, and a drift check on the project page data. A `ui` job type-checks and rebuilds the UI, fails if the committed bundle differs, and runs a Chromium smoke test.
 
 ```text
 src/oris_matcher/   CLI, service, domain (parsing, validators, decision table), llm/ adapters, api/, io/
@@ -266,6 +272,7 @@ eval/               scorer, split, selection, smoke scorer, experiment ledger, l
 runs/submission/    the recorded lockbox runs behind output/
 docs/               evaluation, gates, traced cases, data analysis, protocol, UI spec, brief
 site/               the static project page, built from committed files
+ui/                 the operator UI source (TypeScript); its build is in src/oris_matcher/api/static/ui/
 tests/              unit, contract, property and replay tests
 ```
 
@@ -280,7 +287,8 @@ tests/              unit, contract, property and replay tests
 - **One triggered arm was not run.** `header_context` (6 English errors) did not run before the freeze (G2 O25).
 - **Large libraries need retrieval that is not built.** Up to 30k tokens the whole library is sent. From 30k to 150k it is still sent, with a warning and a cache check. Above 150k the run stops with an error that names the retrieval switch. The `HybridRetriever` behind the `CandidateProvider` port is designed (DESIGN.md §10.5) but not built.
 - **Alternatives are only partly measured.** GPT-4o-mini was measured, and as a second voter it fails the pre-registered E-02(d) rule ($0 analysis after the freeze, dev only). Gemini Flash, a multilingual embedding baseline and a local open-weight model were not run, so TF-IDF understates the simple approach in French ([`docs/alternatives.md`](docs/alternatives.md)).
-- **No local model, no memory, no UI.** The allowlist admits local ≤ 8B model ids, but no local adapter is built. The classifier is stateless; memory derived from labels would leak (D-02). The operator UI is specified in [`docs/ui-spec.md`](docs/ui-spec.md) but not built.
+- **No local model, no memory.** The allowlist admits local ≤ 8B model ids, but no local adapter is built. The classifier is stateless; memory derived from labels would leak (D-02).
+- **The operator UI is post-submission and partial.** It was built after the G6 hard stop. Custom library upload and the row count before the run are not built, it opens dark instead of following the system theme, the axe contrast check was not run, and its browser test runs against a mocked API ([`docs/ui-spec.md`](docs/ui-spec.md)). The first upload of a session took 7.5 s to be accepted, against the 200 ms the spec sets.
 - **Model pin.** `claude-haiku-4-5-20251001` has a published retirement floor of not before 2026-10-15 (A26); a new model needs its own certified policy. Latency was measured at the account's custom rate-limit tier, above tier 4 (`evidence/doctor_2026-10-08.json`).
 
 ## With more time
@@ -291,10 +299,10 @@ tests/              unit, contract, property and replay tests
 - Finish the deferred robustness tests from gate G3: a full fault matrix including a burst of 429 rate-limit errors, CLI/API parity over whole files, and `oris doctor` measuring the enriched prompt so budget reservations are exact.
 - Measure a multilingual embedding baseline, Gemini Flash as a second voter, and a local ≤ 8B adapter, in that order ([`docs/alternatives.md`](docs/alternatives.md#next-in-order)). Build the `HybridRetriever` and measure its recall@k for libraries above 30k tokens.
 - In production, reuse reviewer corrections keyed by library hash. This is excluded here because label-derived memory would leak into the evaluation (D-02).
-- The operator UI with asynchronous jobs ([`docs/ui-spec.md`](docs/ui-spec.md)).
+- Finish the operator UI: custom library upload, the row count before the run, an axe contrast pass, an end-to-end browser test against the real server, and parsing off the event loop.
 
 ## Releases, data and licence
 
-Each release is an annotated git tag; the submitted version is `v1.3.1`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
+Each release is an annotated git tag; the submitted version is `v1.3.1`, and the operator UI follows in `v1.4.0`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
 
 The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license. Author: Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)

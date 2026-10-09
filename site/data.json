@@ -5734,7 +5734,12 @@
   "releases": [
     {
       "date": "2026-10-09",
-      "summary": "Docs and project page only.",
+      "summary": "Operator UI, added after submission.",
+      "version": "v1.4.0"
+    },
+    {
+      "date": "2026-10-09",
+      "summary": "Project page only.",
       "version": "v1.3.1"
     },
     {

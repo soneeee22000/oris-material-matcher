@@ -974,9 +974,11 @@ GET  /ready      readiness, with no model call</pre>
               </li>
               <li>
                 <b>Not built:</b> the hybrid retriever for large libraries, a
-                local ≤ 8B model adapter, the operator UI with async jobs, and
-                the LLM diagnostics endpoint. The triggered
-                <code>header_context</code> arm was not run before the freeze.
+                local ≤ 8B model adapter and the LLM diagnostics endpoint. The
+                operator UI (<code>oris serve</code>, <code>/ui</code>) was
+                added after submission and is partial: no custom library
+                upload. The triggered <code>header_context</code> arm was not
+                run before the freeze.
               </li>
             </ul>
           </div>
@@ -1008,8 +1010,8 @@ GET  /ready      readiness, with no model call</pre>
                 8B adapter.
               </li>
               <li>
-                The operator UI with asynchronous jobs
-                (<code>docs/ui-spec.md</code>).
+                Finish the operator UI: custom library upload and an axe
+                contrast pass (<code>docs/ui-spec.md</code>).
               </li>
             </ul>
           </div>

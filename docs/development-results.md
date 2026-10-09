@@ -90,5 +90,5 @@ The whole library is shown to the model (D-01), because lexical recall@20 is onl
 | [`docs/evaluation-protocol.md`](evaluation-protocol.md)             | Full, pre-registered evaluation protocol                                                                    |
 | [`docs/data-analysis.md`](data-analysis.md)                         | Verified data findings                                                                                      |
 | [`docs/requirements-traceability.md`](requirements-traceability.md) | Every requirement in the brief, mapped to its evidence                                                      |
-| [`docs/ui-spec.md`](ui-spec.md)                                     | Operator UI specification                                                                                   |
+| [`docs/ui-spec.md`](ui-spec.md)                                     | Operator UI specification (the UI was built after submission and is partial; `oris serve` serves it at `/ui`) |
 | [`docs/exercise-brief.md`](exercise-brief.md)                       | The exercise brief as received                                                                              |

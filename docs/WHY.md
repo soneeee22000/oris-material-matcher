@@ -22,4 +22,4 @@ The people this matters to are the analysts who prepare impact assessments and t
 - **Not a product deployment.** It is a take-home exercise: a CLI, an API and committed outputs, not a service running behind a platform.
 - **Scored on one project's BoQ.** The held-out lines come from the same project as the development lines, so the result says nothing yet about other projects or other writers.
 - **The French library is certified by a smoke set, not a held-out bound.** It shows the operating point is safe on that taxonomy; it does not estimate precision there.
-- **No UI was built.** The operator UI is specified in [`ui-spec.md`](ui-spec.md) but not implemented.
+- **The UI is a local operator tool, added after submission.** `oris serve` serves it at `/ui` on this machine; it is not hosted anywhere, and in replay mode it shows recorded answers, not a model run. What it leaves out of [`ui-spec.md`](ui-spec.md) is listed in the [changelog](../CHANGELOG.md).
