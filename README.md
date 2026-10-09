@@ -97,7 +97,7 @@ Without `--profile b0`, a live run on either exercise file is refused unless the
 
 ### Operator UI
 
-The brief's optional web UI, added after submission in `v1.4.0` (the submitted `v1.3.0` does not have it). `oris serve` puts the same service behind a browser page at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, and read every line with its decision and three labels. `needs_review` rows are marked, counted and filtered in one click, and any line opens its audit record. At $0 it replays a recorded lockbox run, and no model is called:
+The brief's optional web UI, added in `v1.4.0` (the submitted `v1.3.1` does not have it). `oris serve` puts the same service behind a browser page at `/ui`: upload a BoQ (`.csv`, or `.xlsx` with the `xlsx` extra), run it, and read every line with its decision and three labels. `needs_review` rows are marked, counted and filtered in one click, and any line opens its audit record. At $0 it replays a recorded lockbox run, and no model is called:
 
 ```bash
 uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8
