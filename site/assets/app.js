@@ -8,7 +8,7 @@
 
   const DATA_URL = "data.json";
   const REPO_URL = "https://github.com/soneeee22000/oris-material-matcher";
-  const TAG = "v1.3.1";
+  const TAG = "v1.4.0";
   const BLOB_URL = `${REPO_URL}/blob/${TAG}/`;
   const CERT_BAR = 0.9;
   const PERCENT = 100;
@@ -961,6 +961,10 @@
     [
       "Replay the English lockbox run byte for byte, at $0",
       "uv run oris demo --lang en",
+    ],
+    [
+      "Open the operator UI on the recorded English run, at $0 (then http://127.0.0.1:8000/ui/)",
+      "uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8",
     ],
     [
       "Explain one decision from the committed French run",

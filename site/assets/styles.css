@@ -159,6 +159,21 @@ section {
   padding: 20px;
   min-width: 0;
 }
+.shot {
+  margin: 0;
+  min-width: 0;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--code);
+}
+.shot figcaption {
+  margin-top: 8px;
+}
 .grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));

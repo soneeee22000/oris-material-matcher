@@ -9,7 +9,7 @@
     <title>ORIS material matcher</title>
     <meta
       name="description"
-      content="Project page for the ORIS material matcher: it maps each Bill of Quantities line to an exact library row, or abstains, with lockbox-measured precision in English and French. Shows committed real output from tag v1.3.1."
+      content="Project page for the ORIS material matcher: it maps each Bill of Quantities line to an exact library row, or abstains, with lockbox-measured precision in English and French. Shows committed real output from tag v1.4.0."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="ORIS material matcher" />
@@ -67,7 +67,7 @@
         <code>data.json</code>, and that file could not be fetched, so the
         figures below are blank. The same numbers are in
         <a
-          href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/evaluation.md"
+          href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/evaluation.md"
           >docs/evaluation.md</a
         >.
       </div>
@@ -77,7 +77,7 @@
         style="padding-top: 36px"
         aria-labelledby="h-overview"
       >
-        <span class="tag">01 · Project page · tag v1.3.1</span>
+        <span class="tag">01 · Project page · tag v1.4.0</span>
         <h1 id="h-overview">ORIS material matcher</h1>
         <p class="lead" style="margin-top: 14px">
           Each line of a Bill of Quantities becomes one decision:
@@ -87,7 +87,7 @@
           in English and French on a held-out lockbox scored once.
         </p>
         <p class="honesty" id="honesty">
-          Project page: shows committed real output from tag v1.3.1; it does not
+          Project page: shows committed real output from tag v1.4.0; it does not
           run the matcher.
         </p>
         <div class="kpis" aria-label="The lockbox claim">
@@ -185,17 +185,17 @@
           </a>
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/tree/v1.3.1"
-            >Tag v1.3.1</a
+            href="https://github.com/soneeee22000/oris-material-matcher/tree/v1.4.0"
+            >Tag v1.4.0</a
           >
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/DESIGN.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/DESIGN.md"
             >DESIGN.md</a
           >
           <a
             class="btn"
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/evaluation.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/evaluation.md"
             >docs/evaluation.md</a
           >
         </div>
@@ -553,7 +553,7 @@
             <p class="tiny muted" style="margin: 10px 0 0">
               No item-specific rule encodes any of them. Source:
               <a
-                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/data-analysis.md"
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/data-analysis.md"
                 >docs/data-analysis.md</a
               >.
             </p>
@@ -616,7 +616,7 @@
           ground truth. The full transcripts, with every call id and provider
           request id, are in
           <a
-            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/traced-cases.md"
+            href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/traced-cases.md"
             >docs/traced-cases.md</a
           >.
         </p>
@@ -750,7 +750,7 @@
             <p class="tiny muted" style="margin: 10px 0 0">
               Gate record:
               <a
-                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/docs/gates/G6.md"
+                href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/gates/G6.md"
                 >docs/gates/G6.md</a
               >.
             </p>
@@ -852,9 +852,9 @@ GET  /ready      readiness, with no model call</pre>
               every line present and a per-line reason. An optional bearer token
               (<code>ORIS_API_TOKEN</code>) guards
               <code>/v1/*</code>. Each match writes the same run folder as the
-              CLI. <code>GET /v1/diagnostics/llm</code> and the async
-              <code>/v1/jobs</code> routes are designed in DESIGN.md but not
-              built.
+              CLI. The async <code>/v1/jobs</code> routes behind the operator UI
+              came later, in v1.4.0. <code>GET /v1/diagnostics/llm</code> is
+              designed in DESIGN.md but not built.
             </p>
           </div>
           <div class="panel">
@@ -885,6 +885,85 @@ GET  /ready      readiness, with no model call</pre>
             </ul>
           </div>
         </div>
+        <div class="panel" id="operator-ui" style="margin-top: 16px">
+          <h3>Operator UI (local, added in v1.4.0)</h3>
+          <div class="grid2">
+            <div style="min-width: 0">
+              <ul class="small list">
+                <li>
+                  Upload a BoQ as CSV or Excel, run it, and read the result as a
+                  table with <code>needs_review</code> rows marked. Filters,
+                  search and sort narrow it down.
+                </li>
+                <li>
+                  Each line opens an audit drawer: the gate that fired, the
+                  reason, the evidence, top-1 and top-2, the model, prompt
+                  version, call ids and the line's raw response.
+                </li>
+                <li>The result downloads as the same CSV the CLI writes.</li>
+                <li>
+                  A banner says before the run when answers are replayed, and
+                  replayed cost is labelled as recorded, with $0 spent.
+                </li>
+                <li>
+                  Replaying the English lockbox run gives
+                  <span
+                    data-k="all_labelled.en.decisions_all_rows.counts.matched"
+                    data-f="int"
+                    >–</span
+                  >
+                  matched,
+                  <span
+                    data-k="all_labelled.en.decisions_all_rows.counts.needs_review"
+                    data-f="int"
+                    >–</span
+                  >
+                  <code>needs_review</code> and
+                  <span
+                    data-k="all_labelled.en.decisions_all_rows.counts.not_a_material"
+                    data-f="int"
+                    >–</span
+                  >
+                  <code>not_a_material</code>, and a
+                  <code>result.csv</code> byte-identical to
+                  <code>output/improved_output_en.csv</code>. The French replay
+                  matches <code>output/improved_output_fr.csv</code> the same
+                  way.
+                </li>
+              </ul>
+              <p class="small" style="margin: 12px 0 4px">
+                <b>Replay, no key, $0</b>
+              </p>
+              <pre><code>uv run oris serve --llm replay:runs/submission/20261008T023928Z-56f85fb8</code></pre>
+              <p class="small" style="margin: 12px 0 4px">
+                <b>Live, paid, needs <code>ANTHROPIC_API_KEY</code></b>
+              </p>
+              <pre><code>uv run oris serve</code></pre>
+              <p class="tiny muted" style="margin: 8px 0 0">
+                Then open <code>http://127.0.0.1:8000/ui/</code>. Not built yet:
+                custom library upload and the row count before the run; the axe
+                contrast check was not run. Spec:
+                <a
+                  href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/docs/ui-spec.md"
+                  >docs/ui-spec.md</a
+                >.
+              </p>
+            </div>
+            <figure class="shot">
+              <img
+                src="assets/ui-done.png"
+                width="1440"
+                height="900"
+                loading="lazy"
+                decoding="async"
+                alt="The operator UI after a replayed English run: counts for matched, needs review and not a material, filter chips, and the results table with a needs-review row marked in amber."
+              />
+              <figcaption class="tiny muted">
+                Local replay of recorded answers; not a hosted app.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
         <div class="panel" style="margin-top: 16px">
           <h3>CI, on Linux and Windows, offline</h3>
           <div class="chips">
@@ -904,7 +983,7 @@ GET  /ready      readiness, with no model call</pre>
             Tests use a fake LLM with fault injection and the replay adapter;
             nothing in CI needs a key. See
             <a
-              href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.3.1/.github/workflows/ci.yml"
+              href="https://github.com/soneeee22000/oris-material-matcher/blob/v1.4.0/.github/workflows/ci.yml"
               >.github/workflows/ci.yml</a
             >.
           </p>
@@ -974,9 +1053,11 @@ GET  /ready      readiness, with no model call</pre>
               </li>
               <li>
                 <b>Not built:</b> the hybrid retriever for large libraries, a
-                local ≤ 8B model adapter, the operator UI with async jobs, and
-                the LLM diagnostics endpoint. The triggered
-                <code>header_context</code> arm was not run before the freeze.
+                local ≤ 8B model adapter and the LLM diagnostics endpoint. The
+                operator UI (<code>oris serve</code>, <code>/ui</code>) was
+                added in v1.4.0 and is partial: no custom library upload.
+                The triggered <code>header_context</code> arm was not run before
+                the freeze.
               </li>
             </ul>
           </div>
@@ -1008,8 +1089,8 @@ GET  /ready      readiness, with no model call</pre>
                 8B adapter.
               </li>
               <li>
-                The operator UI with asynchronous jobs
-                (<code>docs/ui-spec.md</code>).
+                Finish the operator UI: custom library upload and an axe
+                contrast pass (<code>docs/ui-spec.md</code>).
               </li>
             </ul>
           </div>

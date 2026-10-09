@@ -90,6 +90,26 @@ class BoqFormatError(ValueError):
     """The input cannot be read as a BoQ: undecodable, empty, malformed or missing a column."""
 
 
+class MissingColumnsError(BoqFormatError):
+    """The header lacks one or more of the five required columns.
+
+    Attributes:
+        missing: The canonical English header of each missing column, e.g. ``BoQ Qty``.
+
+    """
+
+    def __init__(self, message: str, missing: tuple[str, ...]) -> None:
+        """Keep the message and the missing columns' display names.
+
+        Args:
+            message: The error text, as ``BoqFormatError`` carries it.
+            missing: The canonical English header of each missing column.
+
+        """
+        super().__init__(message)
+        self.missing = missing
+
+
 class EncodingFallbackWarning(UserWarning):
     """The input was not valid UTF-8 and was decoded as cp1252."""
 
@@ -333,8 +353,9 @@ def _map_columns(header: Sequence[str]) -> tuple[tuple[Column, str], ...]:
             found[column].append(name)
     missing = [str(column) for column, names in found.items() if not names]
     if missing:
-        raise BoqFormatError(
-            f"BoQ input is missing required column(s) {missing}; header is {list(header)}"
+        raise MissingColumnsError(
+            f"BoQ input is missing required column(s) {missing}; header is {list(header)}",
+            tuple(COLUMN_ALIASES[column][0] for column, names in found.items() if not names),
         )
     ambiguous = {str(column): names for column, names in found.items() if len(names) > 1}
     if ambiguous:
