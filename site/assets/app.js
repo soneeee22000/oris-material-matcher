@@ -1635,7 +1635,7 @@
       decision:
         "Every quote was classified first: contiguous, skipped words, reordered, punctuation, paraphrase. Amendment A62, written before the replay that measured it: a quote passes when each of its words is a whole word of the line, in any order.",
       effect:
-        "At the replay's threshold (T1), matches barely moved (EN 2 → 2, FR 2 → 3): the recovered lines became LOW_SIGNAL, and the ledger did not keep it as a gain. At the threshold selected later (T8), D5a wrongly rejects 1 EN line and 0 FR.",
+        "At the replay's threshold (T1), matches barely moved (EN 2 → 2, FR 2 → 3): the recovered lines mostly became LOW_SIGNAL, and the ledger did not keep it as a gain. At the threshold selected later (T8), D5a wrongly rejects 1 EN line and 0 FR.",
       pairs: [
         ["EN D5a rejections ($0 replay at T1)", 52, 1, "fix", "count"],
         ["FR D5a rejections ($0 replay at T1)", 71, 0, "fix", "count"],
@@ -1675,7 +1675,7 @@
       scope: "dev",
       title: "No threshold reached the bar; a verifier did, at a price",
       problem: (data) =>
-        `At T8 dev precision was EN ${precisionCell(ladderRow(data, RUNG.sel).en)}, FR ${precisionCell(ladderRow(data, RUNG.sel).fr)}. Two LLM labeller agents and an LLM adjudicator, reviewed by the owner, classified the 93 errors (kappa .844): usage confusions came first, 23 of 49 EN and 22 of 44 FR.`,
+        `At T8 dev precision was EN ${precisionCell(ladderRow(data, RUNG.sel).en)}, FR ${precisionCell(ladderRow(data, RUNG.sel).fr)}. Two LLM labeller agents and an LLM adjudicator, with the owner reviewing every disagreement, classified the 93 errors (kappa .844): usage confusions came first, 23 of 49 EN and 22 of 44 FR.`,
       cause:
         "A usage confusion is a known confusable pair, such as piers and piles or base and binder. The panel also counts missed and safely reviewed lines, which a veto cannot touch: it acts only on would-be matches.",
       decision:
@@ -1864,7 +1864,7 @@
         "Found by reading the code, not in a run: the batch answer was validated as one object, so one line breaking a rule made the whole batch malformed. The batch was then split and every half asked again.",
       cause: "Validation at batch level instead of per line.",
       decision:
-        "Fixed before the full dev runs: parse the envelope once and validate each line alone. The offending line fails as malformed with its raw JSON kept, and is not asked again, since the same prompt gives the same answer. Splitting stays only for a broken envelope.",
+        "Fixed before the full dev runs: parse the envelope once and validate each line alone. The offending line fails as malformed with its raw JSON kept, and is not asked again, since the same prompt would produce the same violation. Splitting stays only for a broken envelope.",
       effect:
         "On the B2 dev runs, 10 EN and 7 FR lines failed as malformed, and each run still made 40 calls, all first calls, with no splits.",
       known:
@@ -1891,7 +1891,7 @@
       known:
         "Test first: the smoke reproduced in miniature failed before the fix and passes after. One live re-run of the same 5-line smoke refused nothing.",
       limit:
-        "One small smoke, run without the cache unlike the failing run; not an eval-scale result. A call within about one worst-case reservation of the cap is still refused.",
+        "One small smoke, not an eval-scale result, and not like for like: the re-run wrote both prompt prefixes fresh, where the failing run read the canonical prefix warm. A call within about one worst-case reservation of the cap is still refused.",
       sources: [["docs/gates/G2.md", 537]],
     },
     {
@@ -1909,7 +1909,7 @@
       effect:
         "The lockbox session ran once afterwards, under the frozen configuration, and nothing shows a bypass was tried.",
       known:
-        "A read-only review ran three lenses, each checked by an independent skeptic, and two of them found the routes. A test per named route shows it is refused before any model call.",
+        "A read-only review ran three lenses, each checked by a separate skeptic pass, and two of them found the routes. A test per named route shows it is refused before any model call.",
       limit:
         "The tests cover only the routes named, so nothing proves the gate is complete. The line-level exercise guard is specified, not built.",
       sources: [
@@ -2255,7 +2255,7 @@
       "kept",
       "No examples taken from the labels",
       "few-shot examples, retrieval memory",
-      "The labels are close to one line per leaf, so an example leaks its own answer, and the live French library shares no labelled row.",
+      "The labels are close to one line per leaf, so an example transfers conventions, not answers, and the live French library shares no labelled row.",
     ],
     [
       "D-03 / D-04",
