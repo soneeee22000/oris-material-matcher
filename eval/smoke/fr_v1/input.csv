@@ -1,0 +1,69 @@
+Item No.,Short Description,Long Description,Unit,BoQ Qty
+0,Installations de chantier et prestations générales,,,
+00.01.,Installations de chantier,,,
+00.01.0010.,"Installation et repli de chantier, base vie","Bungalows, clôtures, raccordements provisoires et remise en état en fin de travaux.",Ft,1
+00.01.0020.,Études d'exécution et plans de récolement,"Notes de calcul, plans d'exécution et dossier de récolement au format DAO convenu.",Ft,1
+00.01.0030.,Signalisation temporaire de chantier,"Location, pose, déplacements et entretien des panneaux de chantier pendant toute la durée des travaux.",mois,14
+1,Chaussées,,,
+01.01.,Enrobés bitumineux,,,
+01.01.0010.,"Couche de liaison en BBSG 0/14, épaisseur 6 cm","Béton bitumineux semi-grenu à chaud, liant PmB 25/55-55, aucun recyclé.",t,6800
+01.01.0020.,"Roulement BBSG 0/10 ép. 4 cm, bretelles","Béton bitumineux semi-grenu à chaud, granulats neufs uniquement, raccords à la main compris.",t,2100
+01.01.0030.,"Roulement en SMA 0/6 tiède, ép. 3 cm","Stone mastic asphalt tiède, taux d'AE 20 %, mis en œuvre au finisseur.",t,3200
+01.01.0040.,"EME 2 0/14, 100 mm, 40 % AE, couche de base","Enrobé à module élevé classe 2, fabriqué à chaud, 40 % d'agrégats d'enrobés.",t,5400
+01.01.0050.,"EME 1 0/10, 80 mm, 20 % AE, élargissement de chaussée","Enrobé à module élevé classe 1, fabriqué à chaud, 20 % d'agrégats d'enrobés.",t,1200
+01.01.0060.,"GB 1 0/14 tiède, 40 % AE, couche de fondation","Grave-bitume classe 1 fabriquée à 130 °C maximum, 40 % d'agrégats d'enrobés.",t,4300
+01.02.,Constituants des enrobés et des bétons,,,
+01.02.0010.,"Cire Fischer-Tropsch, réducteur de viscosité",Cire de synthèse ajoutée au liant pour enrobés fabriqués à température abaissée.,t,9
+01.02.0020.,"Filler calcaire 0/0,063 pour enrobés","Calcaire broyé à sec en filler d'apport, livraison en silo.",t,1400
+01.02.0030.,"Gravillons 4/16 et 16/32, roulés naturels, lavés",Granulats alluvionnaires roulés selon EN 12620 pour bétons de structure.,t,52000
+01.02.0040.,"Gravillons 6/10 basalte, CPA ≥ 0,55",Gravillons de basalte de carrière selon EN 13043 pour couches de roulement.,t,14000
+01.02.0050.,"Bitume pur 50/70, livraison en centrale","Liant routier pour enrobés à chaud, transport en citerne calorifugée.",t,2600
+01.03.,Assises traitées et géosynthétiques,,,
+01.03.0010.,"Grave-ciment dosée à 4 % de ciment, couche de fondation","Grave traitée au ciment fabriquée en centrale, dosage 4 % CEM II/B, 220 mm.",t,12000
+01.03.0020.,Géotextile non tissé de séparation sous remblai,"Nappe géotextile marquée CE, recouvrements 500 mm, grammage selon avis du maître d'œuvre.",m²,15000
+2,Ouvrages d'art,,,
+02.01.,Bétons,,,
+02.01.0010.,"Béton de propreté C16/20 X0, 50 mm, sous semelles","Béton maigre de réglage sous semelles isolées, taloché, protégé de la pluie 24 h.",m³,160
+02.01.0020.,"Hourdis du pont principal, C35/45 XC4/XD1, E/C ≤ 0,45","Béton pompé et réglé à la règle vibrante, surface prête pour l'étanchéité.",m³,3100
+02.01.0030.,"Semelles sur pieux P1–P8, C30/37 XC4/XA1","Semelles coulées sur béton de propreté après recépage des pieux, cure 7 jours.",m³,2200
+02.02.,Équipements d'ouvrages,,,
+02.02.0010.,"Appareils d'appui à pot, piles P2 à P4, 6 000 kN","Appareils d'appui à pot fixes et mobiles unidirectionnels, y compris platines et scellement.",U,12
+02.02.0020.,"Garde-corps métalliques normalisés type S8, fourniture et pose","Fourniture, pose et scellement chimique sur longrines, y compris main-d'œuvre et réglage.",m,420
+02.02.0030.,"Bois de coffrage d'origine locale France, fourniture","Fourniture du bois de coffrage pour l'ensemble des élévations, au forfait.",Ft,1
+02.03.,Soutènements et remblais,,,
+02.03.0010.,"Palplanches acier AZ 18-700, L = 12 m, laissées en place",Rideau de palplanches S355GP mis en fiche au vibrofonceur.,t,240
+02.03.0020.,Granulats de verre cellulaire pour remblai allégé,Verre expansé recyclé 10/50 en remblai léger derrière les culées.,m³,1800
+3,Réseaux,,,
+03.01.,Canalisations et câbles,,,
+03.01.0010.,"Conduite fonte ductile DN 300, eau potable","Tuyaux fonte ductile à emboîtement, joint automatique, posés en tranchée sur lit de sable.",m,860
+03.01.0020.,"Conduite fonte ductile DN 150, branchements","Tuyaux fonte ductile à emboîtement pour antennes de distribution, joint automatique.",m,310
+03.01.0030.,"Câble aluminium haute tension, pose aérienne sur pylônes","Conducteur en alliage d'aluminium tendu entre pylônes, y compris pinces d'ancrage.",m,2400
+03.02.,Terrassements à l'explosif,,,
+03.02.0010.,"Cordeau détonant 3,6 g/m, tirs en déblai rocheux","Cordeau détonant de faible grammage pour l'amorçage des volées, fourni en bobines.",m,18000
+4,Aménagements et travaux maritimes,,,
+04.01.,Quai de service,,,
+04.01.0010.,"Défenses en pneus usagés, quai de service",Pneus de récupération suspendus par chaînes galvanisées au couronnement du quai.,U,36
+04.01.0020.,"Bollards acier 15 t, quai de service","Bollards en acier moulé de capacité 15 t, scellés dans la poutre de couronnement.",U,8
+04.01.0030.,"Défenses cylindriques en caoutchouc neuf, Ø 600","Défenses extrudées en élastomère neuf, suspendues par chaînes au couronnement du quai.",m,120
+04.02.,Espaces publics,,,
+04.02.0010.,"Pavés de terre cuite posés sur mortier, place de la gare","Pavés en terre cuite 220 × 110 × 50, joints au mortier.",m²,450
+5,Bordereau complémentaire,,,
+05.01.,Fournitures diverses,,,
+05.01.0010.,"enrobe BBSG 0/10 ep.6cm chaud, 0%AE","couche de roulement parking PL, matériaux neufs",t,1850
+05.01.0020.,Bitume pol. 5 % (SBS) - fourn. centrale,"liant modifie pr BBSG, livraison citerne",t,340
+05.01.0030.,Emuls. cationique 65% enrobage,"pour enrobés a froid, stockage en cuve",t,75
+05.01.0040.,Arma. HA B500B façonnées pr BA,"aciers pour béton armé coupés et façonnés, y.c. ligatures",t,420
+05.01.0050.,Gtx NT 800g/m2 sous enrochements,"anti-poinçonnement, rouleaux 5,3 m",m²,3200
+05.01.0060.,PSE remblai léger - ens.,"blocs polystyrène expansé derrière culée C1, fourniture",Ft,1
+05.01.0070.,"membrane EPDM bassin ep 1,1 mm","feuille d'étanchéité EPDM soudée, bassin de rétention",m²,2600
+05.01.0080.,Candélabres composite h 8m (fourn.),"mâts composite pour éclairage du parking, fourniture seule",LS,1
+05.01.0090.,Fourreaux TPC rouge D90,"gaine annelée TPC pour réseau éclairage, aiguille incluse",m,4800
+05.01.0100.,"Adjuvant accélérateur de prise, forfait hiver",accélérateur de prise pour bétons coulés par temps froid,Ft,1
+05.02.,"Fournitures diverses, suite",,,
+05.02.0010.,traverses beton bi-bloc VS,"traverses béton bi-blocs pour voie de service, posées sur ballast",U,640
+05.02.0020.,Gtx tissé 400 g/m2 renfort,géotextile tissé de renforcement sous remblai,m²,5000
+05.02.0030.,bollard fonte 30T,"bollards en fonte, capacité 30 t, quai fluvial",U,4
+05.02.0040.,"CMC boue forage pieux, sacs 25kg",carboxyméthylcellulose pour boue bentonitique des pieux forés,t,6
+05.02.0050.,Beton C25/30 XC2 voiles,"béton pour voiles des culées, coulé en place, vibré",m³,380
+05.02.0060.,"Asphalte d'étanchéité OA, ép. 2 cm - forfait",asphalte coulé d'étanchéité sur hourdis du PS-3,Ft,1
+05.02.0070.,Pigment rouge (oxyde fer) enrobé piste cyclable,colorant pour enrobé de la piste cyclable,t,4

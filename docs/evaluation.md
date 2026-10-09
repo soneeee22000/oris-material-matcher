@@ -21,6 +21,40 @@ The frozen configuration is Haiku 4.5, k = 2 renderings, threshold `T8`, the E-0
 | False `not_a_material` (F_NM)                       | 0                                  | 0                                  |
 | Cost per 100 lines; wall clock per routed line      | $0.22; 0.63 s                      | $0.21; 0.68 s                      |
 
+## The full output files, as the brief asks
+
+The brief asks for precision and coverage of the output on both input files, accuracy at each hierarchy level, the share of lines per decision, and cost and latency per line. The figures below are `eval/score.py --strict` on `output/improved_output_{en,fr}.csv` against `data/boq_dataset_matched_GT.csv`. The same command scores any output against any reference with the three label columns:
+
+```bash
+uv run oris score --output output/improved_output_en.csv --reference data/boq_dataset_matched_GT.csv --strict
+```
+
+**Only the lockbox rows support the claim.** The output files cover every item. Their dev items (162 per language) were used to choose the threshold and to build the enrichment, so the "all labelled" columns include in-sample lines.
+
+| | EN, all 252 labelled | EN, lockbox 113 | FR, all 252 labelled | FR, lockbox 113 |
+|---|---|---|---|---|
+| Matched precision | .984 (182/185) | .989 (88/89) | .984 (179/182) | .988 (79/80) |
+| One-sided 95% lower bound | .959 | .948 | .958 | .942 |
+| Coverage C₂₅₂ (correct / labelled) | .722 | .779 | .710 | .699 |
+| Coverage C₂₆₅ (correct / material lines) | .687 | .752 | .675 | .675 |
+| Accuracy over matched lines: type / type+usage / triple | .995 / .989 / .984 | 1.000 / .989 / .989 | .995 / .984 / .984 | 1.000 / .988 / .988 |
+| Accuracy over labelled lines, suggested row: type / type+usage / triple | .948 / .909 / .885 | .973 / .929 / .903 | .960 / .917 / .893 | .929 / .894 / .876 |
+| False `not_a_material` | 0 | 0 | 0 | 0 |
+| Review suggestion right, hit@1 / hit@2 | .612 / .687 | .583 / .708 | .657 / .800 | .606 / .727 |
+
+**Share of lines per decision** (all 319 rows; 37 are section headers):
+
+| | matched | needs_review | not_a_material |
+|---|---|---|---|
+| EN | 185 (58.0%) | 90 (28.2%) | 44 (13.8%) |
+| FR | 182 (57.1%) | 91 (28.5%) | 46 (14.4%) |
+
+**Cost and latency per line** (the lockbox B3 runs, full files, 282 routed lines):
+- cost $0.22 (EN) and $0.21 (FR) per 100 lines;
+- wall clock 0.63 s and 0.68 s per routed line.
+- The "mean latency" the scorer prints (2.1–2.4 s) is a different measure: each call's time is attributed to the lines it carried, conservatively under concurrency, so it is not wall-clock per line.
+- The targets are $2 per 100 lines and 2 s per line.
+
 ## Like-for-like on the lockbox
 
 | Rung                                           | EN P (correct/matched) | EN CP-LB | EN C₂₅₂  | FR P (correct/matched) | FR CP-LB | FR C₂₅₂  |

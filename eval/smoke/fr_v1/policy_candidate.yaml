@@ -18,9 +18,6 @@ policies:
       verifier_adopted: true
       enrichment: data/enrichment/global.yaml
       enrichment_sha256: '057f062221ae4cf52c231f22b65b8f6b057b80cc7eeb8ae45a6940cc84a4b7fe'
-    # Haiku on the FR library: the same frozen operating point (T8, E-08 verifier) with the FR
-    # enrichment file, certified by the A10 smoke rule (A70; eval/smoke_fr_v1_result.json,
-    # run 20261008T232623Z-7ac379a8, docs/gates/G6.md). Readiness evidence, not a held-out claim.
     '6bfe1857fd365571830f402166da511c50de7435a7c31ae2bdf00eb4bf9d27d2':
       policy_id: T8
       certified_by: smoke_A10

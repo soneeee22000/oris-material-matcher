@@ -178,7 +178,7 @@ def test_match_returns_every_line_in_order_with_the_run_id() -> None:
     assert response.headers[REQUEST_ID_HEADER] == body["run_id"]
     assert [d["line_index"] for d in body["decisions"]] == list(range(len(lines)))
     assert [d["item_no"] for d in body["decisions"]] == [line["item_no"] for line in lines]
-    assert body["versions"]["policy_resolution"] == "fallback_strictest"
+    assert body["versions"]["policy_resolution"] == "exact"
     assert len(body["versions"]["prompt"]) == 2
     assert sum(body["summary"]["counts"].values()) == len(lines)
     assert body["summary"]["failures"] == 0

@@ -51,3 +51,29 @@ def test_the_shipped_entry_binds_the_enrichment_it_was_measured_with() -> None:
         recorded = ROOT / "runs" / "submission" / run / "manifest.json"
         manifest = json.loads(recorded.read_text(encoding="utf-8"))
         assert manifest["enrichment_sha256"] == file_sha
+
+
+SMOKE = ROOT / "eval" / "smoke" / "fr_v1"
+SMOKE_RESULT = ROOT / "eval" / "smoke_fr_v1_result.json"
+
+
+def test_the_fr_entry_is_the_configuration_the_a10_smoke_passed() -> None:
+    """A70: Haiku on the FR library is certified by smoke_A10 with the frozen configuration."""
+    freeze = json.loads((SMOKE / "freeze.json").read_text(encoding="utf-8"))
+    result = json.loads(SMOKE_RESULT.read_text(encoding="utf-8"))
+    library_sha = hashlib.sha256((ROOT / "data" / "oris_materials_fr.csv").read_bytes()).hexdigest()
+    assert library_sha == freeze["library_sha256"]
+    assert result["verdict"] == "pass"
+    entry = load_policy(CONFIG / "policy.yaml").lookup(HAIKU, library_sha)
+    assert entry is not None
+    assert entry.certified_by == "smoke_A10"
+    assert entry.policy_id == freeze["run_configuration"]["threshold_id"]
+    assert (
+        entry.verifier_adopted is freeze["run_configuration"]["decision_profile.verifier_adopted"]
+    )
+    assert entry.enrichment == "data/enrichment/fr.yaml"
+    assert entry.enrichment_sha256 == freeze["run_configuration"]["enrichment_sha256"]
+    manifest_path = ROOT / "runs" / "submission" / result["run_id"] / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["library_sha256"] == library_sha
+    assert manifest["input_sha256"] == freeze["input_sha256"]

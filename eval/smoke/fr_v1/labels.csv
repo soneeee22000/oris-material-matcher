@@ -1,0 +1,69 @@
+item_no,subset,expected,material_type,material_usage,material_subtype,is_material,is_concrete,decoy_close,source_item_no,drafted_by,labelled_by,note
+0,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+00.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+00.01.0010.,handwritten,no_match,,,,false,false,false,,agent,owner,"Service (installation de chantier), not a material."
+00.01.0020.,handwritten,no_match,,,,false,false,false,,agent,owner,"Service (études), not a material."
+00.01.0030.,handwritten,no_match,,,,false,false,false,,agent,owner,"Service (location et entretien), not a material."
+1,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+01.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+01.01.0010.,base_exact,match,Mélanges Bitumineux,Enrobés bitumineux,BBSG (enrobé chaud),true,false,false,03.03.0090.,agent,owner,"BBSG hot, no RAP stated: the plain BBSG (enrobé chaud) row."
+01.01.0020.,base_exact,match,Mélanges Bitumineux,Enrobés bitumineux,BBSG (enrobé chaud),true,false,false,03.03.0170.,agent,owner,"BBSG hot, 0 % AE: the plain BBSG (enrobé chaud) row."
+01.01.0030.,base_exact,match,Mélanges Bitumineux,Enrobés bitumineux,SMA (enrobé tiède) 20% AE,true,false,false,03.03.0210.,agent,owner,SMA warm with 20 % AE: exact FR row.
+01.01.0040.,base_fr_only,match,Mélanges Bitumineux,Enrobés bitumineux,EME2 (enrobé chaud) 40% AE,true,false,false,,agent,owner,EME2 hot 40 % AE: FR-only leaf (global has 30/50 % RAP only).
+01.01.0050.,base_fr_only,match,Mélanges Bitumineux,Enrobés bitumineux,EME1 (enrobé chaud) 20% AE,true,false,false,,agent,owner,EME1 hot 20 % AE: FR-only leaf.
+01.01.0060.,base_fr_only,match,Mélanges Bitumineux,Enrobés bitumineux,GB1 (enrobé tiède) 40% AE,true,false,false,,agent,owner,GB1 warm 40 % AE: FR-only leaf.
+01.02.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+01.02.0010.,base_exact,match,Additifs,Additifs pour mélange bitumineux,Additif pour WMA (organique),true,false,false,08.04.0060.,agent,owner,Synthetic wax is an organic WMA additive.
+01.02.0020.,base_exact,match,Additifs,Filler,Fillers calcaire : Dry ground calcium carbonate (GCC-Dry) Fine,true,false,false,08.04.0130.,agent,owner,Dry ground limestone filler = GCC-Dry Fine row; 'à sec' added to the dev text.
+01.02.0030.,base_exact,match,Granulats,Granulats naturels,Gravillons,true,false,false,08.02.0010.,agent,owner,Natural gravel chippings: Granulats naturels / Gravillons.
+01.02.0040.,base_exact,match,Granulats,Granulats naturels,Gravillons,true,false,false,08.04.0090.,agent,owner,Natural crushed basalt chippings: Granulats naturels / Gravillons.
+01.02.0050.,base_decoy,no_match,,,,true,false,true,,agent,owner,Close decoy: only Bitume pur 15/25 exists; 50/70 has no FR row.
+01.03.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+01.03.0010.,a10_extra,no_match,,,,true,false,false,,agent,owner,A10 subtype conflict: the only row is Grave Ciment 6 %; text states 4 %.
+01.03.0020.,a10_extra,no_match,,,,true,false,false,,agent,owner,"A10 missing spec: no grammage, so 150 / 250 / 800 g/m² cannot be chosen."
+2,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+02.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+02.01.0010.,base_exact,match,Bétons,Béton NF EN 206 CN,Béton X0 C16/20 150kg CEM I,true,true,false,04.01.0090.,agent,owner,C16/20 lean concrete; X0 added to the dev text; only C16/20 row is X0.
+02.01.0020.,base_exact,match,Bétons,Béton Fascicule 65,Béton XS3-XC1-XC2-XC3-XC4-XS1-XS2-XD1-XD2-XF1-XA1 C35/45 350kg CEM I,true,true,false,04.03.0010.,agent,owner,Bridge deck C35/45 with XC4 and XD1: only the Fascicule 65 C35/45 row covers both.
+02.01.0030.,base_exact,match,Bétons,Béton Fascicule 65,Béton XC3-XC4-XS1-XS2-XD1-XD2-XF1-XA1 C30/37 330kg CEM I,true,true,false,04.01.0060.,agent,owner,C30/37 with XC4 and XA1: only the Fascicule 65 C30/37 row covers both.
+02.02.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+02.02.0010.,base_fr_only,match,Appareils d'appui,Appareil d'appui à pot,,true,false,false,,agent,owner,Pot bearing: FR-only leaf (blank subtype in the FR library).
+02.02.0020.,a10_extra,match,Équipements métalliques,Garde-corps,Garde-corps métalliques normalisés,true,false,false,,agent,owner,A10 mixed supply + labour; the material has an exact row.
+02.02.0030.,a10_extra,match,Bois,Coffrage,Coffrage bois - local France,true,false,false,,agent,owner,A10 material priced Ft; the material has an exact row.
+02.03.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+02.03.0010.,base_decoy,no_match,,,,true,false,false,,agent,owner,Far decoy: no sheet-pile row in the FR library.
+02.03.0020.,base_decoy,no_match,,,,true,false,false,,agent,owner,Far decoy: no foam-glass row.
+3,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+03.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+03.01.0010.,base_fr_only,match,Canalisations,Canalisations en fonte ductile,Tuyau fonte ductile ∅ 300,true,false,false,,agent,owner,Ductile iron DN 300: FR-only leaf.
+03.01.0020.,base_decoy,no_match,,,,true,false,true,,agent,owner,Close decoy: ductile rows exist for ∅ 200 and ∅ 300 only.
+03.01.0030.,base_decoy,no_match,,,,true,false,true,,agent,owner,Wrong-usage decoy: the HT aluminium cable row is for underground laying only.
+03.02.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+03.02.0010.,base_fr_only,match,Travaux à l'explosif,Cordeaux,Cordeau 3.6 g,true,false,false,,agent,owner,Detonating cord 3.6 g: FR-only leaf.
+4,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+04.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+04.01.0010.,base_fr_only,match,Travaux Maritimes,Équipement maritime,Défense pneu usagé,true,false,false,,agent,owner,Used-tyre fender: FR-only leaf.
+04.01.0020.,base_fr_only,match,Travaux Maritimes,Équipement maritime,Bollard Acier 15 T,true,false,false,,agent,owner,Steel bollard 15 t: FR-only leaf.
+04.01.0030.,base_decoy,no_match,,,,true,false,true,,agent,owner,Close decoy: only the used-tyre fender row exists; new rubber fenders have none.
+04.02.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+04.02.0010.,base_decoy,no_match,,,,true,false,false,,agent,owner,Far decoy: no clay-paver row.
+5,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header (top level), not a material."
+05.01.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+05.01.0010.,handwritten,match,Mélanges Bitumineux,Enrobés bitumineux,BBSG (enrobé chaud),true,false,false,,agent,owner,"Mangled BBSG hot, no AE: plain BBSG (enrobé chaud)."
+05.01.0020.,handwritten,match,Liants bitumineux,Bitumes modifiés,Bitume polymère 5%,true,false,false,,agent,owner,Abbreviated polymer bitumen 5 %.
+05.01.0030.,handwritten,match,Liants bitumineux,Emulsions,Emulsion d'enrobage 65%,true,false,false,,agent,owner,Abbreviated coating emulsion 65 %.
+05.01.0040.,handwritten,match,Armatures,Armatures béton armé,Armatures de béton armé,true,false,false,,agent,owner,Abbreviated reinforcing steel for reinforced concrete.
+05.01.0050.,handwritten,match,Géotextiles et membranes,Géotextiles,Géotextile 800 g/m²,true,false,false,,agent,owner,Abbreviated geotextile 800 g/m².
+05.01.0060.,handwritten,match,Plastiques,Polystyrène,Polystyrène expansé,true,false,false,,agent,owner,"Abbreviated EPS, priced Ft."
+05.01.0070.,handwritten,match,Feuilles d'étanchéité,Feuille EPDM,,true,false,false,,agent,owner,EPDM sheet (blank subtype in the FR library).
+05.01.0080.,handwritten,match,Équipements électriques,Éclairage extérieur,Mat de candélabre composite - 6 à 12 m,true,false,false,,agent,owner,"Composite lighting mast 8 m, priced LS."
+05.01.0090.,handwritten,match,Canalisations,Tuyaux,Fourreaux TPC,true,false,false,,agent,owner,Abbreviated TPC ducts.
+05.01.0100.,handwritten,match,Adjuvants,Adjuvants pour bétons,Accélérateurs de prise,true,false,false,,agent,owner,"Set accelerator for concrete, priced Ft."
+05.02.,handwritten,no_match,,,,false,false,false,,agent,owner,"Section header, not a material."
+05.02.0010.,handwritten,no_match,,,,true,false,true,,agent,owner,Close decoy: only Traverse métallique exists.
+05.02.0020.,handwritten,no_match,,,,true,false,true,,agent,owner,Close decoy: geotextile rows are 150 / 250 / 800 g/m² only.
+05.02.0030.,handwritten,no_match,,,,true,false,true,,agent,owner,Close decoy: only Bollard Acier 15 T exists; cast iron 30 t conflicts.
+05.02.0040.,handwritten,match,Adjuvants,Adjuvants pour boue de forage,Carboxyméthylcellulose,true,false,false,,agent,owner,Abbreviated CMC for drilling mud.
+05.02.0050.,handwritten,no_match,,,,true,true,true,,agent,owner,Close concrete decoy: no C25/30 row in the FR library.
+05.02.0060.,handwritten,match,Mélanges Bitumineux,Asphalte d'étanchéité pour ouvrage d'art,,true,false,false,,agent,owner,"Bridge waterproofing asphalt, priced Ft (blank subtype)."
+05.02.0070.,handwritten,match,Additifs,Additifs pour mélange bitumineux,Pigment rouge (oxyde de fer),true,false,false,,agent,owner,Red iron-oxide pigment for asphalt.
