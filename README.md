@@ -13,11 +13,7 @@ Maps each line of a construction Bill of Quantities (BoQ) to one exact row of an
 
 The [project page](https://oris-material-matcher.vercel.app) shows committed output from the lockbox runs; it does not run the matcher.
 
-Each line gets exactly one decision:
-
-- `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library;
-- `not_a_material`;
-- `needs_review`, with a reason code and two suggested rows.
+Each line gets exactly one decision: `matched`, with a `type / usage / subtype` triple copied verbatim from the selected library; `not_a_material`; or `needs_review`, with a reason code and two suggested rows.
 
 The design, the split and the acceptance rule were pre-registered before any model call (tag `prereg-v1`; [`DESIGN.md`](DESIGN.md) §0 is a one-page summary).
 
@@ -30,10 +26,11 @@ The lockbox is the held-out test set: 120 items per language, 113 of them labell
 | Matched precision                           | 98.9% (88/89) | 98.8% (79/80) |
 | One-sided 95% exact lower bound             | .948          | .942          |
 | Coverage (correct / labelled)               | .779          | .699          |
+| Coverage (correct / all material lines)     | .752          | .675          |
 | False "not a material"                      | 0             | 0             |
 | Cost per 100 lines; seconds per routed line | $0.22; 0.63   | $0.21; 0.68   |
 
-A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English).
+A routed line is an item line sent to the model; header rows are not routed (282 of 319 rows in English). Seconds per routed line is batch wall clock divided by routed lines; the 2.1–2.4 s that `oris score` prints attributes each call's time to the lines it carried, a different measure ([`docs/evaluation.md`](docs/evaluation.md)). The second coverage row also counts material lines whose material is not in the library.
 
 ![Results from the lockbox runs: precision with its lower bound, coverage, decision shares, cost and latency](docs/media/results.png)
 
@@ -62,12 +59,22 @@ Each BoQ line has to be tied to one library row, because that row carries the en
 
 Every requirement in the brief is mapped to its evidence in [`docs/requirements-traceability.md`](docs/requirements-traceability.md).
 
-## Run it at $0
+## Set up on your machine
 
-You need Python 3.12 and [uv](https://docs.astral.sh/uv/). None of these commands calls a model or needs a key. `oris demo` and `oris explain` read the committed runs and never the ground truth; `oris score` reads the committed output and the ground truth.
+You need git and [uv](https://docs.astral.sh/uv/getting-started/installation/); uv installs Python 3.12 itself (pinned in `.python-version`). For live runs, replace `sk-ant-REPLACE_ME` in `.env` with your Anthropic key, or set `ANTHROPIC_API_KEY` in your shell, and check it with `uv run oris doctor --live` (one small call, about $0.01). Everything in the next section runs without a key.
 
 ```bash
+git clone https://github.com/soneeee22000/oris-material-matcher.git
+cd oris-material-matcher
 uv sync --locked --all-extras --no-extra retrieval
+cp .env.example .env   # Windows PowerShell: Copy-Item .env.example .env
+```
+
+## Run it at $0
+
+None of these commands calls a model or needs a key. `oris demo` and `oris explain` read the committed runs and never the ground truth; `oris score` reads the committed output and the ground truth.
+
+```bash
 uv run pytest
 uv run oris doctor
 uv run oris demo --lang en
@@ -89,7 +96,7 @@ The brief's command on its own French input, offline with the rules-only profile
 uv run oris --input input/boq_dataset_input_fr.csv --library data/oris_materials_global.csv --output improved_output_fr.csv --profile b0
 ```
 
-Without `--profile b0`, a live run on either exercise file is refused unless the `eval-freeze` tag is at HEAD: those files contain the lockbox items, which were scored once, after the freeze.
+Without `--profile b0`, a live run on either exercise file is refused unless the `eval-freeze` tag is at HEAD: those files contain the lockbox items, which were scored once, after the freeze. To rerun one live, check out that tag first (`git checkout eval-freeze`, the code and configuration the lockbox scored); a full file costs about $0.70.
 
 ### Every entry point
 
@@ -225,7 +232,7 @@ The full ladder, including the evidence-cap rung, is in [`docs/development-resul
 - **A bound, not a point.** "Certified" means the one-sided 95% Clopper–Pearson lower bound is at least .90.
 - **Robust to dev-derived knowledge.** Without the lines touched by enrichment entries added from dev errors, precision is EN .989 (86/87) and FR .987 (74/75) ([`docs/evaluation.md`](docs/evaluation.md#robustness)).
 - **Disclosed.** All 252 labelled lines, lockbox included, were profiled during data analysis before the split was frozen. Glossary and enrichment entries carry provenance tags (`standard`, `library`, `dev_error`). The error-cause labels were produced by a panel of two blind labeller agents and an adjudicator, and reviewed by me (Cohen's κ .844 between the two labellers).
-- **Reusable scorer.** `oris score` scores any output CSV against any reference with the three label columns, so ORIS can rerun it on its own labels.
+- **Reusable scorer.** `oris score` scores any output CSV against any reference with the three label columns, so ORIS can rerun it on its own labels. A reference that holds only the three label columns, in the same rows and order as the output, needs `--join row-order`.
 
 ## Trade-offs
 
@@ -286,14 +293,8 @@ tests/              unit, contract, property and replay tests
 - In production, reuse reviewer corrections keyed by library hash. This is excluded here because label-derived memory would leak into the evaluation (D-02).
 - The operator UI with asynchronous jobs ([`docs/ui-spec.md`](docs/ui-spec.md)).
 
-## Releases
+## Releases, data and licence
 
-Each release is an annotated git tag; the submitted version is `v1.3.0`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
+Each release is an annotated git tag; the submitted version is `v1.3.1`. The lockbox claim belongs to `v1.0`, evaluated at `eval-freeze`, and later releases leave it unchanged. See [`CHANGELOG.md`](CHANGELOG.md).
 
-## Data and licence
-
-The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license.
-
-## Author
-
-Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)
+The code is by Pyae Sone (Seon). `data/oris_materials_global.csv`, `data/oris_materials_fr.csv`, `data/boq_dataset_matched_GT.csv`, `input/`, `output/boq_dataset_output_sample.csv` and `docs/exercise-brief.md` belong to ORIS and are included for evaluation. The enrichment in `data/enrichment/` is my work but derives from the ORIS libraries. There is no licence file, because the data is not mine to license. Author: Pyae Sone (Seon) · [GitHub](https://github.com/soneeee22000) · [Repository](https://github.com/soneeee22000/oris-material-matcher)
